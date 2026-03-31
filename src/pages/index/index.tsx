@@ -27,6 +27,8 @@ import { LuEye, LuHeart } from 'react-icons/lu';
 import { GoStarFill } from 'react-icons/go';
 
 import AOS from 'aos';
+import NavbarFour from '../../components/navbar/navbar-four';
+import FeaturedProducts from '../allproduct/FeaturedProducts.tsx';
 
 interface Category{
     image: string;
@@ -83,6 +85,7 @@ function Index() {
   return (
     <>
         <NavbarOne/>
+        <NavbarFour/>
         <SliderOne/>
 
         <div className="s-py-100-50 overflow-hidden">
@@ -125,6 +128,22 @@ function Index() {
                 </div>
             </div>
         </div>
+        <div className="s-py-50" data-aos="fade-up">
+            <div className="container-fluid">
+                <div className="max-w-[1720px] mx-auto">
+                    {/* <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
+                        <div> 
+                            <img src={comment} className="mx-auto w-14 sm:w-24" alt="" />                                                 
+                        </div>
+                        <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Latest Blog</h3>
+                        <p className="mt-3">Stay informed and inspired with our latest blog posts. Explore insightful content that keeps you ahead of trends and informed on topics you love. </p>
+                    </div> */}
+                    <div data-aos="fade-up" data-aos-delay="100">
+                        <FeaturedProducts/>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div className="s-py-50-100">
             <div className="container-fluid">
@@ -149,6 +168,7 @@ function Index() {
                 </div>
             </div>
         </div>
+        
 
         <div className="s-py-100 bg-overlay dark:before:bg-title dark:before:bg-opacity-80" style={{backgroundImage:`url(${bg})`}} data-aos="fade-up">
             <img className="absolute top-0 right-0 w-[20%] z-[-1]" src={shape1} alt="shape"/>
@@ -279,6 +299,7 @@ function Index() {
                 </div>
             </div>
         </div>
+        
 
         <div className="s-py-50" data-aos="fade-up">
             <div className="container-fluid">
