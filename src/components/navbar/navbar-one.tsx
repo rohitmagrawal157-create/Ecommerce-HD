@@ -1,30 +1,15 @@
 // @ts-nocheck
 /**
  * ╔══════════════════════════════════════════════════════════════════════╗
- * ║                    NavbarOne — Unified Responsive v3                ║
+ * ║            NavbarOne — Unified with Full Page Routes v4              ║
  * ╠══════════════════════════════════════════════════════════════════════╣
- * ║                                                                      ║
- * ║  CHANGES v3:                                                         ║
- * ║  1. Mobile spacing — tighter, balanced rows. Equal visual weight.   ║
- * ║     Row A (icons): h=56px, 40×40 tap targets, even icon gaps        ║
- * ║     Row B (search): h=56px, full-width pill + purple icon btn       ║
- * ║     Row C (chips): h=48px, scrollable, active state persists        ║
- * ║                                                                      ║
- * ║  2. Mobile smart-scroll: ENTIRE mobile header hides when scrolling  ║
- * ║     DOWN and re-appears when scrolling UP. Uses translateY(-100%)   ║
- * ║     for GPU-composited 60fps animation. Thresholds prevent accidental║
- * ║     flicker. Always visible at top of page.                         ║
- * ║     Desktop utility bar still uses v2 hide-on-any-scroll.          ║
- * ║                                                                      ║
- * ║  SCROLL LOGIC (mobile):                                             ║
- * ║  scrollY <= 10px   → always show (at top)                          ║
- * ║  DOWN > 60px delta → hide (user is reading)                        ║
- * ║  UP   > 30px delta → show (user wants to navigate)                 ║
+ * ║  Adds: Home, Pages (mega menu), Shop, Blog, Contact                  ║
+ * ║  Preserves all existing furniture departments, smart scroll, etc.    ║
  * ╚══════════════════════════════════════════════════════════════════════╝
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LuHeart,
   LuShoppingBasket,
@@ -42,7 +27,7 @@ import {
 import { RiEBike2Line } from 'react-icons/ri';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DATA
+// DATA – Furniture Departments (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MEGA_MENU: Record<string, { heading: string; links: string[] }[]> = {
@@ -108,6 +93,101 @@ const DEPARTMENTS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// NEW: Page navigation data (Home, Pages, Shop, Blog, Contact)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PAGE_MENU = {
+  Home: {
+    links: [
+      { name: 'Home Minimal',    path: '/' },
+      { name: 'Home Stylish',    path: '/index-v2' },
+      { name: 'Home Accessories',path: '/index-v3' },
+      { name: 'Home Collection', path: '/index-v4' },
+      { name: 'Home Luxury',     path: '/index-v5' },
+      { name: 'Home Retro',      path: '/index-v6' },
+    ],
+  },
+  Pages: {
+    megaGroups: [
+      {
+        heading: 'Company',
+        links: [
+          { name: 'About Us',            path: '/about' },
+          { name: 'Price Plan',          path: '/pricing' },
+          { name: 'Team Member',         path: '/team' },
+          { name: 'Clients',             path: '/our-clients' },
+          { name: 'FAQs',                path: '/faq' },
+          { name: 'Terms & Conditions',  path: '/terms-and-conditions' },
+        ],
+      },
+      {
+        heading: 'Portfolio',
+        links: [
+          { name: 'Portfolio 1',          path: '/portfolio-v1' },
+          { name: 'Portfolio 2',          path: '/portfolio-v2' },
+          { name: 'Portfolio 3',          path: '/portfolio-v3' },
+          { name: 'Portfolio Details 1',  path: '/portfolio-details-v1' },
+          { name: 'Portfolio Details 2',  path: '/portfolio-details-v2' },
+          { name: '404 Error',            path: '/error' },
+        ],
+      },
+      {
+        heading: 'Account',
+        links: [
+          { name: 'My Profile',           path: '/my-profile' },
+          { name: 'Login',                path: '/login' },
+          { name: 'Register',             path: '/register' },
+          { name: 'Forget Password',      path: '/forger-password' },
+          { name: 'Coming Soon',          path: '/coming-soon' },
+          { name: 'Thank You',            path: '/thank-you' },
+        ],
+      },
+      {
+        heading: 'Checkout',
+        links: [
+          { name: 'Shipping Method',      path: '/shipping-method' },
+          { name: 'Payment Method',       path: '/payment-method' },
+          { name: 'Invoice',              path: '/invoice' },
+          { name: 'Payment Confirmation', path: '/payment-confirmation' },
+          { name: 'Payment Completed',    path: '/payment-success' },
+          { name: 'Payment Failure',      path: '/payment-failure' },
+        ],
+      },
+    ],
+  },
+  Shop: {
+    links: [
+      { name: 'Shop Layout 01',   path: '/shop-v1' },
+      { name: 'Shop Layout 02',   path: '/shop-v2' },
+      { name: 'Shop Layout 03',   path: '/shop-v3' },
+      { name: 'Shop Layout 04',   path: '/shop-v4' },
+      { name: 'Product Details',  path: '/product-details' },
+      { name: 'My Cart',          path: '/cart' },
+      { name: 'Checkout',         path: '/checkout' },
+    ],
+  },
+  Blog: {
+    links: [
+      { name: 'Blog Layout 1',    path: '/blog-v1' },
+      { name: 'Blog Layout 2',    path: '/blog-v2' },
+      { name: 'Blog Details 1',   path: '/blog-details-v1' },
+      { name: 'Blog Details 2',   path: '/blog-details-v2' },
+      { name: 'Blog Details 3',   path: '/blog-details-v3' },
+      { name: 'Blog Tag',         path: '/blog-tag' },
+    ],
+  },
+  Contact: {
+    singlePath: '/contact',
+  },
+};
+
+// Helper: check if current route matches any of the given paths
+const isActiveRoute = (currentPath: string, paths: string | string[]): boolean => {
+  if (typeof paths === 'string') return currentPath === paths;
+  return paths.includes(currentPath);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -146,7 +226,7 @@ const iconBtnStyle: React.CSSProperties = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCOPED CSS
+// SCOPED CSS (unchanged from your original)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STYLES = `
@@ -159,11 +239,9 @@ const STYLES = `
   .hcn input[type='search']::-webkit-search-decoration { display: none; }
   .hcn input:focus { outline: none; }
 
-  /* ── Breakpoint helpers ──────────────────────────────────────────── */
   @media (max-width: 767px) { .hcn .dsk { display: none !important; } }
   @media (min-width: 768px) { .hcn .mob { display: none !important; } }
 
-  /* ── Desktop utility bar: collapses on any scroll ─────────────────── */
   .hcn-util-bar {
     background: ${C.dark};
     max-height: 36px;
@@ -177,9 +255,6 @@ const STYLES = `
     opacity: 0;
   }
 
-  /* ── Mobile smart-scroll wrapper ──────────────────────────────────────
-     translateY(-100%) slides the whole mobile header above the viewport.
-     will-change: transform promotes to its own compositor layer → 60fps. */
   .hcn-mob-header {
     transform: translateY(0);
     will-change: transform;
@@ -192,24 +267,15 @@ const STYLES = `
   .hcn-util-link { color: #aaa; transition: color 0.15s; }
   .hcn-util-link:hover { color: #fff; }
 
-  /* Desktop icon button hover */
   .hcn-icon-btn:hover { background: ${C.purpleBg}; }
   .hcn-icon-btn:hover .hcn-icon-svg { color: ${C.purple} !important; stroke: ${C.purple} !important; }
   .hcn-icon-btn:hover .hcn-icon-label { color: ${C.purple} !important; }
 
-  /* ── Mobile icon button: 40×40 tap target, press feedback ──────────── */
   .hcn-mob-icon {
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    background:      none;
-    border:          none;
-    cursor:          pointer;
-    padding:         9px 9px;
-    border-radius:   10px;
-    flex-shrink:     0;
-    -webkit-tap-highlight-color: transparent;
-    transition:      background 0.13s;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; cursor: pointer;
+    padding: 9px 9px; border-radius: 10px; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent; transition: background 0.13s;
   }
   .hcn-mob-icon:active { background: ${C.purpleBg}; }
 
@@ -238,12 +304,11 @@ const STYLES = `
     z-index: 9000;
     transition: opacity 0.16s ease, transform 0.16s ease;
   }
-  .hcn-mega.is-open  { opacity: 1; transform: translateY(0) scaleY(1);       pointer-events: auto; }
+  .hcn-mega.is-open  { opacity: 1; transform: translateY(0) scaleY(1); pointer-events: auto; }
   .hcn-mega.is-shut  { opacity: 0; transform: translateY(-6px) scaleY(0.97); pointer-events: none; }
   .hcn-mega-head:hover { color: ${C.purple} !important; }
   .hcn-mega-link:hover { color: ${C.purple} !important; }
 
-  /* ── Category chips ──────────────────────────────────────────────── */
   .hcn-chips {
     display: flex; gap: 7px;
     overflow-x: auto; scrollbar-width: none;
@@ -253,16 +318,11 @@ const STYLES = `
   .hcn-chips::-webkit-scrollbar { display: none; }
 
   .hcn-chip {
-    flex-shrink: 0;
-    padding: 6px 15px;
-    border-radius: 22px;
-    font-size: 13px; font-weight: 600;
-    font-family: ${FONT}; white-space: nowrap;
+    flex-shrink: 0; padding: 6px 15px; border-radius: 22px;
+    font-size: 13px; font-weight: 600; font-family: ${FONT}; white-space: nowrap;
     border: 1.5px solid ${C.borderMd};
     background: ${C.white}; color: ${C.textPrimary};
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
   .hcn-chip.is-active { background: ${C.purple}; color: ${C.white}; border-color: ${C.purple}; }
   .hcn-chip:active    { background: ${C.purple}; color: ${C.white}; border-color: ${C.purple}; }
@@ -270,7 +330,6 @@ const STYLES = `
   .hcn-chip.sale-chip.is-active,
   .hcn-chip.sale-chip:active { background: ${C.sale}; color: ${C.white}; border-color: ${C.sale}; }
 
-  /* ── Drawer ──────────────────────────────────────────────────────── */
   .hcn-drawer-link:hover { background: ${C.purpleBg} !important; color: ${C.purple} !important; }
   .hcn-drawer-sub-link:hover { color: ${C.purple} !important; }
   .hcn-drawer-btn:hover { background: #f5f5f5; }
@@ -278,7 +337,6 @@ const STYLES = `
   @keyframes hcn-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   .hcn-sale-shimmer { animation: hcn-shimmer 2s ease-in-out infinite; }
 
-  /* ── Search bar ──────────────────────────────────────────────────── */
   .hcn-search-wrap {
     display: flex; align-items: center;
     height: 44px; border-radius: 100px; overflow: hidden;
@@ -300,7 +358,7 @@ const STYLES = `
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENT: Tooltip
+// SUB-COMPONENT: Tooltip (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Tooltip({ text, visible }: { text: string; visible: boolean }) {
@@ -322,21 +380,33 @@ function Tooltip({ text, visible }: { text: string; visible: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENT: MobileDrawer
+// SUB-COMPONENT: MobileDrawer (updated to include new page sections)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const location = useLocation();
+  const currentPath = location.pathname;
   const [expanded, setExpanded] = useState<string | null>(null);
-  const toggle = (dept: string) => setExpanded(p => (p === dept ? null : dept));
+  const toggle = (section: string) => setExpanded(p => (p === section ? null : section));
+
+  // Build all sections for mobile
+  const allSections = [
+    { type: 'link', label: 'Sale', path: '/sale', isSale: true },
+    ...Object.keys(MEGA_MENU).map(dept => ({ type: 'mega', label: dept, data: MEGA_MENU[dept] })),
+    { type: 'simple', label: 'Home', links: PAGE_MENU.Home.links },
+    { type: 'megaPage', label: 'Pages', groups: PAGE_MENU.Pages.megaGroups },
+    { type: 'simple', label: 'Shop', links: PAGE_MENU.Shop.links },
+    { type: 'simple', label: 'Blog', links: PAGE_MENU.Blog.links },
+    { type: 'link', label: 'Contact', path: '/contact', isSale: false },
+  ];
 
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.52)', zIndex: 1100, opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition: 'opacity 0.28s ease' }} />
       <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 'min(82vw, 340px)', background: C.white, zIndex: 1200, display: 'flex', flexDirection: 'column', transform: open ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', boxShadow: '4px 0 32px rgba(0,0,0,0.18)' }}>
-
         <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: '#f8f7ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1 }}>homecentre</div>
+            <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1 }}>Infinity</div>
             <div style={{ fontSize: 9, color: C.textLight, letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 3 }}>a landmark group company</div>
           </div>
           <button onClick={onClose} aria-label="Close menu" style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${C.borderMd}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -351,30 +421,75 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          <Link to="/sale" onClick={onClose} className="hcn-drawer-link" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid #f5f5f5`, fontWeight: 700, fontSize: 14, color: C.sale, fontFamily: FONT }}>
-            🔥 Sale <LuChevronRight size={14} color={C.sale} />
-          </Link>
-          {Object.entries(MEGA_MENU).map(([dept, groups]) => (
-            <div key={dept} style={{ borderBottom: `1px solid #f5f5f5` }}>
-              <button onClick={() => toggle(dept)} className="hcn-drawer-btn" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: C.textPrimary, fontFamily: FONT, textAlign: 'left', transition: 'background 0.15s' }}>
-                {dept}
-                <LuChevronDown size={14} color="#999" style={{ flexShrink: 0, transition: 'transform 0.22s ease', transform: expanded === dept ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-              </button>
-              <div style={{ maxHeight: expanded === dept ? 700 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
-                <div style={{ background: '#fafaf9', padding: '8px 16px 16px' }}>
-                  {groups.map((group, gi) => (
-                    <div key={gi} style={{ marginBottom: 13 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 7, fontFamily: FONT }}>{group.heading}</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 14px' }}>
-                        {group.links.map((link, li) => <Link key={li} to="#" onClick={onClose} className="hcn-drawer-sub-link" style={{ fontSize: 13, color: '#555', fontFamily: FONT, transition: 'color 0.15s' }}>{link}</Link>)}
-                      </div>
+          {allSections.map((section, idx) => {
+            if (section.type === 'link') {
+              return (
+                <Link
+                  key={section.label}
+                  to={section.path}
+                  onClick={onClose}
+                  className="hcn-drawer-link"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid #f5f5f5`, fontWeight: section.isSale ? 700 : 500, fontSize: 14, color: section.isSale ? C.sale : C.textPrimary, fontFamily: FONT }}
+                >
+                  {section.isSale ? '🔥 Sale' : section.label}
+                  <LuChevronRight size={14} color={section.isSale ? C.sale : '#aaa'} />
+                </Link>
+              );
+            }
+            if (section.type === 'simple') {
+              const isActive = section.links.some(link => link.path === currentPath);
+              return (
+                <div key={section.label} style={{ borderBottom: `1px solid #f5f5f5` }}>
+                  <button onClick={() => toggle(section.label)} className="hcn-drawer-btn" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: isActive ? C.purpleBg : 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: isActive ? C.purple : C.textPrimary, fontFamily: FONT, textAlign: 'left', transition: 'background 0.15s' }}>
+                    {section.label}
+                    <LuChevronDown size={14} color="#999" style={{ transition: 'transform 0.22s ease', transform: expanded === section.label ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                  </button>
+                  <div style={{ maxHeight: expanded === section.label ? 400 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+                    <div style={{ background: '#fafaf9', padding: '8px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {section.links.map((link, i) => (
+                        <Link key={i} to={link.path} onClick={onClose} className="hcn-drawer-sub-link" style={{ fontSize: 13, color: currentPath === link.path ? C.purple : '#555', fontFamily: FONT, transition: 'color 0.15s' }}>
+                          {link.name}
+                        </Link>
+                      ))}
                     </div>
-                  ))}
-                  <Link to={`/department/${toSlug(dept)}`} onClick={onClose} style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }}>View All {dept} →</Link>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            }
+            if (section.type === 'mega' || section.type === 'megaPage') {
+              const groups = section.type === 'mega' ? section.data : section.groups;
+              return (
+                <div key={section.label} style={{ borderBottom: `1px solid #f5f5f5` }}>
+                  <button onClick={() => toggle(section.label)} className="hcn-drawer-btn" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: C.textPrimary, fontFamily: FONT, textAlign: 'left' }}>
+                    {section.label}
+                    <LuChevronDown size={14} color="#999" style={{ transition: 'transform 0.22s ease', transform: expanded === section.label ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                  </button>
+                  <div style={{ maxHeight: expanded === section.label ? 700 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+                    <div style={{ background: '#fafaf9', padding: '8px 16px 16px' }}>
+                      {groups.map((group, gi) => (
+                        <div key={gi} style={{ marginBottom: 13 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 7, fontFamily: FONT }}>{group.heading}</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 14px' }}>
+                            {group.links.map((link, li) => (
+                              <Link key={li} to={link.path || '#'} onClick={onClose} className="hcn-drawer-sub-link" style={{ fontSize: 13, color: '#555', fontFamily: FONT, transition: 'color 0.15s' }}>
+                                {link.name || link}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {section.type === 'mega' && (
+                        <Link to={`/department/${toSlug(section.label)}`} onClick={onClose} style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }}>
+                          View All {section.label} →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
 
         <div style={{ borderTop: `1px solid ${C.border}`, background: '#fafaf9', padding: '12px 16px', flexShrink: 0 }}>
@@ -399,6 +514,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function NavbarOne() {
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const [activeMenu,   setActiveMenu]   = useState<string | null>(null);
   const [searchFocused,setSearchFocused]= useState(false);
@@ -407,33 +524,22 @@ export default function NavbarOne() {
   const [showEmi,      setShowEmi]      = useState(false);
   const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [activeChip,   setActiveChip]   = useState<string | null>(null);
-  const [scrolled,     setScrolled]     = useState(false);      // desktop utility bar
-  const [mobNavHidden, setMobNavHidden] = useState(false);      // mobile smart-scroll
+  const [scrolled,     setScrolled]     = useState(false);
+  const [mobNavHidden, setMobNavHidden] = useState(false);
 
   const navRef     = useRef<HTMLElement>(null);
   const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastScrollY= useRef(0);   // last recorded scrollY (ref = no re-render)
-  const scrollDelta= useRef(0);   // accumulated px since last direction change
+  const lastScrollY= useRef(0);
+  const scrollDelta= useRef(0);
 
-  // ── Smart directional scroll ─────────────────────────────────────────────
-  //
-  //  Logic (mobile only):
-  //  ① Always at top (scrollY ≤ 10px) → always show
-  //  ② Scrolling DOWN and accumulated delta > 60px → hide
-  //  ③ Scrolling UP and accumulated delta > 30px   → show
-  //
-  //  The delta accumulator resets direction on reversal. This prevents
-  //  a single small jitter triggering the transition.
-  //
-  const HIDE_THRESHOLD = 60;   // px down before hiding
-  const SHOW_THRESHOLD = 30;   // px up before showing
-  const AT_TOP         = 10;   // px from top = always show
+  const HIDE_THRESHOLD = 60;
+  const SHOW_THRESHOLD = 30;
+  const AT_TOP         = 10;
 
   const handleScroll = useCallback(() => {
     const current  = window.scrollY;
     const isMobile = window.innerWidth < 768;
 
-    // Desktop: shadow + utility bar toggle only
     setScrolled(current > 2);
 
     if (!isMobile) {
@@ -443,7 +549,6 @@ export default function NavbarOne() {
       return;
     }
 
-    // ① At the very top → always show
     if (current <= AT_TOP) {
       setMobNavHidden(false);
       scrollDelta.current = 0;
@@ -454,21 +559,13 @@ export default function NavbarOne() {
     const diff = current - lastScrollY.current;
 
     if (diff > 0) {
-      // ② Scrolling DOWN
-      // If delta was negative (was scrolling up), reset to 0 first
       if (scrollDelta.current < 0) scrollDelta.current = 0;
       scrollDelta.current += diff;
-      if (scrollDelta.current > HIDE_THRESHOLD) {
-        setMobNavHidden(true);
-      }
+      if (scrollDelta.current > HIDE_THRESHOLD) setMobNavHidden(true);
     } else if (diff < 0) {
-      // ③ Scrolling UP
-      // If delta was positive (was scrolling down), reset to 0 first
       if (scrollDelta.current > 0) scrollDelta.current = 0;
-      scrollDelta.current += diff; // diff is negative, so this subtracts
-      if (scrollDelta.current < -SHOW_THRESHOLD) {
-        setMobNavHidden(false);
-      }
+      scrollDelta.current += diff;
+      if (scrollDelta.current < -SHOW_THRESHOLD) setMobNavHidden(false);
     }
 
     lastScrollY.current = current;
@@ -479,13 +576,11 @@ export default function NavbarOne() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Body scroll lock for drawer
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
 
-  // Close mega on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) setActiveMenu(null);
@@ -494,18 +589,32 @@ export default function NavbarOne() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Timer cleanup on unmount
   useEffect(() => {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
 
-  const onDeptEnter = (dept: string) => {
+  const onDeptEnter = (label: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setActiveMenu(MEGA_MENU[dept] ? dept : null);
+    setActiveMenu(label);
   };
   const onDeptLeave  = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
   const onMegaEnter  = () => { if (timerRef.current) clearTimeout(timerRef.current); };
   const onMegaLeave  = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
+
+  // ── Combined desktop navigation items (page items + furniture departments) ──
+  const desktopNavItems = [
+    { type: 'simple-dropdown', label: 'Home', data: PAGE_MENU.Home.links, activePaths: PAGE_MENU.Home.links.map(l => l.path) },
+    { type: 'mega-dropdown',   label: 'Pages', groups: PAGE_MENU.Pages.megaGroups, activePaths: [] },
+    { type: 'simple-dropdown', label: 'Shop', data: PAGE_MENU.Shop.links, activePaths: PAGE_MENU.Shop.links.map(l => l.path) },
+    { type: 'simple-dropdown', label: 'Blog', data: PAGE_MENU.Blog.links, activePaths: PAGE_MENU.Blog.links.map(l => l.path) },
+    { type: 'link',            label: 'Contact', path: '/contact', activePaths: ['/contact'] },
+    ...DEPARTMENTS.map(dept => ({
+      type: 'mega-furniture',
+      label: dept,
+      hasMega: !!MEGA_MENU[dept],
+      activePaths: dept === 'Sale' ? ['/sale'] : [`/department/${toSlug(dept)}`],
+    })),
+  ];
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -515,26 +624,9 @@ export default function NavbarOne() {
       <style>{STYLES}</style>
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-      <header
-        ref={navRef}
-        className="hcn"
-        style={{
-          width:    '100%',
-          position: 'sticky',
-          top:      0,
-          zIndex:   1000,
-          fontFamily: FONT,
-          // Desktop shadow only (mobile shadow is inside .hcn-mob-header)
-          boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.10)' : '0 1px 0 #ebebeb',
-          transition: 'box-shadow 0.3s ease',
-        }}
-      >
+      <header ref={navRef} className="hcn" style={{ width: '100%', position: 'sticky', top: 0, zIndex: 1000, fontFamily: FONT, boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.10)' : '0 1px 0 #ebebeb', transition: 'box-shadow 0.3s ease' }}>
 
-        {/* ══════════════════════════════════════════════════
-            DESKTOP — three rows, unchanged from v2
-        ══════════════════════════════════════════════════ */}
-
-        {/* Desktop Row 1: utility bar */}
+        {/* Desktop utility bar (unchanged) */}
         <div className={`dsk hcn-util-bar${scrolled ? ' is-hidden' : ''}`}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -555,10 +647,10 @@ export default function NavbarOne() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: 11.5 }}>
               {[
-                { icon: <LuMapPin size={12} color="#9b8fff" />,     label: 'Delivering To', href: '#' },
+                { icon: <LuMapPin size={12} color="#9b8fff" />, label: 'Delivering To', href: '#' },
                 { icon: <LuSmartphone size={12} color="#9b8fff" />, label: 'Download Apps', href: '/apps' },
-                { icon: <LuTruck size={12} color="#9b8fff" />,      label: 'Track Order',   href: '/track' },
-                { icon: <LuCircle size={12} color="#9b8fff" />,     label: 'Help',          href: '/help' },
+                { icon: <LuTruck size={12} color="#9b8fff" />, label: 'Track Order', href: '/track' },
+                { icon: <LuCircle size={12} color="#9b8fff" />, label: 'Help', href: '/help' },
               ].map(({ icon, label, href }, i, arr) => (
                 <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
                   <Link to={href} className="hcn-util-link" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', height: 36, fontFamily: FONT }}>{icon}{label}</Link>
@@ -569,12 +661,12 @@ export default function NavbarOne() {
           </div>
         </div>
 
-        {/* Desktop Row 2: logo + search + actions */}
+        {/* Desktop Row 2: logo + search + actions (unchanged) */}
         <div className="dsk" style={{ background: C.white, borderBottom: `1px solid ${C.border}` }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link to="/" aria-label="homecentre home" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Link to="/" aria-label="Infinity home" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1, fontFamily: FONT }}>homecentre</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1, fontFamily: FONT }}>Infinity</div>
                 <div style={{ fontSize: 8, color: '#bbb', letterSpacing: '0.17em', textTransform: 'uppercase', marginTop: 2, fontFamily: FONT }}>a landmark group company</div>
               </div>
               <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', paddingBottom: 2 }}>
@@ -606,182 +698,212 @@ export default function NavbarOne() {
           </div>
         </div>
 
-        {/* Desktop Row 3: dept nav + mega menu */}
+        {/* Desktop Row 3: combined navigation (page items + furniture departments) */}
         <div className="dsk" style={{ background: C.white, borderBottom: '1px solid #e8e8e8', position: 'relative' }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px' }}>
-            <nav aria-label="Department navigation" style={{ display: 'flex', height: 46, overflow: 'visible' }}>
-              {DEPARTMENTS.map(dept => {
-                const hasMega = !!MEGA_MENU[dept];
-                const isActive = activeMenu === dept;
-                const isSale = dept === 'Sale';
-                return (
-                  <div key={dept} style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }} onMouseEnter={() => onDeptEnter(dept)} onMouseLeave={onDeptLeave}>
-                    <Link to={isSale ? '/sale' : `/department/${toSlug(dept)}`} className={['hcn-dept-link', isActive?'is-active':'', isSale?'is-sale':''].join(' ')}>
-                      {isSale ? <span className="hcn-sale-shimmer">{dept}</span> : dept}
-                      {hasMega && <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isActive?'rotate(180deg)':'rotate(0deg)' }} />}
-                    </Link>
-                    {hasMega && (
-                      <div className={`hcn-mega ${isActive?'is-open':'is-shut'}`} onMouseEnter={onMegaEnter} onMouseLeave={onMegaLeave}>
+            <nav aria-label="Main navigation" style={{ display: 'flex', height: 46, overflow: 'visible' }}>
+              {desktopNavItems.map((item) => {
+                const isActive = item.activePaths ? isActiveRoute(currentPath, item.activePaths) : false;
+                const isOpen = activeMenu === item.label;
+
+                // Simple link (Contact)
+                if (item.type === 'link') {
+                  return (
+                    <div key={item.label} style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                      <Link to={item.path} className={`hcn-dept-link ${isActive ? 'is-active' : ''}`}>
+                        {item.label}
+                      </Link>
+                    </div>
+                  );
+                }
+
+                // Simple dropdown (Home, Shop, Blog)
+                if (item.type === 'simple-dropdown') {
+                  return (
+                    <div
+                      key={item.label}
+                      style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      onMouseEnter={() => onDeptEnter(item.label)}
+                      onMouseLeave={onDeptLeave}
+                    >
+                      <Link
+                        to="#"
+                        className={`hcn-dept-link ${isActive ? 'is-active' : ''}`}
+                      >
+                        {item.label}
+                        <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                      </Link>
+                      <div
+                        className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`}
+                        onMouseEnter={onMegaEnter}
+                        onMouseLeave={onMegaLeave}
+                        style={{ minWidth: 220, width: 'auto' }}
+                      >
                         <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(MEGA_MENU[dept].length,5)},1fr)`, padding: '18px 14px 14px' }}>
-                          {MEGA_MENU[dept].map((group, gi) => (
-                            <div key={gi} style={{ padding: '0 14px 8px', borderRight: gi<MEGA_MENU[dept].length-1?'1px solid #f2f2f2':'none', minWidth: 130 }}>
-                              <Link to="#" className="hcn-mega-head" style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT, transition: 'color 0.14s' }}>{group.heading}</Link>
-                              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                                {group.links.map((link,li) => <li key={li}><Link to="#" className="hcn-mega-link" style={{ display: 'block', fontSize: 11.5, color: C.textMuted, fontFamily: FONT, lineHeight: 1.4, transition: 'color 0.14s' }}>{link}</Link></li>)}
+                        <ul style={{ padding: '12px 0', margin: 0, listStyle: 'none' }}>
+                          {item.data.map((link: { name: string; path: string }) => (
+                            <li key={link.path}>
+                              <Link
+                                to={link.path}
+                                className="hcn-mega-link"
+                                style={{ display: 'block', padding: '6px 20px', fontSize: 13, color: C.textMuted, fontFamily: FONT, transition: 'color 0.14s' }}
+                              >
+                                {link.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Mega dropdown (Pages)
+                if (item.type === 'mega-dropdown') {
+                  return (
+                    <div
+                      key={item.label}
+                      style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      onMouseEnter={() => onDeptEnter(item.label)}
+                      onMouseLeave={onDeptLeave}
+                    >
+                      <Link to="#" className={`hcn-dept-link ${isActive ? 'is-active' : ''}`}>
+                        {item.label}
+                        <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                      </Link>
+                      <div
+                        className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`}
+                        onMouseEnter={onMegaEnter}
+                        onMouseLeave={onMegaLeave}
+                        style={{ minWidth: 720, maxWidth: 960 }}
+                      >
+                        <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(4,1fr)`, padding: '18px 14px 14px' }}>
+                          {item.groups.map((group: any, idx: number) => (
+                            <div key={idx} style={{ padding: '0 14px', borderRight: idx < item.groups.length-1 ? '1px solid #f2f2f2' : 'none' }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT }}>{group.heading}</div>
+                              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                {group.links.map((link: any) => (
+                                  <li key={link.path}>
+                                    <Link to={link.path} className="hcn-mega-link" style={{ fontSize: 11.5, color: C.textMuted, fontFamily: FONT, lineHeight: 1.8, transition: 'color 0.14s' }}>
+                                      {link.name}
+                                    </Link>
+                                  </li>
+                                ))}
                               </ul>
                             </div>
                           ))}
                         </div>
-                        <div style={{ borderTop: '1px solid #f2f2f2', background: '#fafaf9', padding: '9px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: C.textLight, fontFamily: FONT }}>{MEGA_MENU[dept].length} categories</span>
-                          <Link to={`/department/${toSlug(dept)}`} style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }} onMouseEnter={e=>(e.currentTarget.style.color=C.purpleHover)} onMouseLeave={e=>(e.currentTarget.style.color=C.purple)}>View All {dept} →</Link>
+                        <div style={{ borderTop: '1px solid #f2f2f2', background: '#fafaf9', padding: '9px 20px', textAlign: 'right' }}>
+                          <Link to="#" style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }}>All Pages →</Link>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
+                    </div>
+                  );
+                }
+
+                // Furniture departments (mega-furniture)
+                if (item.type === 'mega-furniture') {
+                  const isSale = item.label === 'Sale';
+                  return (
+                    <div
+                      key={item.label}
+                      style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      onMouseEnter={() => onDeptEnter(item.label)}
+                      onMouseLeave={onDeptLeave}
+                    >
+                      <Link
+                        to={isSale ? '/sale' : `/department/${toSlug(item.label)}`}
+                        className={`hcn-dept-link ${isOpen ? 'is-active' : ''} ${isSale ? 'is-sale' : ''}`}
+                      >
+                        {isSale ? <span className="hcn-sale-shimmer">{item.label}</span> : item.label}
+                        {item.hasMega && <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />}
+                      </Link>
+                      {item.hasMega && (
+                        <div className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`} onMouseEnter={onMegaEnter} onMouseLeave={onMegaLeave}>
+                          <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
+                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(MEGA_MENU[item.label].length,5)},1fr)`, padding: '18px 14px 14px' }}>
+                            {MEGA_MENU[item.label].map((group: any, gi: number) => (
+                              <div key={gi} style={{ padding: '0 14px 8px', borderRight: gi < MEGA_MENU[item.label].length-1 ? '1px solid #f2f2f2' : 'none', minWidth: 130 }}>
+                                <Link to="#" className="hcn-mega-head" style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT, transition: 'color 0.14s' }}>{group.heading}</Link>
+                                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                  {group.links.map((link: string, li: number) => (
+                                    <li key={li}>
+                                      <Link to="#" className="hcn-mega-link" style={{ display: 'block', fontSize: 11.5, color: C.textMuted, fontFamily: FONT, lineHeight: 1.4, transition: 'color 0.14s' }}>{link}</Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ borderTop: '1px solid #f2f2f2', background: '#fafaf9', padding: '9px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 11, color: C.textLight, fontFamily: FONT }}>{MEGA_MENU[item.label].length} categories</span>
+                            <Link to={`/department/${toSlug(item.label)}`} style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }}>View All {item.label} →</Link>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
               })}
             </nav>
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════
-            MOBILE — all 3 rows inside ONE wrapper div (.hcn-mob-header)
-            ─────────────────────────────────────────────────────────────
-            The wrapper slides UP on scroll-down and back DOWN on scroll-up.
-            CSS: transform: translateY(-100%) / translateY(0)
-            transition: 0.32s cubic-bezier (feels snappy, not laggy)
-            will-change: transform → compositor layer → GPU, 60fps
-        ══════════════════════════════════════════════════════════════ */}
-        <div
-          className={`mob hcn-mob-header${mobNavHidden ? ' is-hidden' : ''}`}
-          style={{
-            background: C.white,
-            // Shadow appears after the user has scrolled at all
-            boxShadow: scrolled ? '0 3px 16px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-
-          {/* ── MOBILE ROW A: ☰  homecentre  ···  ♡  🛒  👤 ────────────
-              Height 56px. Hamburger left, logo centre-left, icons right.
-              All buttons use .hcn-mob-icon for 40px+ touch targets.      */}
-          <div style={{
-            height:       56,
-            display:      'flex',
-            alignItems:   'center',
-            padding:      '0 10px 0 6px',
-            borderBottom: `1px solid ${C.border}`,
-            gap:          0,
-          }}>
-
-            {/* Hamburger */}
+        {/* ───────────────────────────────────────────────────────────────
+            MOBILE HEADER (3 rows, smart-scroll)
+        ─────────────────────────────────────────────────────────────── */}
+        <div className={`mob hcn-mob-header${mobNavHidden ? ' is-hidden' : ''}`} style={{ background: C.white, boxShadow: scrolled ? '0 3px 16px rgba(0,0,0,0.08)' : 'none' }}>
+          {/* Row A: hamburger, logo, icons */}
+          <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 10px 0 6px', borderBottom: `1px solid ${C.border}`, gap: 0 }}>
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="hcn-mob-icon" style={{ marginRight: 2 }}>
               <LuMenu size={22} color={C.textPrimary} strokeWidth={2} />
             </button>
-
-            {/* Logo */}
-            <Link to="/" aria-label="homecentre" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', marginLeft: 2 }}>
-              <span style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.3, lineHeight: 1, fontFamily: FONT }}>
-                homecentre
-              </span>
+            <Link to="/" aria-label="Infinity" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', marginLeft: 2 }}>
+              <span style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.3, lineHeight: 1, fontFamily: FONT }}>Infinity</span>
             </Link>
-
-            {/* Spacer — pushes icons to far right */}
             <div style={{ flex: 1 }} />
-
-            {/* Wishlist */}
-            <button aria-label="Wishlist" className="hcn-mob-icon">
-              <LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} />
-            </button>
-
-            {/* Basket with badge */}
+            <button aria-label="Wishlist" className="hcn-mob-icon"><LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} /></button>
             <button aria-label="Basket" className="hcn-mob-icon">
               <div style={{ position: 'relative' }}>
                 <LuShoppingBasket size={22} color="#2a2a2a" strokeWidth={1.8} />
-                <span style={{
-                  position: 'absolute', top: -6, right: -6,
-                  width: 16, height: 16, borderRadius: '50%',
-                  background: C.purple, color: C.white,
-                  fontSize: 9, fontWeight: 700, lineHeight: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: FONT,
-                }}>0</span>
+                <span style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: '50%', background: C.purple, color: C.white, fontSize: 9, fontWeight: 700, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT }}>0</span>
               </div>
             </button>
-
-            {/* Profile */}
-            <button aria-label="Account" className="hcn-mob-icon">
-              <LuUser size={22} color="#2a2a2a" strokeWidth={1.8} />
-            </button>
-
+            <button aria-label="Account" className="hcn-mob-icon"><LuUser size={22} color="#2a2a2a" strokeWidth={1.8} /></button>
           </div>
 
-          {/* ── MOBILE ROW B: Search bar ─────────────────────────────────
-              Pill input, full width. Purple icon button on right.
-              Vertical padding 9px top + bottom = 62px row height total.  */}
-          <div style={{
-            padding:      '9px 12px',
-            borderBottom: `1px solid ${C.border}`,
-            background:   C.white,
-          }}>
+          {/* Row B: Search bar */}
+          <div style={{ padding: '9px 12px', borderBottom: `1px solid ${C.border}`, background: C.white }}>
             <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
               <LuSearch size={15} color={C.textLight} style={{ marginLeft: 14, flexShrink: 0 }} />
-              <input
-                type="search"
-                className="hcn-search-input"
-                placeholder="Search for products..."
-                value={searchVal}
-                onChange={e => setSearchVal(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                aria-label="Search products"
-              />
-              {searchVal && (
-                <button onClick={() => setSearchVal('')} aria-label="Clear" style={{ ...iconBtnStyle, padding: '0 8px', color: C.textLight }}>
-                  <LuX size={13} />
-                </button>
-              )}
-              <button aria-label="Search" style={{ height: '100%', width: 50, border: 'none', borderRadius: '0 100px 100px 0', background: C.purple, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <LuSearch size={17} color={C.white} />
-              </button>
+              <input type="search" className="hcn-search-input" placeholder="Search for products..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} aria-label="Search products" />
+              {searchVal && <button onClick={() => setSearchVal('')} aria-label="Clear" style={{ ...iconBtnStyle, padding: '0 8px', color: C.textLight }}><LuX size={13} /></button>}
+              <button aria-label="Search" style={{ height: '100%', width: 50, border: 'none', borderRadius: '0 100px 100px 0', background: C.purple, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><LuSearch size={17} color={C.white} /></button>
             </div>
           </div>
 
-          {/* ── MOBILE ROW C: Category chips ─────────────────────────────
-              Horizontal scroll. Active chip = filled purple.
-              Padding 9px top + bottom = 48px row height total.           */}
+          {/* Row C: Category chips (show both page items and some departments) */}
           <div style={{ padding: '9px 12px', background: C.white }}>
             <div className="hcn-chips">
-              {DEPARTMENTS.map(dept => (
+              {['Home', 'Shop', 'Blog', 'Contact', ...DEPARTMENTS.slice(0, 5)].map(label => (
                 <Link
-                  key={dept}
-                  to={dept === 'Sale' ? '/sale' : `/department/${toSlug(dept)}`}
-                  onClick={() => setActiveChip(dept)}
-                  className={[
-                    'hcn-chip',
-                    dept === 'Sale'     ? 'sale-chip' : '',
-                    activeChip === dept ? 'is-active'  : '',
-                  ].filter(Boolean).join(' ')}
+                  key={label}
+                  to={label === 'Home' ? '/' : label === 'Shop' ? '/shop-v1' : label === 'Blog' ? '/blog-v1' : label === 'Contact' ? '/contact' : label === 'Sale' ? '/sale' : `/department/${toSlug(label)}`}
+                  onClick={() => setActiveChip(label)}
+                  className={`hcn-chip ${activeChip === label ? 'is-active' : ''} ${label === 'Sale' ? 'sale-chip' : ''}`}
                 >
-                  {dept === 'Sale' ? '🔥 Sale' : dept}
+                  {label === 'Sale' ? '🔥 Sale' : label}
                 </Link>
               ))}
             </div>
           </div>
-
         </div>
-        {/* END .hcn-mob-header */}
-
       </header>
 
-      {/* Desktop mega menu backdrop */}
-      <div style={{
-        position: 'fixed', inset: 0, top: 120,
-        background: 'rgba(0,0,0,0.16)', zIndex: 998,
-        opacity: activeMenu ? 1 : 0, pointerEvents: 'none',
-        transition: 'opacity 0.16s ease',
-      }} />
+      {/* Backdrop for mega menu */}
+      <div style={{ position: 'fixed', inset: 0, top: 120, background: 'rgba(0,0,0,0.16)', zIndex: 998, opacity: activeMenu ? 1 : 0, pointerEvents: 'none', transition: 'opacity 0.16s ease' }} />
     </>
   );
 }

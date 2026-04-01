@@ -27,7 +27,7 @@ import { LuEye, LuHeart } from 'react-icons/lu';
 import { GoStarFill } from 'react-icons/go';
 
 import AOS from 'aos';
-import NavbarFour from '../../components/navbar/navbar-four';
+// import NavbarFour from '../../components/navbar/navbar-four';
 import FeaturedProducts from '../allproduct/FeaturedProducts.tsx';
 
 interface Category{
@@ -84,8 +84,9 @@ function Index() {
 
   return (
     <>
+    <div className="overflow-x-hidden w-full">
         <NavbarOne/>
-        <NavbarFour/>
+        {/* <NavbarFour/> */}
         <SliderOne/>
 
         <div className="s-py-100-50 overflow-hidden">
@@ -335,6 +336,7 @@ function Index() {
         <FooterOne/>
 
         <ScrollToTop/>
+        </div>
     </>
   )
 }
