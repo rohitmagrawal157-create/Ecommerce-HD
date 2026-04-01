@@ -194,8 +194,9 @@ const isActiveRoute = (currentPath: string, paths: string | string[]): boolean =
 const toSlug = (s: string) => s.toLowerCase().replace(/[\s&]+/g, '-');
 
 const C = {
-  purple:      '#6c5fc7',
-  purpleLight: '#9b8fff',
+  // purple:      '#6c5fc7',
+  purple:'#187fc1',
+  purpleLight: '#187fc1',
   purpleBg:    '#f5f3ff',
   purpleHover: '#5a4db5',
   sale:        '#d93030',
@@ -632,14 +633,14 @@ export default function NavbarOne() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <div style={{ position: 'relative' }}>
                 <button onMouseEnter={() => setShowFreeShip(true)} onMouseLeave={() => setShowFreeShip(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}>
-                  <RiEBike2Line size={14} color="#9b8fff" />Free Shipping
+                  <RiEBike2Line size={14} color="#187fc1" />Free Shipping
                 </button>
                 <Tooltip text="Free shipping on all orders over ₹999" visible={showFreeShip} />
               </div>
               <span style={{ color: '#3a3a3a', fontSize: 11 }}>|</span>
               <div style={{ position: 'relative' }}>
                 <button onMouseEnter={() => setShowEmi(true)} onMouseLeave={() => setShowEmi(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}>
-                  <svg width="13" height="13" fill="none" stroke="#9b8fff" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/></svg>
+                  <svg width="13" height="13" fill="none" stroke="#187fc1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/></svg>
                   EMI Options
                 </button>
                 <Tooltip text="Easy EMI available on orders above ₹3,000" visible={showEmi} />
@@ -647,10 +648,10 @@ export default function NavbarOne() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: 11.5 }}>
               {[
-                { icon: <LuMapPin size={12} color="#9b8fff" />, label: 'Delivering To', href: '#' },
-                { icon: <LuSmartphone size={12} color="#9b8fff" />, label: 'Download Apps', href: '/apps' },
-                { icon: <LuTruck size={12} color="#9b8fff" />, label: 'Track Order', href: '/track' },
-                { icon: <LuCircle size={12} color="#9b8fff" />, label: 'Help', href: '/help' },
+                { icon: <LuMapPin size={14} color="#187fc1" />, label: 'Delivering To', href: '#' },
+                { icon: <LuSmartphone size={14} color="#187fc1" />, label: 'Download Apps', href: '/apps' },
+                { icon: <LuTruck size={14} color="#187fc1" />, label: 'Track Order', href: '/track' },
+                { icon: <LuCircle size={14} color="#187fc1" />, label: 'Help', href: '/help' },
               ].map(({ icon, label, href }, i, arr) => (
                 <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
                   <Link to={href} className="hcn-util-link" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', height: 36, fontFamily: FONT }}>{icon}{label}</Link>
