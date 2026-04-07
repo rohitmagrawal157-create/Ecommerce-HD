@@ -18,14 +18,14 @@ export default function FooterOne() {
             <div className="s-pt-100">
                 <div className="container-fluid">
                     <div className="max-w-lg lg:max-w-[1052px] mx-auto flex items-end justify-between gap-3 lg:gap-8 flex-col lg:flex-row s-pb-100">
-                        <div className="md:max-w-[473px] w-full">
+                        {/* <div className="md:max-w-[473px] w-full">
                             <h2 className="font-bold leading-none text-white">Newsletter</h2>
                             <p className="mt-2 sm:mt-4 text-white-light">Stay in the loop with exclusive offers and updates. Subscribe to our newsletter for the latest trends and promotions delivered straight to your inbox. </p>
                         </div>
                         <div className="mt-4 lg:mt-6 sm:flex md:max-w-[478px] w-full">
                             <input className="w-full h-12 md:h-14 bg-white bg-opacity-[0.03] border border-white text-white placeholder:text-white-light border-opacity-30 focus:border-primary p-4 outline-none sm:flex-1 sm:border-r-0 duration-300" type="text" placeholder="Enter your email address"/>
                             <button className="w-full h-12 bg-primary text-white flex items-center justify-center text-base md:text-lg font-medium p-3 mt-3 sm:mt-0 sm:w-32 sm:h-auto sm:flex-none">Subscribe</button>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="max-w-[1722px] mx-auto flex items-start justify-between gap-10 s-pb-100 flex-wrap lg:flex-nowrap footer-wrapper">

@@ -9,7 +9,7 @@ import PartnerOne from '../../components/partner-one';
 import ScrollToTop from '../../components/scroll-to-top';
 import BlogOne from '../../components/blog/blog-one';
 
-import {categoryOne, featureOne, productList } from '../../data/data';
+import { categoryOne, featureOne, productList } from '../../data/data';
 import TinySlider from "tiny-slider-react";
 import 'tiny-slider/dist/tiny-slider.css';
 
@@ -28,21 +28,24 @@ import { GoStarFill } from 'react-icons/go';
 
 import AOS from 'aos';
 // import NavbarFour from '../../components/navbar/navbar-four';
-import FeaturedProducts from '../allproduct/FeaturedProducts.tsx';
+import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
+import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
+import ProductCollection from '../../components/allproduct/productcollection.tsx';
 
-interface Category{
+
+interface Category {
     image: string;
     item: string;
     name: string;
 }
 
-interface Feature{
+interface Feature {
     image: string;
     title: string;
     desc: string;
 }
 
-interface Product{
+interface Product {
     id: number;
     image: string;
     tag: string;
@@ -55,7 +58,7 @@ function Index() {
         AOS.init();
     }, []);
 
-     let settings = {
+    let settings = {
         container: '.tiny-three-item',
         controls: false,
         mouseDrag: true,
@@ -71,25 +74,28 @@ function Index() {
             992: {
                 items: 3
             },
-    
+
             767: {
                 items: 2
             },
-    
+
             320: {
                 items: 1
             },
         },
     }
 
-  return (
-    <>
-    <div className="overflow-x-hidden w-full">
-        <NavbarOne/>
-        {/* <NavbarFour/> */}
-        <SliderOne/>
+    return (
+        <>
+            <div className="overflow-x-hidden w-full">
+                <NavbarOne />
+                {/* <NavbarFour/> */}
+                <SliderOne />
+                <ProductCategorySlider />
+                <FeaturedProducts />
+                
 
-        <div className="s-py-100-50 overflow-hidden">
+                {/* <div className="s-py-100-50 overflow-hidden">
             <div className="container-fluid">
                 <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up">
                     <div>
@@ -128,8 +134,8 @@ function Index() {
                     </button>
                 </div>
             </div>
-        </div>
-        <div className="s-py-50" data-aos="fade-up">
+        </div> */}
+                {/* <div className="s-py-50" data-aos="fade-up">
             <div className="container-fluid">
                 <div className="max-w-[1720px] mx-auto">
                     {/* <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
@@ -139,206 +145,255 @@ function Index() {
                         <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Latest Blog</h3>
                         <p className="mt-3">Stay informed and inspired with our latest blog posts. Explore insightful content that keeps you ahead of trends and informed on topics you love. </p>
                     </div> */}
-                    <div data-aos="fade-up" data-aos-delay="100">
+                {/* <div data-aos="fade-up" data-aos-delay="100">
                         <FeaturedProducts/>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </div> */}
+                {/* </div> */}
+                {/* </div> */}
+                {/* </div> */}
 
-        <div className="s-py-50-100">
-            <div className="container-fluid">
-                <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up">
-                    <div>  
-                        <img src={sofa} alt="" className="mx-auto w-14 sm:w-24"/>                                           
-                    </div>
-                    <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">New Products</h3>
-                    <p className="mt-3">Be the first to experience innovation with our latest arrivals. Stay ahead of the curve and discover what's new in style, technology, and more. </p>
-                </div>
-                <div className="max-w-[1720px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8" data-aos="fade-up" data-aos-delay="100">
-                    {productList.slice(0,4).map((item:Product,index:number)=>{
-                        return(
-                            <LayoutOne item={item} key={index}/>
-                        )
-                    })}
-                </div>
-                <div className="text-center mt-7 md:mt-12">
-                    <Link to="/shop-v1" className="btn btn-outline" data-text="All Products">
-                        <span>All Products</span>
-                    </Link>
-                </div>
-            </div>
-        </div>
-        
+                <div className="s-py-50-100">
+                    <div className="container-fluid">
 
-        <div className="s-py-100 bg-overlay dark:before:bg-title dark:before:bg-opacity-80" style={{backgroundImage:`url(${bg})`}} data-aos="fade-up">
-            <img className="absolute top-0 right-0 w-[20%] z-[-1]" src={shape1} alt="shape"/>
-            <div className="container-fluid">
-                <div className="max-w-[1720px] mx-auto">
-                    <div className="max-w-[1186px] ml-auto">
-                        <div className="max-w-xl mb-8 md:mb-12">
-                            <div> 
-                                <img src={like} className="w-14 sm:w-24" alt="" />                                                     
+                        {/* Header */}
+                        <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up">
+                            <div>
+                                <img
+                                    src={sofa}
+                                    alt="New Products"
+                                    className="mx-auto w-14 sm:w-24"
+                                />
                             </div>
-                            <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Why you Choose Us</h3>
-                            <p className="mt-3">Choose us for unparalleled quality, exceptional service, and a commitment to your satisfaction. Join countless others who rely on us for reliability. </p>
+                            <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">
+                                New Products
+                            </h3>
+                            <p className="mt-3 text-gray-600 dark:text-gray-300">
+                                Be the first to experience innovation with our latest arrivals.
+                                Stay ahead of the curve and discover what's new in style, technology, and more.
+                            </p>
                         </div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-[30px]" data-aos="fade-up" data-aos-delay="100">
-                            {featureOne.slice(0,4).map((item:Feature,index:number)=>{
-                                return(
-                                    <div className="why-choose-card p-6 rounded-[10px]" key={index}>
-                                        <img src={item.image} alt="" className='size-12'/>
-                                        <h4 className="font-semibold leading-none mt-5 sm:mt-7 text-xl md:text-2xl">{item.title}</h4>
-                                        <p className="mt-[15px]">{item.desc}</p>
-                                    </div>
-                                )
-                            })}
+
+                        {/* Products Grid - 4 Products */}
+                        <div
+                            className="max-w-[1720px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+                            data-aos="fade-up"
+                            data-aos-delay="100"
+                        >
+                            {productList.slice(0, 4).map((item: Product, index: number) => (
+                                <LayoutOne item={item} key={index} />
+                            ))}
+                        </div>
+
+                        {/* View All Button */}
+                        <div className="text-center mt-10 md:mt-14">
+                            <Link
+                                to="/shop-v1"
+                                className="btn btn-outline px-10 py-3 text-base font-medium"
+                                data-text="All Products"
+                            >
+                                <span>All Products</span>
+                            </Link>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div className="s-py-100-50" data-aos="fade-up">
-            <div className="container-fluid">
-                <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
-                    <div>
-                        <img src={bed} className="mx-auto w-14 sm:w-24" alt="" />                                              
-                    </div>
-                    <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Featured Products</h3>
-                    <p className="mt-3">Discover our handpicked selection of standout products. Elevate your lifestyle with our top picks that combine quality, style, and innovation. </p>
-                </div>
-                <div className="max-w-[1720px] mx-auto flex gap-5 sm:gap-8 flex-col lg:flex-row" data-aos="fade-up" data-aos-delay="100">
-                    <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[766px] w-full">
-                        {productList.slice(0,4).map((item:Product,index:number)=>{
-                            return(
-                                <div className="group" key={index}>
-                                    <div className="relative overflow-hidden">
-                                        <Link to="/product-details">
-                                            <img className="w-full transform group-hover:scale-110 duration-300 sm:max-h-[320px] object-cover" src={item.image} alt="product-card"/> 
-                                        </Link>
 
-                                        <div className="absolute z-10 top-[50%] right-3 transform -translate-y-[40%] opacity-0 duration-300 transition-all group-hover:-translate-y-1/2 group-hover:opacity-100 flex flex-col items-end gap-3">
-                                            <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                                                <LuHeart className="dark:text-white h-[22px] w-[20px]"/>                                                                      
-                                                <span className="mt-1">Add to wishlist</span>
-                                            </Link>
-                                            <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                                                <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]"/>  
-                                                <span className="mt-1">Add to Cart</span>
-                                            </Link>
-                                            <button className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon quick-view">
-                                                <LuEye className="dark:text-white h-[22px] w-[20px]"/>                                      
-                                                <span className="mt-1">Quick View</span>
-                                            </button>
-                                        </div>
+                <div
+                    className="s-py-100 bg-overlay dark:before:bg-title dark:before:bg-opacity-80"
+                    style={{
+                        backgroundImage: `url('https://imgs.search.brave.com/9Dl10qoCUIwVLoDqAJtW_2thzI_lVv0UQ1L3B3BCR9E/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/Z2lmZnl3YWxscy5p/bi9jZG4vc2hvcC9m/aWxlcy90cm9waWNh/bC10cmVlcy13aGl0/ZS10b25lLW11cmFs/LXdhbGxwYXBlci01/NjQ2NjY1LmpwZz9x/dWFsaXR5PTkwJnY9/MTc3MzQwMDkzNSZ3/aWR0aD0xMzI2')`
+                    }}
+                    data-aos="fade-up"
+                >
+                    <img
+                        className="absolute top-0 right-0 w-[20%] z-[-1]"
+                        src={shape1}
+                        alt="shape"
+                    />
+
+                    <div className="container-fluid">
+                        <div className="max-w-[1720px] mx-auto">
+                            <div className="max-w-[1186px] ml-auto">
+
+                                {/* Header Section */}
+                                <div className="max-w-xl mb-8 md:mb-12">
+                                    <div>
+                                        <img src={like} className="w-14 sm:w-24" alt="" />
                                     </div>
-                                    <div className="lg:pt-6 pt-5 flex gap-3 md:gap-4 flex-col">
-                                        <h4 className="font-medium leading-none dark:text-white text-lg">{item.price}  <span className="text-title/50 line-through pl-2 inline-block">$140.99</span></h4>
-                                        <div>
-                                            <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
-                                                <Link to="/product-details" className="text-underline">{item.name}</Link>
-                                            </h5>
-                                            <ul className="flex items-center gap-2 mt-1">
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-slate-300 size-4'/></li>
-                                                <li className="dark:text-gray-100">( 1,230 )</li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                    <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">
+                                        Why you Choose Us
+                                    </h3>
+                                    <p className="mt-3">
+                                        Choose us for unparalleled quality, exceptional service, and a commitment to your satisfaction.
+                                        Join countless others who rely on us for reliability.
+                                    </p>
                                 </div>
-                            )
-                        })}
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[925px] w-full">
-                        {productList.slice(7,9).map((item:Product,index:number)=>{
-                            return(
-                                <div className="group flex flex-col" key={index}>
-                                    <div className="relative overflow-hidden flex-1">
-                                        <Link to="/product-details">
-                                            <img className="w-full transform group-hover:scale-110 duration-300 h-full object-cover" src={item.image} alt="product-card"/>
-                                        </Link>
 
-                                        <div className="absolute z-10 top-[50%] right-3 transform -translate-y-[40%] opacity-0 duration-300 transition-all group-hover:-translate-y-1/2 group-hover:opacity-100 flex flex-col items-end gap-3">
-                                            <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                                                <LuHeart className="dark:text-white h-[22px] w-[20px]"/>                                                                      
-                                                <span className="mt-1">Add to wishlist</span>
-                                            </Link>
-                                            <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                                                <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]"/>  
-                                                <span className="mt-1">Add to Cart</span>
-                                            </Link>
-                                            <button className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon quick-view">
-                                                <LuEye className="dark:text-white h-[22px] w-[20px]"/>                                      
-                                                <span className="mt-1">Quick View</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="lg:pt-6 pt-5 flex gap-3 md:gap-4 flex-col">
-                                        <h4 className="font-medium leading-none dark:text-white text-lg">{item.price}  <span className="text-title/50 line-through pl-2 inline-block">$140.99</span></h4>
-                                        <div>
-                                            <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
-                                                <Link to="/product-details" className="text-underline">{item.name}</Link>
-                                            </h5>
-                                            <ul className="flex items-center gap-2 mt-1">
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-yellow-500 size-4'/></li>
-                                                <li><GoStarFill className='text-slate-300 size-4'/></li>
-                                                <li className="dark:text-gray-100">( 1,230 )</li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                {/* Features Grid */}
+                                <div
+                                    className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-[30px]"
+                                    data-aos="fade-up"
+                                    data-aos-delay="100"
+                                >
+                                    {featureOne.slice(0, 4).map((item: Feature, index: number) => {
+                                        return (
+                                            <div className="why-choose-card p-6 rounded-[10px]" key={index}>
+                                                <img src={item.image} alt="" className='size-12' />
+                                                <h4 className="font-semibold leading-none mt-5 sm:mt-7 text-xl md:text-2xl">
+                                                    {item.title}
+                                                </h4>
+                                                <p className="mt-[15px]">{item.desc}</p>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
 
-        <div className="s-py-50" data-aos="fade-up">
-            <div className="container-fluid">
-                <div className="max-w-[1720px] mx-auto">
-                    <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
-                        <div> 
-                            <img src={comment} className="mx-auto w-14 sm:w-24" alt="" />                                                 
+                            </div>
                         </div>
-                        <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Latest Blog</h3>
-                        <p className="mt-3">Stay informed and inspired with our latest blog posts. Explore insightful content that keeps you ahead of trends and informed on topics you love. </p>
-                    </div>
-                    <div data-aos="fade-up" data-aos-delay="100">
-                        <BlogOne/>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div className="s-py-50-100" data-aos="fade-up">
-            <div className="container-fluid">
-                <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up" data-aos-delay="100">
-                    <div>
-                        <img src={hand} className='mx-auto w-14 sm:w-24' alt="" />
-                    </div>
-                    <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Trusted Partner</h3>
-                    <p className="mt-3">Count on our trusted partnerships to deliver excellence. Collaborating with industry leaders ensures top-quality products and services for your satisfaction. </p>
-                </div>
-                <div data-aos="fade-up" data-aos-delay="200">
-                    <PartnerOne/>
-                </div>
-            </div>
-        </div>
 
-        <FooterOne/>
+                {/* <div className="s-py-100-50" data-aos="fade-up">
+                    <div className="container-fluid">
+                        <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
+                            <div>
+                                <img src={bed} className="mx-auto w-14 sm:w-24" alt="" />
+                            </div>
+                            <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Featured Products</h3>
+                            <p className="mt-3">Discover our handpicked selection of standout products. Elevate your lifestyle with our top picks that combine quality, style, and innovation. </p>
+                        </div>
+                        <div className="max-w-[1720px] mx-auto flex gap-5 sm:gap-8 flex-col lg:flex-row" data-aos="fade-up" data-aos-delay="100">
+                            <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[766px] w-full">
+                                {productList.slice(0, 4).map((item: Product, index: number) => {
+                                    return (
+                                        <div className="group" key={index}>
+                                            <div className="relative overflow-hidden">
+                                                <Link to="/product-details">
+                                                    <img className="w-full transform group-hover:scale-110 duration-300 sm:max-h-[320px] object-cover" src={item.image} alt="product-card" />
+                                                </Link>
 
-        <ScrollToTop/>
-        </div>
-    </>
-  )
+                                                <div className="absolute z-10 top-[50%] right-3 transform -translate-y-[40%] opacity-0 duration-300 transition-all group-hover:-translate-y-1/2 group-hover:opacity-100 flex flex-col items-end gap-3">
+                                                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
+                                                        <LuHeart className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Add to wishlist</span>
+                                                    </Link>
+                                                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
+                                                        <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Add to Cart</span>
+                                                    </Link>
+                                                    <button className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon quick-view">
+                                                        <LuEye className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Quick View</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="lg:pt-6 pt-5 flex gap-3 md:gap-4 flex-col">
+                                                <h4 className="font-medium leading-none dark:text-white text-lg">{item.price}  <span className="text-title/50 line-through pl-2 inline-block">$140.99</span></h4>
+                                                <div>
+                                                    <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
+                                                        <Link to="/product-details" className="text-underline">{item.name}</Link>
+                                                    </h5>
+                                                    <ul className="flex items-center gap-2 mt-1">
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-slate-300 size-4' /></li>
+                                                        <li className="dark:text-gray-100">( 1,230 )</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[925px] w-full">
+                                {productList.slice(7, 9).map((item: Product, index: number) => {
+                                    return (
+                                        <div className="group flex flex-col" key={index}>
+                                            <div className="relative overflow-hidden flex-1">
+                                                <Link to="/product-details">
+                                                    <img className="w-full transform group-hover:scale-110 duration-300 h-full object-cover" src={item.image} alt="product-card" />
+                                                </Link>
+
+                                                <div className="absolute z-10 top-[50%] right-3 transform -translate-y-[40%] opacity-0 duration-300 transition-all group-hover:-translate-y-1/2 group-hover:opacity-100 flex flex-col items-end gap-3">
+                                                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
+                                                        <LuHeart className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Add to wishlist</span>
+                                                    </Link>
+                                                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
+                                                        <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Add to Cart</span>
+                                                    </Link>
+                                                    <button className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon quick-view">
+                                                        <LuEye className="dark:text-white h-[22px] w-[20px]" />
+                                                        <span className="mt-1">Quick View</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="lg:pt-6 pt-5 flex gap-3 md:gap-4 flex-col">
+                                                <h4 className="font-medium leading-none dark:text-white text-lg">{item.price}  <span className="text-title/50 line-through pl-2 inline-block">$140.99</span></h4>
+                                                <div>
+                                                    <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
+                                                        <Link to="/product-details" className="text-underline">{item.name}</Link>
+                                                    </h5>
+                                                    <ul className="flex items-center gap-2 mt-1">
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-yellow-500 size-4' /></li>
+                                                        <li><GoStarFill className='text-slate-300 size-4' /></li>
+                                                        <li className="dark:text-gray-100">( 1,230 )</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div> */}
+
+<ProductCollection/>
+
+                {/* <div className="s-py-50" data-aos="fade-up">
+                    <div className="container-fluid">
+                        <div className="max-w-[1720px] mx-auto">
+                            <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
+                                <div>
+                                    <img src={comment} className="mx-auto w-14 sm:w-24" alt="" />
+                                </div>
+                                <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Latest Blog</h3>
+                                <p className="mt-3">Stay informed and inspired with our latest blog posts. Explore insightful content that keeps you ahead of trends and informed on topics you love. </p>
+                            </div>
+                            <div data-aos="fade-up" data-aos-delay="100">
+                                <BlogOne />
+                            </div>
+                        </div>
+                    </div>
+                </div> */}
+                <div className="s-py-50-100" data-aos="fade-up">
+                    <div className="container-fluid">
+                        <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up" data-aos-delay="100">
+                            <div>
+                                <img src={hand} className='mx-auto w-14 sm:w-24' alt="" />
+                            </div>
+                            <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl">Trusted Partner</h3>
+                            <p className="mt-3">Count on our trusted partnerships to deliver excellence. Collaborating with industry leaders ensures top-quality products and services for your satisfaction. </p>
+                        </div>
+                        <div data-aos="fade-up" data-aos-delay="200">
+                            <PartnerOne />
+                        </div>
+                    </div>
+                </div>
+
+                <FooterOne />
+
+                <ScrollToTop />
+            </div>
+        </>
+    )
 }
 
 export default Index

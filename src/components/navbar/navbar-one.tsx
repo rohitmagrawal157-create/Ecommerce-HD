@@ -4,7 +4,7 @@
  * ║            NavbarOne — Unified with Full Page Routes v4              ║
  * ╠══════════════════════════════════════════════════════════════════════╣
  * ║  Adds: Home, Pages (mega menu), Shop, Blog, Contact                  ║
- * ║  Preserves all existing furniture departments, smart scroll, etc.    ║
+ * ║  Categories: UV Flatbed, Signages, Eco Solvent, LED, CNC, Offset     ║
  * ╚══════════════════════════════════════════════════════════════════════╝
  */
 
@@ -27,84 +27,125 @@ import {
 import { RiEBike2Line } from 'react-icons/ri';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DATA – Furniture Departments (unchanged)
+// DATA – Printing & Signage Categories (updated from image)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MEGA_MENU: Record<string, { heading: string; links: string[] }[]> = {
-  'Living Room': [
-    { heading: 'Sofas',        links: ['3 Seater Sofas', '2 Seater Sofas', '1 Seater Sofas', 'Sofa Sets', 'Corner Sofas'] },
-    { heading: 'Recliners',    links: ['3 Seater Recliners', '2 Seater Recliners', 'Recliner Sets'] },
-    { heading: 'Chairs',       links: ['Accent Chairs', 'Folding Chairs', 'Cafe Chairs', 'Plastic Chairs'] },
-    { heading: 'Tables',       links: ['Centre Tables', 'End Tables', 'Console Tables', 'Nesting Tables'] },
-    { heading: 'TV & Media',   links: ['TV Consoles', 'TV Units', 'Wall Shelves', 'Corner Shelves'] },
+  'UV Flatbed Printing': [
+    {
+      heading: 'Substrates',
+      links: [
+        'Printing on Glass',
+        'Printing on Wood',
+        'Printing on Foam',
+        'Printing on Acrylic',
+        'Printing on ACP',
+      ],
+    },
   ],
-  'Bedroom': [
-    { heading: 'Beds',         links: ['King Beds', 'Queen Beds', 'Single Beds', 'Bunk Beds'] },
-    { heading: 'Wardrobes',    links: ['2 Door Wardrobes', '3 Door Wardrobes', '4 Door Wardrobes', 'Sliding Wardrobes'] },
-    { heading: 'Mattresses',   links: ['King Mattresses', 'Queen Mattresses', 'Single Mattresses'] },
-    { heading: 'Storage',      links: ['Bed Side Tables', 'Chest of Drawers', 'Dresser Mirrors'] },
+  'Signages Products': [
+    {
+      heading: 'Signage Types',
+      links: [
+        'Safety Signage',
+        'Night Glow Signs',
+        'Acrylic Laser Cut',
+        'ACP Signs',
+      ],
+    },
   ],
-  'Dining Room': [
-    { heading: 'Dining Sets',  links: ['4 Seater Dining Sets', '6 Seater Dining Sets', '8 Seater Dining Sets'] },
-    { heading: 'Dining Tables',links: ['4 Seater Tables', '6 Seater Tables', '8 Seater Tables'] },
-    { heading: 'Bar Furniture',links: ['Bar Cabinet', 'Bar Stools', 'Serving Trolleys'] },
-    { heading: 'Seating',      links: ['Dining Chairs', 'Dining Benches', 'Crockery Units'] },
+  'Eco Solvent': [
+    {
+      heading: 'Eco Solvent Products',
+      links: [
+        'Canvas Printing',
+        'Wallpaper',
+        'Metal Letters',
+        'Eco Solvent Printing',
+        'Flex Printing',
+      ],
+    },
   ],
-  'Decor': [
-    { heading: 'Accessories',  links: ['Figurines', 'Vases', 'Candle Holders', 'Table Accents', 'Clocks'] },
-    { heading: 'Lighting',     links: ['Table Lamps', 'Wall Lamps', 'Hanging Lamps', 'Floor Lamps', 'String Lights'] },
-    { heading: 'Wall Decor',   links: ['Wall Accents', 'Decorative Mirrors', 'Photo Frames', 'Paintings'] },
-    { heading: 'Fragrance',    links: ['Candles', 'Diffusers', 'Aroma Oils', 'Room Sprays'] },
+  'LED Products': [
+    {
+      heading: 'Display & Boards',
+      links: [
+        'Scroll Display',
+        'Translite Box',
+        'Rollup Standee',
+        'Rotating Sign',
+        'Aluminum Slimbox',
+        'Acrylic Sandwich',
+      ],
+    },
+    {
+      heading: 'Signage & Screens',
+      links: [
+        'Glow Sign Boards',
+        'Electronic Signage',
+        'Neon Sign Boards',
+        'Acrylic Boards',
+        'LED Screen',
+        'Bill Boards',
+      ],
+    },
   ],
-  'Kitchen': [
-    { heading: 'Storage',      links: ['Containers & Jars', 'Bottles', 'Flasks', 'Lunch Boxes'] },
-    { heading: 'Cookware',     links: ['Cookware Sets', 'Pots & Pans', 'Kadhai & Woks', 'Pressure Cookers'] },
-    { heading: 'Kitchenware',  links: ['Kitchen Trolleys', 'Knives & Scissors', 'Chopping Boards'] },
-    { heading: 'Linens',       links: ['Aprons', 'Pot Holders & Mittens', 'Kitchen Towels'] },
+  'CNC Cutting & Carving': [
+    {
+      heading: 'Materials',
+      links: ['MDF / HDHMR', 'Stone', 'Korean', 'ACP'],
+    },
   ],
-  'Furnishings': [
-    { heading: 'Bedding',      links: ['Double Bedsheets', 'Single Bedsheets', 'Bedding Sets', 'Blankets & Quilts'] },
-    { heading: 'Cushions',     links: ['Cushion Covers', 'Filled Cushions', 'Floor Cushions'] },
-    { heading: 'Curtains',     links: ['Door Curtains', 'Window Curtains', 'Blinds', 'Rods & Accessories'] },
-    { heading: 'Floor',        links: ['Carpets & Rugs', 'Dhurries', 'Doormats'] },
-  ],
-  'Tableware': [
-    { heading: 'Serving',      links: ['Trays & Platters', 'Glasses & Jugs', 'Bar Accessories'] },
-    { heading: 'Crockery',     links: ['Bowls', 'Plates', 'Mugs', 'Cups & Saucers', 'Dinner Sets'] },
-    { heading: 'Cutlery',      links: ['Spoons', 'Cutlery Sets', 'Cutlery Holders'] },
-    { heading: 'Table Linens', links: ['Placemats', 'Table Runners', 'Table Cloths', 'Trivets & Coasters'] },
-  ],
-  'Bath & Laundry': [
-    { heading: 'Bath Linen',   links: ['Towels', 'Robes', 'Bathmats'] },
-    { heading: 'Accessories',  links: ['Soap Dispensers', 'Soap Dishes', 'Bath Sets', 'Shower Curtains'] },
-    { heading: 'Laundry',      links: ['Laundry Baskets', 'Cloth Dryers', 'Hangers & Hooks', 'Dustbins'] },
-  ],
-  'Gifting': [
-    { heading: 'By Occasion',  links: ['Housewarming', 'Wedding Gifts', 'Anniversary', 'Birthday'] },
-    { heading: 'By Recipient', links: ['Gifts for Him', 'Gifts for Her'] },
-    { heading: 'Gift Cards',   links: ['Online Gift Card'] },
-    { heading: 'By Price',     links: ['Under ₹200', 'Under ₹500', 'Under ₹1000', 'Above ₹2000'] },
+  'Offset Products': [
+    {
+      heading: 'Marketing Materials',
+      links: [
+        'Calendars',
+        'Presentation Folders',
+        'Postcards',
+        'Rack Cards',
+        'Posters',
+        'Labels',
+      ],
+    },
+    {
+      heading: 'Stationery & Packaging',
+      links: [
+        'Envelopes',
+        'Books and Booklets',
+        'Catalogues and Magazines',
+        'Boxes and Cardboard Packaging',
+        'Brochures and Flyers',
+        'Notepads',
+        'Letterheads',
+        'Business Cards',
+      ],
+    },
   ],
 };
 
 const DEPARTMENTS = [
-  'Sale', 'Living Room', 'Bedroom', 'Dining Room',
-  'Decor', 'Kitchen', 'Furnishings', 'Tableware', 'Bath & Laundry', 'Gifting',
+  'UV Flatbed Printing',
+  'Signages Products',
+  'Eco Solvent',
+  'LED Products',
+  'CNC Cutting & Carving',
+  'Offset Products',
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NEW: Page navigation data (Home, Pages, Shop, Blog, Contact)
+// Page navigation data (Home, Pages, Shop, Blog, Contact) — unchanged
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PAGE_MENU = {
   Home: {
     links: [
-      { name: 'Home Minimal',    path: '/' },
-      { name: 'Home Stylish',    path: '/index-v2' },
-      { name: 'Home Accessories',path: '/index-v3' },
-      { name: 'Home Collection', path: '/index-v4' },
-      { name: 'Home Luxury',     path: '/index-v5' },
-      { name: 'Home Retro',      path: '/index-v6' },
+      { name: 'Home Minimal',     path: '/' },
+      { name: 'Home Stylish',     path: '/index-v2' },
+      { name: 'Home Accessories', path: '/index-v3' },
+      { name: 'Home Collection',  path: '/index-v4' },
+      { name: 'Home Luxury',      path: '/index-v5' },
+      { name: 'Home Retro',       path: '/index-v6' },
     ],
   },
   Pages: {
@@ -112,34 +153,34 @@ const PAGE_MENU = {
       {
         heading: 'Company',
         links: [
-          { name: 'About Us',            path: '/about' },
-          { name: 'Price Plan',          path: '/pricing' },
-          { name: 'Team Member',         path: '/team' },
-          { name: 'Clients',             path: '/our-clients' },
-          { name: 'FAQs',                path: '/faq' },
-          { name: 'Terms & Conditions',  path: '/terms-and-conditions' },
+          { name: 'About Us',           path: '/about' },
+          { name: 'Price Plan',         path: '/pricing' },
+          { name: 'Team Member',        path: '/team' },
+          { name: 'Clients',            path: '/our-clients' },
+          { name: 'FAQs',               path: '/faq' },
+          { name: 'Terms & Conditions', path: '/terms-and-conditions' },
         ],
       },
       {
         heading: 'Portfolio',
         links: [
-          { name: 'Portfolio 1',          path: '/portfolio-v1' },
-          { name: 'Portfolio 2',          path: '/portfolio-v2' },
-          { name: 'Portfolio 3',          path: '/portfolio-v3' },
-          { name: 'Portfolio Details 1',  path: '/portfolio-details-v1' },
-          { name: 'Portfolio Details 2',  path: '/portfolio-details-v2' },
-          { name: '404 Error',            path: '/error' },
+          { name: 'Portfolio 1',         path: '/portfolio-v1' },
+          { name: 'Portfolio 2',         path: '/portfolio-v2' },
+          { name: 'Portfolio 3',         path: '/portfolio-v3' },
+          { name: 'Portfolio Details 1', path: '/portfolio-details-v1' },
+          { name: 'Portfolio Details 2', path: '/portfolio-details-v2' },
+          { name: '404 Error',           path: '/error' },
         ],
       },
       {
         heading: 'Account',
         links: [
-          { name: 'My Profile',           path: '/my-profile' },
-          { name: 'Login',                path: '/login' },
-          { name: 'Register',             path: '/register' },
-          { name: 'Forget Password',      path: '/forger-password' },
-          { name: 'Coming Soon',          path: '/coming-soon' },
-          { name: 'Thank You',            path: '/thank-you' },
+          { name: 'My Profile',      path: '/my-profile' },
+          { name: 'Login',           path: '/login' },
+          { name: 'Register',        path: '/register' },
+          { name: 'Forget Password', path: '/forger-password' },
+          { name: 'Coming Soon',     path: '/coming-soon' },
+          { name: 'Thank You',       path: '/thank-you' },
         ],
       },
       {
@@ -157,31 +198,30 @@ const PAGE_MENU = {
   },
   Shop: {
     links: [
-      { name: 'Shop Layout 01',   path: '/shop-v1' },
-      { name: 'Shop Layout 02',   path: '/shop-v2' },
-      { name: 'Shop Layout 03',   path: '/shop-v3' },
-      { name: 'Shop Layout 04',   path: '/shop-v4' },
-      { name: 'Product Details',  path: '/product-details' },
-      { name: 'My Cart',          path: '/cart' },
-      { name: 'Checkout',         path: '/checkout' },
+      { name: 'Shop Layout 01',  path: '/shop-v1' },
+      { name: 'Shop Layout 02',  path: '/shop-v2' },
+      { name: 'Shop Layout 03',  path: '/shop-v3' },
+      { name: 'Shop Layout 04',  path: '/shop-v4' },
+      { name: 'Product Details', path: '/product-details' },
+      { name: 'My Cart',         path: '/cart' },
+      { name: 'Checkout',        path: '/checkout' },
     ],
   },
-  Blog: {
-    links: [
-      { name: 'Blog Layout 1',    path: '/blog-v1' },
-      { name: 'Blog Layout 2',    path: '/blog-v2' },
-      { name: 'Blog Details 1',   path: '/blog-details-v1' },
-      { name: 'Blog Details 2',   path: '/blog-details-v2' },
-      { name: 'Blog Details 3',   path: '/blog-details-v3' },
-      { name: 'Blog Tag',         path: '/blog-tag' },
-    ],
-  },
+  // Blog: {
+  //   links: [
+  //     { name: 'Blog Layout 1',   path: '/blog-v1' },
+  //     { name: 'Blog Layout 2',   path: '/blog-v2' },
+  //     { name: 'Blog Details 1',  path: '/blog-details-v1' },
+  //     { name: 'Blog Details 2',  path: '/blog-details-v2' },
+  //     { name: 'Blog Details 3',  path: '/blog-details-v3' },
+  //     { name: 'Blog Tag',        path: '/blog-tag' },
+  //   ],
+  // },
   Contact: {
     singlePath: '/contact',
   },
 };
 
-// Helper: check if current route matches any of the given paths
 const isActiveRoute = (currentPath: string, paths: string | string[]): boolean => {
   if (typeof paths === 'string') return currentPath === paths;
   return paths.includes(currentPath);
@@ -191,17 +231,13 @@ const isActiveRoute = (currentPath: string, paths: string | string[]): boolean =
 // UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
 
-const toSlug = (s: string) => s.toLowerCase().replace(/[\s&]+/g, '-');
+const toSlug = (s: string) => s.toLowerCase().replace(/[\s&\/]+/g, '-');
 
 const C = {
-  // purple:      '#6c5fc7',
-  purple:'#187fc1',
+  purple:      '#187fc1',
   purpleLight: '#187fc1',
-  purpleBg:    '#f5f3ff',
-  purpleHover: '#5a4db5',
-  sale:        '#d93030',
-  saleBg:      '#fff8f8',
-  saleBorder:  '#ffd0d0',
+  purpleBg:    '#f0f7fd',
+  purpleHover: '#1268a0',
   dark:        '#1c1c1c',
   textPrimary: '#1a1a1a',
   textMuted:   '#666',
@@ -227,7 +263,7 @@ const iconBtnStyle: React.CSSProperties = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCOPED CSS (unchanged from your original)
+// SCOPED CSS
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STYLES = `
@@ -291,8 +327,6 @@ const STYLES = `
   }
   .hcn-dept-link:hover { color: ${C.purple}; border-bottom-color: ${C.purple}; }
   .hcn-dept-link.is-active { color: ${C.purple}; border-bottom-color: ${C.purple}; }
-  .hcn-dept-link.is-sale { color: ${C.sale}; }
-  .hcn-dept-link.is-sale:hover { color: #b72020; border-bottom-color: ${C.sale}; }
 
   .hcn-mega {
     position: absolute; top: 100%; left: 0;
@@ -327,16 +361,10 @@ const STYLES = `
   }
   .hcn-chip.is-active { background: ${C.purple}; color: ${C.white}; border-color: ${C.purple}; }
   .hcn-chip:active    { background: ${C.purple}; color: ${C.white}; border-color: ${C.purple}; }
-  .hcn-chip.sale-chip { color: ${C.sale}; border-color: ${C.saleBorder}; background: ${C.saleBg}; }
-  .hcn-chip.sale-chip.is-active,
-  .hcn-chip.sale-chip:active { background: ${C.sale}; color: ${C.white}; border-color: ${C.sale}; }
 
   .hcn-drawer-link:hover { background: ${C.purpleBg} !important; color: ${C.purple} !important; }
   .hcn-drawer-sub-link:hover { color: ${C.purple} !important; }
   .hcn-drawer-btn:hover { background: #f5f5f5; }
-
-  @keyframes hcn-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-  .hcn-sale-shimmer { animation: hcn-shimmer 2s ease-in-out infinite; }
 
   .hcn-search-wrap {
     display: flex; align-items: center;
@@ -347,7 +375,7 @@ const STYLES = `
   }
   .hcn-search-wrap.focused {
     border-color: ${C.purple};
-    box-shadow: 0 0 0 3px rgba(108,95,199,0.12);
+    box-shadow: 0 0 0 3px rgba(24,127,193,0.12);
   }
   .hcn-search-input {
     flex: 1; min-width: 0;
@@ -359,7 +387,7 @@ const STYLES = `
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENT: Tooltip (unchanged)
+// SUB-COMPONENT: Tooltip
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Tooltip({ text, visible }: { text: string; visible: boolean }) {
@@ -381,7 +409,7 @@ function Tooltip({ text, visible }: { text: string; visible: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENT: MobileDrawer (updated to include new page sections)
+// SUB-COMPONENT: MobileDrawer
 // ─────────────────────────────────────────────────────────────────────────────
 
 function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -390,25 +418,23 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   const [expanded, setExpanded] = useState<string | null>(null);
   const toggle = (section: string) => setExpanded(p => (p === section ? null : section));
 
-  // Build all sections for mobile
   const allSections = [
-    { type: 'link', label: 'Sale', path: '/sale', isSale: true },
     ...Object.keys(MEGA_MENU).map(dept => ({ type: 'mega', label: dept, data: MEGA_MENU[dept] })),
-    { type: 'simple', label: 'Home', links: PAGE_MENU.Home.links },
+    { type: 'simple', label: 'Home',    links: PAGE_MENU.Home.links },
     { type: 'megaPage', label: 'Pages', groups: PAGE_MENU.Pages.megaGroups },
-    { type: 'simple', label: 'Shop', links: PAGE_MENU.Shop.links },
-    { type: 'simple', label: 'Blog', links: PAGE_MENU.Blog.links },
-    { type: 'link', label: 'Contact', path: '/contact', isSale: false },
+    { type: 'simple', label: 'Shop',    links: PAGE_MENU.Shop.links },
+    // { type: 'simple', label: 'Blog',    links: PAGE_MENU.Blog.links },
+    { type: 'link',   label: 'Contact', path: '/contact', isSale: false },
   ];
 
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.52)', zIndex: 1100, opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition: 'opacity 0.28s ease' }} />
       <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 'min(82vw, 340px)', background: C.white, zIndex: 1200, display: 'flex', flexDirection: 'column', transform: open ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', boxShadow: '4px 0 32px rgba(0,0,0,0.18)' }}>
-        <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: '#f8f7ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: '#f0f7fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1 }}>Infinity</div>
-            <div style={{ fontSize: 9, color: C.textLight, letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 3 }}>a landmark group company</div>
+            <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: C.purple, letterSpacing: -0.5, lineHeight: 1 }}>Infinity</div>
+            <div style={{ fontSize: 9, color: C.textLight, letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 3 }}>printing &amp; signage solutions</div>
           </div>
           <button onClick={onClose} aria-label="Close menu" style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${C.borderMd}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <LuX size={15} color="#555" />
@@ -422,7 +448,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          {allSections.map((section, idx) => {
+          {allSections.map((section) => {
             if (section.type === 'link') {
               return (
                 <Link
@@ -430,15 +456,15 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   to={section.path}
                   onClick={onClose}
                   className="hcn-drawer-link"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid #f5f5f5`, fontWeight: section.isSale ? 700 : 500, fontSize: 14, color: section.isSale ? C.sale : C.textPrimary, fontFamily: FONT }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid #f5f5f5`, fontWeight: 500, fontSize: 14, color: C.textPrimary, fontFamily: FONT }}
                 >
-                  {section.isSale ? '🔥 Sale' : section.label}
-                  <LuChevronRight size={14} color={section.isSale ? C.sale : '#aaa'} />
+                  {section.label}
+                  <LuChevronRight size={14} color="#aaa" />
                 </Link>
               );
             }
             if (section.type === 'simple') {
-              const isActive = section.links.some(link => link.path === currentPath);
+              const isActive = section.links.some((link: any) => link.path === currentPath);
               return (
                 <div key={section.label} style={{ borderBottom: `1px solid #f5f5f5` }}>
                   <button onClick={() => toggle(section.label)} className="hcn-drawer-btn" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: isActive ? C.purpleBg : 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: isActive ? C.purple : C.textPrimary, fontFamily: FONT, textAlign: 'left', transition: 'background 0.15s' }}>
@@ -447,7 +473,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   </button>
                   <div style={{ maxHeight: expanded === section.label ? 400 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
                     <div style={{ background: '#fafaf9', padding: '8px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {section.links.map((link, i) => (
+                      {section.links.map((link: any, i: number) => (
                         <Link key={i} to={link.path} onClick={onClose} className="hcn-drawer-sub-link" style={{ fontSize: 13, color: currentPath === link.path ? C.purple : '#555', fontFamily: FONT, transition: 'color 0.15s' }}>
                           {link.name}
                         </Link>
@@ -467,13 +493,19 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   </button>
                   <div style={{ maxHeight: expanded === section.label ? 700 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
                     <div style={{ background: '#fafaf9', padding: '8px 16px 16px' }}>
-                      {groups.map((group, gi) => (
+                      {groups.map((group: any, gi: number) => (
                         <div key={gi} style={{ marginBottom: 13 }}>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 7, fontFamily: FONT }}>{group.heading}</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 14px' }}>
-                            {group.links.map((link, li) => (
-                              <Link key={li} to={link.path || '#'} onClick={onClose} className="hcn-drawer-sub-link" style={{ fontSize: 13, color: '#555', fontFamily: FONT, transition: 'color 0.15s' }}>
-                                {link.name || link}
+                            {group.links.map((link: any, li: number) => (
+                              <Link
+                                key={li}
+                                to={link.path || `/category/${toSlug(typeof link === 'string' ? link : link.name)}`}
+                                onClick={onClose}
+                                className="hcn-drawer-sub-link"
+                                style={{ fontSize: 13, color: '#555', fontFamily: FONT, transition: 'color 0.15s' }}
+                              >
+                                {typeof link === 'string' ? link : link.name}
                               </Link>
                             ))}
                           </div>
@@ -495,10 +527,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 
         <div style={{ borderTop: `1px solid ${C.border}`, background: '#fafaf9', padding: '12px 16px', flexShrink: 0 }}>
           {[
-            { icon: <RiEBike2Line size={14} />, label: 'Free Shipping over ₹999' },
-            { icon: <LuMapPin size={13} />,     label: 'Delivering To' },
-            { icon: <LuTruck size={13} />,      label: 'Track Furniture Order' },
-            { icon: <LuSmartphone size={13} />, label: 'Download our Apps' },
+            { icon: <RiEBike2Line size={14} />, label: 'Fast Delivery Available' },
+            { icon: <LuMapPin size={13} />,     label: 'Delivering To Your City' },
+            { icon: <LuTruck size={13} />,      label: 'Track Your Order' },
+            { icon: <LuSmartphone size={13} />, label: 'Download Our App' },
           ].map(({ icon, label }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', fontSize: 12.5, color: '#555', fontFamily: FONT }}>
               <span style={{ color: C.purple, display: 'flex' }}>{icon}</span>{label}
@@ -518,20 +550,20 @@ export default function NavbarOne() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const [activeMenu,   setActiveMenu]   = useState<string | null>(null);
-  const [searchFocused,setSearchFocused]= useState(false);
-  const [searchVal,    setSearchVal]    = useState('');
-  const [showFreeShip, setShowFreeShip] = useState(false);
-  const [showEmi,      setShowEmi]      = useState(false);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
-  const [activeChip,   setActiveChip]   = useState<string | null>(null);
-  const [scrolled,     setScrolled]     = useState(false);
-  const [mobNavHidden, setMobNavHidden] = useState(false);
+  const [activeMenu,    setActiveMenu]    = useState<string | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchVal,     setSearchVal]     = useState('');
+  const [showFreeShip,  setShowFreeShip]  = useState(false);
+  const [showEmi,       setShowEmi]       = useState(false);
+  const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [activeChip,    setActiveChip]    = useState<string | null>(null);
+  const [scrolled,      setScrolled]      = useState(false);
+  const [mobNavHidden,  setMobNavHidden]  = useState(false);
 
-  const navRef     = useRef<HTMLElement>(null);
-  const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastScrollY= useRef(0);
-  const scrollDelta= useRef(0);
+  const navRef      = useRef<HTMLElement>(null);
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollY = useRef(0);
+  const scrollDelta = useRef(0);
 
   const HIDE_THRESHOLD = 60;
   const SHOW_THRESHOLD = 30;
@@ -598,22 +630,22 @@ export default function NavbarOne() {
     if (timerRef.current) clearTimeout(timerRef.current);
     setActiveMenu(label);
   };
-  const onDeptLeave  = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
-  const onMegaEnter  = () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  const onMegaLeave  = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
+  const onDeptLeave = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
+  const onMegaEnter = () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  const onMegaLeave = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 100); };
 
-  // ── Combined desktop navigation items (page items + furniture departments) ──
+  // Combined desktop nav: page items first, then printing/signage departments
   const desktopNavItems = [
-    { type: 'simple-dropdown', label: 'Home', data: PAGE_MENU.Home.links, activePaths: PAGE_MENU.Home.links.map(l => l.path) },
-    { type: 'mega-dropdown',   label: 'Pages', groups: PAGE_MENU.Pages.megaGroups, activePaths: [] },
-    { type: 'simple-dropdown', label: 'Shop', data: PAGE_MENU.Shop.links, activePaths: PAGE_MENU.Shop.links.map(l => l.path) },
-    { type: 'simple-dropdown', label: 'Blog', data: PAGE_MENU.Blog.links, activePaths: PAGE_MENU.Blog.links.map(l => l.path) },
-    { type: 'link',            label: 'Contact', path: '/contact', activePaths: ['/contact'] },
+    { type: 'simple-dropdown', label: 'Home',    data: PAGE_MENU.Home.links,    activePaths: PAGE_MENU.Home.links.map(l => l.path) },
+    { type: 'mega-dropdown',   label: 'Pages',   groups: PAGE_MENU.Pages.megaGroups, activePaths: [] },
+    { type: 'simple-dropdown', label: 'Shop',    data: PAGE_MENU.Shop.links,    activePaths: PAGE_MENU.Shop.links.map(l => l.path) },
+    // { type: 'simple-dropdown', label: 'Blog',    data: PAGE_MENU.Blog.links,    activePaths: PAGE_MENU.Blog.links.map(l => l.path) },
+    { type: 'link',            label: 'Contact', path: '/contact',               activePaths: ['/contact'] },
     ...DEPARTMENTS.map(dept => ({
-      type: 'mega-furniture',
+      type: 'mega-dept',
       label: dept,
       hasMega: !!MEGA_MENU[dept],
-      activePaths: dept === 'Sale' ? ['/sale'] : [`/department/${toSlug(dept)}`],
+      activePaths: [`/department/${toSlug(dept)}`],
     })),
   ];
 
@@ -627,31 +659,31 @@ export default function NavbarOne() {
 
       <header ref={navRef} className="hcn" style={{ width: '100%', position: 'sticky', top: 0, zIndex: 1000, fontFamily: FONT, boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.10)' : '0 1px 0 #ebebeb', transition: 'box-shadow 0.3s ease' }}>
 
-        {/* Desktop utility bar (unchanged) */}
+        {/* Desktop utility bar */}
         <div className={`dsk hcn-util-bar${scrolled ? ' is-hidden' : ''}`}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <div style={{ position: 'relative' }}>
                 <button onMouseEnter={() => setShowFreeShip(true)} onMouseLeave={() => setShowFreeShip(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}>
-                  <RiEBike2Line size={14} color="#187fc1" />Free Shipping
+                  <RiEBike2Line size={14} color={C.purple} />Fast Delivery
                 </button>
-                <Tooltip text="Free shipping on all orders over ₹999" visible={showFreeShip} />
+                <Tooltip text="Fast delivery on all print orders" visible={showFreeShip} />
               </div>
               <span style={{ color: '#3a3a3a', fontSize: 11 }}>|</span>
               <div style={{ position: 'relative' }}>
                 <button onMouseEnter={() => setShowEmi(true)} onMouseLeave={() => setShowEmi(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}>
-                  <svg width="13" height="13" fill="none" stroke="#187fc1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill="#9b8fff" stroke="none"/></svg>
+                  <svg width="13" height="13" fill="none" stroke={C.purple} strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill="#187fc1" stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill="#187fc1" stroke="none"/></svg>
                   EMI Options
                 </button>
-                <Tooltip text="Easy EMI available on orders above ₹3,000" visible={showEmi} />
+                <Tooltip text="Easy EMI available on bulk orders" visible={showEmi} />
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: 11.5 }}>
               {[
-                { icon: <LuMapPin size={14} color="#187fc1" />, label: 'Delivering To', href: '#' },
-                { icon: <LuSmartphone size={14} color="#187fc1" />, label: 'Download Apps', href: '/apps' },
-                { icon: <LuTruck size={14} color="#187fc1" />, label: 'Track Order', href: '/track' },
-                { icon: <LuCircle size={14} color="#187fc1" />, label: 'Help', href: '/help' },
+                { icon: <LuMapPin size={14} color={C.purple} />,      label: 'Delivering To',  href: '#' },
+                { icon: <LuSmartphone size={14} color={C.purple} />,  label: 'Download Apps',  href: '/apps' },
+                { icon: <LuTruck size={14} color={C.purple} />,       label: 'Track Order',    href: '/track' },
+                { icon: <LuCircle size={14} color={C.purple} />,      label: 'Help',           href: '/help' },
               ].map(({ icon, label, href }, i, arr) => (
                 <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
                   <Link to={href} className="hcn-util-link" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', height: 36, fontFamily: FONT }}>{icon}{label}</Link>
@@ -662,22 +694,22 @@ export default function NavbarOne() {
           </div>
         </div>
 
-        {/* Desktop Row 2: logo + search + actions (unchanged) */}
+        {/* Desktop Row 2: logo + search + actions */}
         <div className="dsk" style={{ background: C.white, borderBottom: `1px solid ${C.border}` }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link to="/" aria-label="Infinity home" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.5, lineHeight: 1, fontFamily: FONT }}>Infinity</div>
-                <div style={{ fontSize: 8, color: '#bbb', letterSpacing: '0.17em', textTransform: 'uppercase', marginTop: 2, fontFamily: FONT }}>a landmark group company</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: C.purple, letterSpacing: -0.5, lineHeight: 1, fontFamily: FONT }}>Infinity</div>
+                <div style={{ fontSize: 8, color: '#bbb', letterSpacing: '0.17em', textTransform: 'uppercase', marginTop: 2, fontFamily: FONT }}>printing &amp; signage solutions</div>
               </div>
               <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', paddingBottom: 2 }}>
-                {[6,9,7,5,8].map((h,i) => <div key={i} style={{ width: 3, height: h, borderRadius: 2, background: i%2===0?'#7b6fcc':'#b8a9f0' }} />)}
+                {[6,9,7,5,8].map((h,i) => <div key={i} style={{ width: 3, height: h, borderRadius: 2, background: i%2===0 ? C.purple : '#7bbde0' }} />)}
               </div>
             </Link>
             <div style={{ flex: 1, minWidth: 0, maxWidth: 640 }}>
-              <div className={`hcn-search-wrap${searchFocused?' focused':''}`}>
+              <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
                 <LuSearch size={15} color="#aaa" style={{ marginLeft: 14, flexShrink: 0 }} />
-                <input type="search" className="hcn-search-input" placeholder="Search for products..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} aria-label="Search products" />
+                <input type="search" className="hcn-search-input" placeholder="Search for products, signage, printing..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} aria-label="Search products" />
                 {searchVal && <button onClick={() => setSearchVal('')} aria-label="Clear" style={{ ...iconBtnStyle, padding: '0 6px', color: C.textLight }}><LuX size={13} /></button>}
                 <button style={{ height: '100%', padding: '0 22px', border: 'none', borderRadius: '0 100px 100px 0', background: C.purple, color: C.white, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', flexShrink: 0 }}>Search</button>
               </div>
@@ -699,7 +731,7 @@ export default function NavbarOne() {
           </div>
         </div>
 
-        {/* Desktop Row 3: combined navigation (page items + furniture departments) */}
+        {/* Desktop Row 3: combined navigation */}
         <div className="dsk" style={{ background: C.white, borderBottom: '1px solid #e8e8e8', position: 'relative' }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px' }}>
             <nav aria-label="Main navigation" style={{ display: 'flex', height: 46, overflow: 'visible' }}>
@@ -727,28 +759,16 @@ export default function NavbarOne() {
                       onMouseEnter={() => onDeptEnter(item.label)}
                       onMouseLeave={onDeptLeave}
                     >
-                      <Link
-                        to="#"
-                        className={`hcn-dept-link ${isActive ? 'is-active' : ''}`}
-                      >
+                      <Link to="#" className={`hcn-dept-link ${isActive ? 'is-active' : ''}`}>
                         {item.label}
                         <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                       </Link>
-                      <div
-                        className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`}
-                        onMouseEnter={onMegaEnter}
-                        onMouseLeave={onMegaLeave}
-                        style={{ minWidth: 220, width: 'auto' }}
-                      >
-                        <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
+                      <div className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`} onMouseEnter={onMegaEnter} onMouseLeave={onMegaLeave} style={{ minWidth: 220, width: 'auto' }}>
+                        <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#7bbde0)` }} />
                         <ul style={{ padding: '12px 0', margin: 0, listStyle: 'none' }}>
                           {item.data.map((link: { name: string; path: string }) => (
                             <li key={link.path}>
-                              <Link
-                                to={link.path}
-                                className="hcn-mega-link"
-                                style={{ display: 'block', padding: '6px 20px', fontSize: 13, color: C.textMuted, fontFamily: FONT, transition: 'color 0.14s' }}
-                              >
+                              <Link to={link.path} className="hcn-mega-link" style={{ display: 'block', padding: '6px 20px', fontSize: 13, color: C.textMuted, fontFamily: FONT, transition: 'color 0.14s' }}>
                                 {link.name}
                               </Link>
                             </li>
@@ -772,16 +792,11 @@ export default function NavbarOne() {
                         {item.label}
                         <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                       </Link>
-                      <div
-                        className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`}
-                        onMouseEnter={onMegaEnter}
-                        onMouseLeave={onMegaLeave}
-                        style={{ minWidth: 720, maxWidth: 960 }}
-                      >
-                        <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
+                      <div className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`} onMouseEnter={onMegaEnter} onMouseLeave={onMegaLeave} style={{ minWidth: 720, maxWidth: 960 }}>
+                        <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#7bbde0)` }} />
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(4,1fr)`, padding: '18px 14px 14px' }}>
                           {item.groups.map((group: any, idx: number) => (
-                            <div key={idx} style={{ padding: '0 14px', borderRight: idx < item.groups.length-1 ? '1px solid #f2f2f2' : 'none' }}>
+                            <div key={idx} style={{ padding: '0 14px', borderRight: idx < item.groups.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
                               <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT }}>{group.heading}</div>
                               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                 {group.links.map((link: any) => (
@@ -803,9 +818,9 @@ export default function NavbarOne() {
                   );
                 }
 
-                // Furniture departments (mega-furniture)
-                if (item.type === 'mega-furniture') {
-                  const isSale = item.label === 'Sale';
+                // Printing/Signage departments with mega menu
+                if (item.type === 'mega-dept') {
+                  const deptData = MEGA_MENU[item.label];
                   return (
                     <div
                       key={item.label}
@@ -814,23 +829,37 @@ export default function NavbarOne() {
                       onMouseLeave={onDeptLeave}
                     >
                       <Link
-                        to={isSale ? '/sale' : `/department/${toSlug(item.label)}`}
-                        className={`hcn-dept-link ${isOpen ? 'is-active' : ''} ${isSale ? 'is-sale' : ''}`}
+                        to={`/department/${toSlug(item.label)}`}
+                        className={`hcn-dept-link ${isActive || isOpen ? 'is-active' : ''}`}
                       >
-                        {isSale ? <span className="hcn-sale-shimmer">{item.label}</span> : item.label}
-                        {item.hasMega && <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />}
+                        {item.label}
+                        {item.hasMega && (
+                          <LuChevronDown size={11} style={{ transition: 'transform 0.2s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                        )}
                       </Link>
-                      {item.hasMega && (
+                      {item.hasMega && deptData && (
                         <div className={`hcn-mega ${isOpen ? 'is-open' : 'is-shut'}`} onMouseEnter={onMegaEnter} onMouseLeave={onMegaLeave}>
-                          <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#c4b8ff)` }} />
-                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(MEGA_MENU[item.label].length,5)},1fr)`, padding: '18px 14px 14px' }}>
-                            {MEGA_MENU[item.label].map((group: any, gi: number) => (
-                              <div key={gi} style={{ padding: '0 14px 8px', borderRight: gi < MEGA_MENU[item.label].length-1 ? '1px solid #f2f2f2' : 'none', minWidth: 130 }}>
-                                <Link to="#" className="hcn-mega-head" style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT, transition: 'color 0.14s' }}>{group.heading}</Link>
+                          <div style={{ height: 3, background: `linear-gradient(90deg,${C.purple},${C.purpleLight},#7bbde0)` }} />
+                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(deptData.length, 4)},1fr)`, padding: '18px 14px 14px' }}>
+                            {deptData.map((group: any, gi: number) => (
+                              <div key={gi} style={{ padding: '0 14px 8px', borderRight: gi < deptData.length - 1 ? '1px solid #f2f2f2' : 'none', minWidth: 150 }}>
+                                <Link
+                                  to={`/department/${toSlug(item.label)}/${toSlug(group.heading)}`}
+                                  className="hcn-mega-head"
+                                  style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8, fontFamily: FONT, transition: 'color 0.14s' }}
+                                >
+                                  {group.heading}
+                                </Link>
                                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                                   {group.links.map((link: string, li: number) => (
                                     <li key={li}>
-                                      <Link to="#" className="hcn-mega-link" style={{ display: 'block', fontSize: 11.5, color: C.textMuted, fontFamily: FONT, lineHeight: 1.4, transition: 'color 0.14s' }}>{link}</Link>
+                                      <Link
+                                        to={`/product/${toSlug(link)}`}
+                                        className="hcn-mega-link"
+                                        style={{ display: 'block', fontSize: 11.5, color: C.textMuted, fontFamily: FONT, lineHeight: 1.4, transition: 'color 0.14s' }}
+                                      >
+                                        {link}
+                                      </Link>
                                     </li>
                                   ))}
                                 </ul>
@@ -838,7 +867,7 @@ export default function NavbarOne() {
                             ))}
                           </div>
                           <div style={{ borderTop: '1px solid #f2f2f2', background: '#fafaf9', padding: '9px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: C.textLight, fontFamily: FONT }}>{MEGA_MENU[item.label].length} categories</span>
+                            <span style={{ fontSize: 11, color: C.textLight, fontFamily: FONT }}>{deptData.reduce((acc: number, g: any) => acc + g.links.length, 0)} products</span>
                             <Link to={`/department/${toSlug(item.label)}`} style={{ fontSize: 12, fontWeight: 700, color: C.purple, fontFamily: FONT }}>View All {item.label} →</Link>
                           </div>
                         </div>
@@ -846,15 +875,14 @@ export default function NavbarOne() {
                     </div>
                   );
                 }
+
                 return null;
               })}
             </nav>
           </div>
         </div>
 
-        {/* ───────────────────────────────────────────────────────────────
-            MOBILE HEADER (3 rows, smart-scroll)
-        ─────────────────────────────────────────────────────────────── */}
+        {/* ── MOBILE HEADER ── */}
         <div className={`mob hcn-mob-header${mobNavHidden ? ' is-hidden' : ''}`} style={{ background: C.white, boxShadow: scrolled ? '0 3px 16px rgba(0,0,0,0.08)' : 'none' }}>
           {/* Row A: hamburger, logo, icons */}
           <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 10px 0 6px', borderBottom: `1px solid ${C.border}`, gap: 0 }}>
@@ -862,7 +890,7 @@ export default function NavbarOne() {
               <LuMenu size={22} color={C.textPrimary} strokeWidth={2} />
             </button>
             <Link to="/" aria-label="Infinity" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', marginLeft: 2 }}>
-              <span style={{ fontWeight: 800, fontSize: 20, color: '#4a4a8a', letterSpacing: -0.3, lineHeight: 1, fontFamily: FONT }}>Infinity</span>
+              <span style={{ fontWeight: 800, fontSize: 20, color: C.purple, letterSpacing: -0.3, lineHeight: 1, fontFamily: FONT }}>Infinity</span>
             </Link>
             <div style={{ flex: 1 }} />
             <button aria-label="Wishlist" className="hcn-mob-icon"><LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} /></button>
@@ -879,23 +907,29 @@ export default function NavbarOne() {
           <div style={{ padding: '9px 12px', borderBottom: `1px solid ${C.border}`, background: C.white }}>
             <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
               <LuSearch size={15} color={C.textLight} style={{ marginLeft: 14, flexShrink: 0 }} />
-              <input type="search" className="hcn-search-input" placeholder="Search for products..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} aria-label="Search products" />
+              <input type="search" className="hcn-search-input" placeholder="Search printing, signage..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} aria-label="Search products" />
               {searchVal && <button onClick={() => setSearchVal('')} aria-label="Clear" style={{ ...iconBtnStyle, padding: '0 8px', color: C.textLight }}><LuX size={13} /></button>}
               <button aria-label="Search" style={{ height: '100%', width: 50, border: 'none', borderRadius: '0 100px 100px 0', background: C.purple, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><LuSearch size={17} color={C.white} /></button>
             </div>
           </div>
 
-          {/* Row C: Category chips (show both page items and some departments) */}
+          {/* Row C: Category chips */}
           <div style={{ padding: '9px 12px', background: C.white }}>
             <div className="hcn-chips">
-              {['Home', 'Shop', 'Blog', 'Contact', ...DEPARTMENTS.slice(0, 5)].map(label => (
+              {['Home', 'Shop', 'Blog', 'Contact', ...DEPARTMENTS].map(label => (
                 <Link
                   key={label}
-                  to={label === 'Home' ? '/' : label === 'Shop' ? '/shop-v1' : label === 'Blog' ? '/blog-v1' : label === 'Contact' ? '/contact' : label === 'Sale' ? '/sale' : `/department/${toSlug(label)}`}
+                  to={
+                    label === 'Home'    ? '/' :
+                    label === 'Shop'    ? '/shop-v1' :
+                    label === 'Blog'    ? '/blog-v1' :
+                    label === 'Contact' ? '/contact' :
+                    `/department/${toSlug(label)}`
+                  }
                   onClick={() => setActiveChip(label)}
-                  className={`hcn-chip ${activeChip === label ? 'is-active' : ''} ${label === 'Sale' ? 'sale-chip' : ''}`}
+                  className={`hcn-chip ${activeChip === label ? 'is-active' : ''}`}
                 >
-                  {label === 'Sale' ? '🔥 Sale' : label}
+                  {label}
                 </Link>
               ))}
             </div>

@@ -41,16 +41,27 @@ const WhatsAppIcon: React.FC = () => (
   </svg>
 );
 
-const ChatBubbleIcon: React.FC = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+const handleCall = () => {
+  // Directly open phone dialer with the number
+  window.location.href = "tel:+918888314542";
+};
+const CallIcon: React.FC = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
     <path
-      d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"
-      fill="#fff"
-      fillOpacity="0.95"
+      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+      stroke="#fff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
     />
-    <circle cx="8"  cy="11" r="1.3" fill="#4f7cff" />
-    <circle cx="12" cy="11" r="1.3" fill="#4f7cff" />
-    <circle cx="16" cy="11" r="1.3" fill="#4f7cff" />
   </svg>
 );
 
@@ -361,20 +372,21 @@ const SideSocialHandler: React.FC<SideSocialHandlerProps> = ({
       <button
         type="button"
         className={`ssh-btn${openBtn === 'chat' ? ' is-open' : ''}`}
-        aria-label="Open chat support"
-        title="Open chat support"
-        onClick={handleChatSupport}
+        aria-label="Call Ajit Jain for support"
+        title="Call Ajit Jain - +91 88883 14542"
+        onClick={handleCall}
         onMouseEnter={() => setOpenBtn('chat')}
-        onFocus={()       => setOpenBtn('chat')}
-        onBlur={()        => setOpenBtn(null)}
-      >
-        <div className="ssh-icon ssh-icon-chat">
-          <ChatBubbleIcon />
-        </div>
-        <span className="ssh-label ssh-label-chat" aria-hidden="true">
-          Chat Support
-        </span>
-      </button>
+        onFocus={() => setOpenBtn('chat')}
+        onBlur={() => setOpenBtn(null)}
+    >
+      <div className="ssh-icon ssh-icon-chat">
+        <CallIcon />
+      </div>
+      <span className="ssh-label ssh-label-chat" aria-hidden="true">
+        Call Support
+      </span>
+    </button>
+  
 
     </div>
   );

@@ -131,33 +131,33 @@ export const categoryOne = [
 
 export const productList = [
     {
-        id:1,
-        image:shop1,
-        tag:'Hot Sale',
-        price:'$25.75',
-        name:'White Minimal Chair'
-    },
-    {
-        id:2,
-        image:shop2,
-        tag:'NEW',
-        price:'$122.75',
-        name:'Preminu Luxury Sofa'
-    },
-    {
-        id:3,
-        image:shop3,
-        tag:'10% OFF',
-        price:'$140.99',
-        name:'Table With Pops'
-    },
-    {
-        id:4,
-        image:shop4,
-        tag:'',
-        price:'$122.75',
-        name:'Luxury Lamp for Wall'
-    },
+        id: 1,
+        image: "https://imgs.search.brave.com/Fh0bVSoFNZGyejmBi2ixP5KzMV2l1ZBscvJnOqPIBww/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/NzErMlNPUUoyWUwu/anBn",
+        tag: "NEW",
+        price: "₹2,499",
+        name: "Temple Art Canvas Print"
+      },
+      {
+        id: 2,
+        image: "https://imgs.search.brave.com/xvRRFzB3ffBI183PkWbEf-qU-mcKpIOVeEo032IKxxs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9rb3Rh/cnQuaW4vY2RuL3No/b3AvZmlsZXMvZWZm/ZWN0MjZfMC5qcGc_/dj0xNzI0NjQ2MTM5/JndpZHRoPTUzMw",
+        tag: "Hot Sale",
+        price: "₹1,899",
+        name: "Portrait Sketch - Charcoal"
+      },
+      {
+        id: 3,
+        image: "https://imgs.search.brave.com/QvITnnte9GaQQ3pX4RFyfZTQmlfWYWj83s7xthIUQKY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudXdhbGxzLmNv/bS9wcm9kdWN0cy8x/NTMwMDAvMTUzNzE5/L2MwMDAwN3BpZzEx/bXNfOTAwLndlYnA",
+        tag: "10% OFF",
+        price: "₹3,299",
+        name: "Large Wall Mural"
+      },
+      {
+        id: 4,
+        image: "https://imgs.search.brave.com/sJldnUuNYOe-tPZhqqXG8yt4o72tO-hVGzZdU_0wYS8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9saWZl/bmNvbG9ycy5pbi9j/ZG4vc2hvcC9maWxl/cy9yb3NhLWNoaW5v/aXNlcmllLXdhbGxw/YXBlci1saXZpbmct/cm9vbS1jbGF5LWJl/aWdlLndlYnA_dj0x/NzY1ODgwNTk3Jndp/ZHRoPTMyMA",
+        tag: "NEW",
+        price: "₹1,499",
+        name: "Modern Wallpaper Design"
+      },
     {
         id:5,
         image:shop5,
@@ -215,6 +215,8 @@ export const productList = [
         name:'White Minimal Chair'
     },
 ]
+
+
 
 export const featureOne = [
     {
@@ -313,38 +315,66 @@ export const blogData = [
 
 export const partnerData = [
     {
-        image:partner1,
-        image2:partner01
+      name: "CBRE",
+      image: "https://imgs.search.brave.com/QnXAzc2F-lUgPwtUVzQU7qOcpmNfCu5tULJtEVxoBrI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/bGlibG9nby5jb20v/aW1nLWxvZ28vY2I1/MzgxY2NmMy1jYnJl/LWxvZ28tY2JyZS5w/bmc",
+      image2: "https://imgs.search.brave.com/QnXAzc2F-lUgPwtUVzQU7qOcpmNfCu5tULJtEVxoBrI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/bGlibG9nby5jb20v/aW1nLWxvZ28vY2I1/MzgxY2NmMy1jYnJl/LWxvZ28tY2JyZS5w/bmc",
     },
     {
-        image:partner2,
-        image2:partner02
+      name: "Manjeet Pride Group",
+      image: "https://manjeetpridegroup.com/assets/front/img/Pride-Logo-png-e1739600964808.png",
+      image2: "https://manjeetpridegroup.com/assets/front/img/Pride-Logo-png-e1739600964808.png",
     },
     {
-        image:partner3,
-        image2:partner03
+      name: "The Fern",
+      image: "	https://image2url.com/r2/default/images/1775567570419-eb1f9cf4-92cb-4136-9f6e-b506c33a1c55.png",
+      image2: "	https://image2url.com/r2/default/images/1775567570419-eb1f9cf4-92cb-4136-9f6e-b506c33a1c55.png",
+    },
+    // {
+    //   name: "Treat Imperial",
+    //   image: "https://treatresorts.com/wp-content/uploads/2025/07/Untitled-design-3.png",
+    //   image2: "https://treatresorts.com/wp-content/uploads/2025/07/Untitled-design-3.png",
+    // },
+    {
+      name: "Pride Elite",
+      image: "https://imgs.search.brave.com/44Q68VHqo7NmDUM8Y_b2-Yujsjug58j5i-OdQSPY7kg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9hc3Nl/dHMuc2ltcGxvdGVs/LmNvbS9zaW1wbG90/ZWwvaW1hZ2UvdXBs/b2FkL3dfNTAwMCxo/XzI4MTIveF8xMDQx/LHlfNzIyLHdfMjkx/MixoXzEzMjIscl8w/LGNfY3JvcCxxXzgw/LGZsX3Byb2dyZXNz/aXZlL3dfODI1LGZf/YXV0byxjX2ZpdC9w/cmlkZS1ob3RlbHMt/Z3JvdXAvMV80NWVh/NjMxNw",
+      image2: "https://imgs.search.brave.com/44Q68VHqo7NmDUM8Y_b2-Yujsjug58j5i-OdQSPY7kg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9hc3Nl/dHMuc2ltcGxvdGVs/LmNvbS9zaW1wbG90/ZWwvaW1hZ2UvdXBs/b2FkL3dfNTAwMCxo/XzI4MTIveF8xMDQx/LHlfNzIyLHdfMjkx/MixoXzEzMjIscl8w/LGNfY3JvcCxxXzgw/LGZsX3Byb2dyZXNz/aXZlL3dfODI1LGZf/YXV0byxjX2ZpdC9w/cmlkZS1ob3RlbHMt/Z3JvdXAvMV80NWVh/NjMxNw",
     },
     {
-        image:partner4,
-        image2:partner04
+      name: "Express Inn",
+      image: "https://expressinnindia.com/wp-content/uploads/2022/03/ExpressInn-Main-Logo.svg",
+      image2: "https://expressinnindia.com/wp-content/uploads/2022/03/ExpressInn-Main-Logo.svg",
     },
     {
-        image:partner5,
-        image2:partner05
+      name: "Honda",
+      image: "https://imgs.search.brave.com/6IvafxHbLQsR_uLhbAPbWZkxjC4zrh_vr7_DGipf4_o/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5ncGxheS5jb20v/d3AtY29udGVudC91/cGxvYWRzLzcvSG9u/ZGEtUE5HLUNsaXBh/cnQtQmFja2dyb3Vu/ZC5wbmc",
+      image2: "https://imgs.search.brave.com/6IvafxHbLQsR_uLhbAPbWZkxjC4zrh_vr7_DGipf4_o/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5ncGxheS5jb20v/d3AtY29udGVudC91/cGxvYWRzLzcvSG9u/ZGEtUE5HLUNsaXBh/cnQtQmFja2dyb3Vu/ZC5wbmc",
     },
     {
-        image:partner6,
-        image2:partner06
+      name: "Hyundai",
+      image: "https://imgs.search.brave.com/OFIG2TrdnKbLDwtASMPC3EHmRbBeoUNv0pYBwiYcLBY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/ZnJlZXBuZ2xvZ29z/LmNvbS91cGxvYWRz/L2h5dW5kYWktbG9n/by0yOS5wbmc",
+      image2: "https://imgs.search.brave.com/OFIG2TrdnKbLDwtASMPC3EHmRbBeoUNv0pYBwiYcLBY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/ZnJlZXBuZ2xvZ29z/LmNvbS91cGxvYWRz/L2h5dW5kYWktbG9n/by0yOS5wbmc",
     },
     {
-        image:partner1,
-        image2:partner01
+      name: "Indian Oil",
+      image: "https://imgs.search.brave.com/7ZjR43_3Xulv6hR1umdvC8caP4KHjqcI7mYZKTMw940/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wNy5o/aWNsaXBhcnQuY29t/L3ByZXZpZXcvMTk0/LzkzNy8yMjEvaW5k/aWFuLW9pbC1jb3Jw/b3JhdGlvbi1idXNp/bmVzcy1wZXRyb2xl/dW0tbG9nby1uYXRp/b25hbC1vaWwtY29t/cGFueS1idXNpbmVz/cy5qcGc",
+      image2: "https://imgs.search.brave.com/7ZjR43_3Xulv6hR1umdvC8caP4KHjqcI7mYZKTMw940/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wNy5o/aWNsaXBhcnQuY29t/L3ByZXZpZXcvMTk0/LzkzNy8yMjEvaW5k/aWFuLW9pbC1jb3Jw/b3JhdGlvbi1idXNp/bmVzcy1wZXRyb2xl/dW0tbG9nby1uYXRp/b25hbC1vaWwtY29t/cGFueS1idXNpbmVz/cy5qcGc",
     },
     {
-        image:partner2,
-        image2:partner02
+      name: "Bharat Petro",
+      image: "https://imgs.search.brave.com/K-AQtMAao0gCT_Q4mmrJz9C8S5YfNw18jwxstTkVyx4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jb21w/YW5pZXNsb2dvLmNv/bS9pbWcvb3JpZy9C/UENMLk5TX0JJRy01/NDIyOGMyZi5wbmc_/dD0xNzQ1OTQxNjQ3",
+      image2: "https://imgs.search.brave.com/K-AQtMAao0gCT_Q4mmrJz9C8S5YfNw18jwxstTkVyx4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jb21w/YW5pZXNsb2dvLmNv/bS9pbWcvb3JpZy9C/UENMLk5TX0JJRy01/NDIyOGMyZi5wbmc_/dD0xNzQ1OTQxNjQ3",
     },
-]
+    {
+      name: "SBI",
+      image: "https://imgs.search.brave.com/q6cqeFNvG5FJrDo9oH4jBbHXTtHaEB-ne9V4HvlXq7A/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/cG5nZ3VydS5pbi9z/dG9yYWdlL3VwbG9h/ZHMvaW1hZ2VzL3Ni/aS1sb2dvLXBuZy1m/cmVlLXNiaS1iYW5r/LWxvZ28tcG5nLXdp/dGgtdHJhbnNwYXJl/bnQtYmFja2dyb3Vu/ZF8xNzIxMzc3NjMw/XzE5NDk5NTMzODcu/d2VicA",
+      image2: "https://imgs.search.brave.com/q6cqeFNvG5FJrDo9oH4jBbHXTtHaEB-ne9V4HvlXq7A/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/cG5nZ3VydS5pbi9z/dG9yYWdlL3VwbG9h/ZHMvaW1hZ2VzL3Ni/aS1sb2dvLXBuZy1m/cmVlLXNiaS1iYW5r/LWxvZ28tcG5nLXdp/dGgtdHJhbnNwYXJl/bnQtYmFja2dyb3Vu/ZF8xNzIxMzc3NjMw/XzE5NDk5NTMzODcu/d2VicA",
+    },
+    {
+      name: "ICICI",
+      image: "https://imgs.search.brave.com/tecaLH_S6CyafEa_3nRdJRClq9MfKLUrdegQHL9muig/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90b3Bw/bmcuY29tL3VwbG9h/ZHMvcHJldmlldy9p/Y2ljaS1iYW5rLWxv/Z28tdmVjdG9yLWZy/ZWUtMTE1NzQyMDE0/MTV0am01YzZ0dHRp/LnBuZw",
+      image2: "https://imgs.search.brave.com/tecaLH_S6CyafEa_3nRdJRClq9MfKLUrdegQHL9muig/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90b3Bw/bmcuY29tL3VwbG9h/ZHMvcHJldmlldy9p/Y2ljaS1iYW5rLWxv/Z28tdmVjdG9yLWZy/ZWUtMTE1NzQyMDE0/MTV0am01YzZ0dHRp/LnBuZw",
+    },
+  ];
 
 export const productSlider = [
     {
