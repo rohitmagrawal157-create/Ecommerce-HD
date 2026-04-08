@@ -23,7 +23,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LuHeart, LuShoppingBasket, LuSearch, LuMapPin,
   LuTruck, LuSmartphone, LuCircle, LuX,
-  LuChevronDown, LuChevronRight, LuMenu, LuUser,
+  LuChevronDown, LuChevronRight, LuMenu, LuUser, LuShieldCheck,
 } from 'react-icons/lu';
 import { RiEBike2Line } from 'react-icons/ri';
 
@@ -538,63 +538,23 @@ function MegaMenuPanel({
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'stretch', maxWidth: 1720, margin: '0 auto', padding: '0' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 40px', display: 'flex', alignItems: 'flex-start', gap: 28, justifyContent: 'center' }}>
 
-        {/* ── LEFT: Category image ── */}
-        <div style={{
-          width:       IMG_WIDTH,
-          minWidth:    IMG_WIDTH,
-          flexShrink:  0,
-          overflow:    'hidden',
-          position:    'relative',
-        }}>
-          <img
-            src={data.image}
-            alt={data.imageAlt}
-            style={{
-              width:    '100%',
-              height:   '100%',
-              minHeight: 280,
-              objectFit: 'cover',
-              objectPosition: 'center',
-              display:  'block',
-            }}
-          />
-          {/* Subtle overlay for text legibility */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(to right, rgba(0,0,0,0.08), transparent)',
-            pointerEvents: 'none',
-          }} />
+        {/* Centered category image with margin around */}
+        <div style={{ width: IMG_WIDTH, minWidth: IMG_WIDTH, overflow: 'hidden', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.06)' }}>
+          <img src={data.image} alt={data.imageAlt} style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }} />
         </div>
 
-        {/* ── CONTENT: flat list + groups ── */}
-        <div style={{
-          flex:    1,
-          display: 'flex',
-          alignItems: 'flex-start',
-          padding: '24px 0',
-          minWidth: 0,
-        }}>
-
-          {/* Flat list column (no heading) */}
+        {/* Content columns (flat links + groups) centered next to image */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           {data.flatLinks && data.flatLinks.length > 0 && (
-            <div style={{
-              minWidth:    180,
-              padding:     '0 32px',
-              borderRight: `1px solid ${C.border}`,
-              flexShrink:  0,
-            }}>
+            <div style={{ minWidth: 180, padding: '0 24px', borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
               {data.flatLinks.map((item, i) => {
-                const name  = getLinkName(item);
+                const name = getLinkName(item);
                 const badge = getLinkBadge(item);
                 const isShopAll = name.toLowerCase().startsWith('shop all');
                 return (
-                  <Link
-                    key={i}
-                    to={getLinkPath(item)}
-                    className={`hcn-fl-link ${isShopAll ? 'shop-all' : ''}`}
-                  >
+                  <Link key={i} to={getLinkPath(item)} className={`hcn-fl-link ${isShopAll ? 'shop-all' : ''}`}>
                     {name}
                     {badge === 'NEW' && <span className="hcn-badge-new" style={{ marginLeft: 6 }}>NEW</span>}
                   </Link>
@@ -603,28 +563,15 @@ function MegaMenuPanel({
             </div>
           )}
 
-          {/* Group columns */}
           {data.groups.map((group, gi) => (
-            <div
-              key={gi}
-              style={{
-                minWidth:    180,
-                padding:     '0 32px',
-                borderRight: gi < data.groups.length - 1 ? `1px solid ${C.border}` : 'none',
-                flexShrink:  0,
-              }}
-            >
+            <div key={gi} style={{ minWidth: 180, padding: '0 24px', borderRight: gi < data.groups.length - 1 ? `1px solid ${C.border}` : 'none', flexShrink: 0 }}>
               <div className="hcn-grp-head">{group.heading}</div>
               {group.links.map((item, li) => {
-                const name  = getLinkName(item);
+                const name = getLinkName(item);
                 const badge = getLinkBadge(item);
                 const isShopAll = name.toLowerCase().startsWith('shop all');
                 return (
-                  <Link
-                    key={li}
-                    to={getLinkPath(item)}
-                    className={`hcn-grp-link ${isShopAll ? 'shop-all' : ''}`}
-                  >
+                  <Link key={li} to={getLinkPath(item)} className={`hcn-grp-link ${isShopAll ? 'shop-all' : ''}`}>
                     {name}
                     {badge === 'NEW' && <span className="hcn-badge-new">NEW</span>}
                   </Link>
@@ -632,7 +579,6 @@ function MegaMenuPanel({
               })}
             </div>
           ))}
-
         </div>
       </div>
     </div>
@@ -667,9 +613,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 
         {/* Sign in */}
         <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-          <button style={{ width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', background: C.brand, color: '#fff', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', cursor: 'pointer', fontFamily: FONT }}>
+          {/* Link will go to /my-profile when authenticated, otherwise /login */}
+          <a href="#" onClick={(e) => { e.preventDefault(); const dest = window.localStorage.getItem('access_token') ? '/my-profile' : '/login'; window.location.href = dest; }} style={{ width: '100%', display: 'inline-block', textAlign: 'center', padding: '11px 0', borderRadius: 10, border: 'none', background: C.brand, color: '#fff', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', cursor: 'pointer', fontFamily: FONT, textDecoration: 'none' }}>
             SIGN UP / SIGN IN
-          </button>
+          </a>
         </div>
 
         {/* Nav list */}
@@ -789,6 +736,9 @@ export default function NavbarOne() {
   const [showFreeShip,  setShowFreeShip]  = useState(false);
   const [showEmi,       setShowEmi]       = useState(false);
   const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [scrolled,      setScrolled]      = useState(false);
   const [mobHidden,     setMobHidden]     = useState(false);
   const [navbarBottom,  setNavbarBottom]  = useState(0);    // px from top — where mega menu starts
@@ -815,6 +765,52 @@ export default function NavbarOne() {
     window.addEventListener('resize', measureNavbar);
     return () => window.removeEventListener('resize', measureNavbar);
   }, [measureNavbar]);
+
+  // ── Dynamic cart / wishlist / auth state ──
+  useEffect(() => {
+    // quick initial checks
+    setIsAuthenticated(Boolean(window.localStorage.getItem('access_token')));
+
+    async function refreshCounts() {
+      try {
+        const { getCart } = await import('../../api/cart.api');
+        const cart = await getCart();
+        const total = cart.lines.reduce((s: number, l: any) => s + (l.quantity ?? 0), 0);
+        setCartCount(total);
+      } catch {
+        // ignore
+      }
+      try {
+        const { getWishlist } = await import('../../api/wishlist.api');
+        const wl = await getWishlist();
+        setWishlistCount(wl.productIds.length);
+      } catch {
+        // ignore
+      }
+    }
+
+    // Refresh now
+    refreshCounts();
+
+    // Handlers for custom events and storage events
+    const onCart = () => { refreshCounts(); };
+    const onWl = () => { refreshCounts(); };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'access_token') setIsAuthenticated(Boolean(window.localStorage.getItem('access_token')));
+      if (e.key && e.key.startsWith('cart')) refreshCounts();
+      if (e.key && e.key.startsWith('wishlist')) refreshCounts();
+    };
+
+    window.addEventListener('cart:changed', onCart as EventListener);
+    window.addEventListener('wishlist:changed', onWl as EventListener);
+    window.addEventListener('storage', onStorage as EventListener);
+
+    return () => {
+      window.removeEventListener('cart:changed', onCart as EventListener);
+      window.removeEventListener('wishlist:changed', onWl as EventListener);
+      window.removeEventListener('storage', onStorage as EventListener);
+    };
+  }, []);
 
   // Re-measure when scrolled changes (utility bar appears/disappears)
   useEffect(() => { measureNavbar(); }, [scrolled, measureNavbar]);
@@ -948,18 +944,35 @@ export default function NavbarOne() {
 
             {/* Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0 }}>
-              <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.brand, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', marginRight: 6 }}>SIGN IN</button>
-              <button className="hcn-icon-btn" aria-label="Wishlist">
-                <LuHeart className="hcn-ico" size={21} color="#444" />
+              {isAuthenticated ? (
+                <>
+                  <Link to="/my-profile" style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#fff', color: C.brand, fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', cursor: 'pointer', fontFamily: FONT, textDecoration: 'none', marginRight: 8 }}>
+                    My Profile
+                  </Link>
+                  <Link to="/admin" aria-label="Admin" className="hcn-icon-btn" style={{ marginRight: 6 }}>
+                    <LuShieldCheck className="hcn-ico" size={20} color="#444" />
+                    <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Admin</span>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/login" style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.brand, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', marginRight: 6 }}>SIGN IN</Link>
+              )}
+
+              <Link to="/wishlist" className="hcn-icon-btn" aria-label="Wishlist">
+                <div style={{ position: 'relative' }}>
+                  <LuHeart className="hcn-ico" size={21} color="#444" />
+                  {wishlistCount > 0 && <span style={{ position: 'absolute', top: -7, right: -7, minWidth: 16, height: 16, padding: '0 4px', borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{wishlistCount}</span>}
+                </div>
                 <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Wishlist</span>
-              </button>
-              <button className="hcn-icon-btn" aria-label="Basket">
+              </Link>
+
+              <Link to="/cart" className="hcn-icon-btn" aria-label="Basket">
                 <div style={{ position: 'relative' }}>
                   <LuShoppingBasket className="hcn-ico" size={21} color="#444" />
-                  <span style={{ position: 'absolute', top: -7, right: -7, width: 16, height: 16, borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</span>
+                  {cartCount > 0 && <span style={{ position: 'absolute', top: -7, right: -7, minWidth: 16, height: 16, padding: '0 4px', borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount}</span>}
                 </div>
                 <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Basket</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -1072,14 +1085,17 @@ export default function NavbarOne() {
               <span style={{ fontWeight: 800, fontSize: 20, color: C.brand, letterSpacing: -0.3, fontFamily: FONT }}>Infinity</span>
             </Link>
             <div style={{ flex: 1 }} />
-            <button aria-label="Wishlist"  className="hcn-mob-icon"><LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} /></button>
-            <button aria-label="Basket"    className="hcn-mob-icon">
+            <a href="/wishlist" aria-label="Wishlist"  className="hcn-mob-icon" style={{ display: 'flex', alignItems: 'center' }}>
+              <LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} />
+              {wishlistCount > 0 && <span style={{ position: 'absolute', top: 8, right: 48, minWidth: 16, height: 16, padding: '0 4px', borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{wishlistCount}</span>}
+            </a>
+            <a href="/cart" aria-label="Basket"    className="hcn-mob-icon" style={{ display: 'flex', alignItems: 'center' }}>
               <div style={{ position: 'relative' }}>
                 <LuShoppingBasket size={22} color="#2a2a2a" strokeWidth={1.8} />
-                <span style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</span>
+                {cartCount > 0 && <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 16, height: 16, padding: '0 4px', borderRadius: '50%', background: C.brand, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount}</span>}
               </div>
-            </button>
-            <button aria-label="Account"   className="hcn-mob-icon"><LuUser size={22} color="#2a2a2a" strokeWidth={1.8} /></button>
+            </a>
+            <a href="/my-profile" aria-label="Account"   className="hcn-mob-icon" style={{ display: 'flex', alignItems: 'center' }}><LuUser size={22} color="#2a2a2a" strokeWidth={1.8} /></a>
           </div>
 
           {/* Row B: search */}

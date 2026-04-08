@@ -20,7 +20,7 @@ import AOS from 'aos';
 // import NavbarFour from '../../components/navbar/navbar-four';
 import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
 import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
-import ProductCollection from '../../components/allproduct/ProductCollection.tsx';
+import ProductCollection from '../../components/allproduct/productcollection.tsx';
 
 interface Feature {
     image: string;

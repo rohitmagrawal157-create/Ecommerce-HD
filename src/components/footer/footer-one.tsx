@@ -21,7 +21,6 @@ import {
   FaHeart,
   FaInstagram,
   FaLinkedin,
-  FaTwitter,
   FaYoutube,
   FaPinterest,
 } from 'react-icons/fa';
