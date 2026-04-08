@@ -64,11 +64,22 @@ export default function ProductCategorySlider() {
   const sliderRef = useRef<any>(null);
 
   const handlePrev = () => {
-    sliderRef.current?.goTo('prev');
+    const s = sliderRef.current;
+    if (!s) return;
+    // tiny-slider-react exposes different shapes depending on version — try common ones
+    if (typeof s.goTo === 'function') return s.goTo('prev');
+    if (s.slider && typeof s.slider.goTo === 'function') return s.slider.goTo('prev');
+    if (s.tns && typeof s.tns.goTo === 'function') return s.tns.goTo('prev');
+    if (s.innerSlider && typeof s.innerSlider.goTo === 'function') return s.innerSlider.goTo('prev');
   };
 
   const handleNext = () => {
-    sliderRef.current?.goTo('next');
+    const s = sliderRef.current;
+    if (!s) return;
+    if (typeof s.goTo === 'function') return s.goTo('next');
+    if (s.slider && typeof s.slider.goTo === 'function') return s.slider.goTo('next');
+    if (s.tns && typeof s.tns.goTo === 'function') return s.tns.goTo('next');
+    if (s.innerSlider && typeof s.innerSlider.goTo === 'function') return s.innerSlider.goTo('next');
   };
 
   return (
