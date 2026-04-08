@@ -13,6 +13,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "aos": "^2.3.4",
+    "axios": "^1.14.0",
     "framer-motion": "^12.38.0",
     "multi-range-slider-react": "^2.0.7",
     "prop-types": "^15.8.1",

@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import seller2 from '../../assets/img/home-v4/seller-02.jpg'
@@ -9,6 +9,8 @@ import { productList } from '../../data/data'
 import { GoStarFill } from 'react-icons/go'
 import { LuEye, LuHeart } from 'react-icons/lu'
 import { RiShoppingBag2Line } from 'react-icons/ri'
+import { addToCart } from '../../api/cart.api'
+import { isWishlisted, toggleWishlist } from '../../api/wishlist.api'
 
 interface ProductData{
     id: number;
@@ -20,6 +22,61 @@ interface ProductData{
 
 export default function BestSeller() {
     const [activeTab, setActiveTab] = useState<number>(1)
+    const [busy, setBusy] = useState<null | { type: 'cart' | 'wishlist'; productId: number }>(null)
+    const [notice, setNotice] = useState<null | { productId: number; message: string }>(null)
+    const [wishedMap, setWishedMap] = useState<Record<number, boolean>>({})
+
+    useEffect(() => {
+      // Only load for cards we render in this component (first 4 items).
+      const ids = productList.slice(0, 4).map((p) => p.id)
+      Promise.all(ids.map((id) => isWishlisted(id).then((v) => ({ id, v })).catch(() => ({ id, v: false }))))
+        .then((rows) => {
+          setWishedMap((prev) => {
+            const next = { ...prev }
+            rows.forEach(({ id, v }) => {
+              next[id] = v
+            })
+            return next
+          })
+        })
+        .catch(() => {
+          // ignore
+        })
+    }, [])
+
+    const onAddToCart = async (productId: number) => {
+      if (busy) return
+      setBusy({ type: 'cart', productId })
+      setNotice(null)
+      try {
+        await addToCart(productId, 1)
+        setNotice({ productId, message: 'Added to cart' })
+        window.setTimeout(() => setNotice(null), 2200)
+      } catch {
+        setNotice({ productId, message: 'Add to cart failed' })
+        window.setTimeout(() => setNotice(null), 2500)
+      } finally {
+        setBusy(null)
+      }
+    }
+
+    const onToggleWishlist = async (productId: number) => {
+      if (busy) return
+      setBusy({ type: 'wishlist', productId })
+      setNotice(null)
+      try {
+        const next = await toggleWishlist(productId)
+        const nowWished = next.productIds.includes(productId)
+        setWishedMap((prev) => ({ ...prev, [productId]: nowWished }))
+        setNotice({ productId, message: nowWished ? 'Wishlisted' : 'Removed from wishlist' })
+        window.setTimeout(() => setNotice(null), 2200)
+      } catch {
+        setNotice({ productId, message: 'Wishlist action failed' })
+        window.setTimeout(() => setNotice(null), 2500)
+      } finally {
+        setBusy(null)
+      }
+    }
 
   return (
     <div className="max-w-1366 mx-auto">
@@ -65,19 +122,33 @@ export default function BestSeller() {
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>                          
                                                     </button>
-                                                    <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => onAddToCart(item.id)}
+                                                      disabled={busy?.type === 'cart'}
+                                                      className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                                         <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
-                                                    </Link>
-                                                    <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => onToggleWishlist(item.id)}
+                                                      disabled={busy?.type === 'wishlist'}
+                                                      className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                                          {wishedMap[item.id] ? 'Wishlisted' : 'Add to wishlist'}
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
                                                     </button>
                                                 </div>
+                                                {notice?.productId === item.id && (
+                                                  <p className="text-xs mt-3 text-white transition-opacity">{notice.message}</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -107,15 +178,26 @@ export default function BestSeller() {
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>                          
                                         </button>
-                                        <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        <button
+                                            type="button"
+                                            onClick={() => onAddToCart(productList[0].id)}
+                                            disabled={busy?.type === 'cart'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                             <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
-                                        </Link>
-                                        <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggleWishlist(productList[0].id)}
+                                            disabled={busy?.type === 'wishlist'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                                {wishedMap[productList[0].id] ? 'Wishlisted' : 'Add to wishlist'}
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
                                         </button>
@@ -153,19 +235,33 @@ export default function BestSeller() {
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>                          
                                                     </button>
-                                                    <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => onAddToCart(item.id)}
+                                                      disabled={busy?.type === 'cart'}
+                                                      className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                                         <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
-                                                    </Link>
-                                                    <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => onToggleWishlist(item.id)}
+                                                      disabled={busy?.type === 'wishlist'}
+                                                      className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                                          {wishedMap[item.id] ? 'Wishlisted' : 'Add to wishlist'}
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
                                                     </button>
                                                 </div>
+                                                {notice?.productId === item.id && (
+                                                  <p className="text-xs mt-3 text-white transition-opacity">{notice.message}</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -195,15 +291,26 @@ export default function BestSeller() {
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>                          
                                         </button>
-                                        <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        <button
+                                            type="button"
+                                            onClick={() => onAddToCart(productList[0].id)}
+                                            disabled={busy?.type === 'cart'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                             <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
-                                        </Link>
-                                        <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggleWishlist(productList[0].id)}
+                                            disabled={busy?.type === 'wishlist'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                              {wishedMap[productList[0].id] ? 'Wishlisted' : 'Add to wishlist'}
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
                                         </button>
@@ -238,15 +345,26 @@ export default function BestSeller() {
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>                          
                                         </button>
-                                        <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        <button
+                                            type="button"
+                                            onClick={() => onAddToCart(productList[0].id)}
+                                            disabled={busy?.type === 'cart'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                             <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
-                                        </Link>
-                                        <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggleWishlist(productList[0].id)}
+                                            disabled={busy?.type === 'wishlist'}
+                                            className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
                                             <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                            <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                              {wishedMap[productList[0].id] ? 'Wishlisted' : 'Add to wishlist'}
                                                 <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                             </span>
                                         </button>
@@ -280,19 +398,33 @@ export default function BestSeller() {
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>                          
                                                     </button>
-                                                    <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onAddToCart(item.id)}
+                                                        disabled={busy?.type === 'cart'}
+                                                        className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <RiShoppingBag2Line className="transition-all duration-300 text-white size-6"/>
                                                         <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
-                                                    </Link>
-                                                    <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon">
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onToggleWishlist(item.id)}
+                                                        disabled={busy?.type === 'wishlist'}
+                                                        className={`w-9 lg:w-12 h-9 p-2 lg:h-12 flex items-center justify-center text-white  transition-all bg-white/20 duration-300 relative tooltip-icon ${busy?.type === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
                                                         <LuHeart className="transition-all duration-300 text-white size-6"/>
-                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to wishlist
+                                                        <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">
+                                                          {wishedMap[item.id] ? 'Wishlisted' : 'Add to wishlist'}
                                                             <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                         </span>
                                                     </button>
                                                 </div>
+                                                {notice?.productId === item.id && (
+                                                  <p className="text-xs mt-3 text-white transition-opacity">{notice.message}</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -1,21 +1,87 @@
 import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 
 import NavbarOne from "../../components/navbar/navbar-one";
-import IncreDre from "../../components/incre-dre";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
-import cart1 from '../../assets/img/gallery/cart/cart-01.jpg'
-import cart2 from '../../assets/img/gallery/cart/cart-02.jpg'
-import cart3 from '../../assets/img/gallery/cart/cart-03.jpg'
-import { useEffect } from "react";
 import Aos from "aos";
 
+import type { CartState } from "../../api/cart.api";
+import { getCart, removeFromCartItem, updateCartItem } from "../../api/cart.api";
+
 export default function Cart() {
-    useEffect(()=>{
-        Aos.init()
-    })
+  const [cart, setCart] = useState<CartState>({ lines: [] });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    Aos.init();
+
+    let alive = true;
+    setLoading(true);
+    getCart()
+      .then((c) => {
+        if (!alive) return;
+        setCart(c);
+      })
+      .catch((e: any) => {
+        if (!alive) return;
+        setError(e?.message ?? 'Failed to load cart.');
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const parseMoney = (price: string): { value: number; symbol: string } => {
+    const s = price ?? '';
+    const symbol = s.includes('₹') ? '₹' : s.includes('$') ? '$' : '';
+    const normalized = s.replace(/,/g, '');
+    const match = normalized.match(/(\d+(\.\d+)?)/);
+    const value = match ? parseFloat(match[1]) : 0;
+    return { value, symbol };
+  };
+
+  const currencySymbol = useMemo(() => {
+    if (cart.lines[0]?.product?.price) return parseMoney(cart.lines[0].product.price).symbol || '$';
+    return '$';
+  }, [cart.lines]);
+
+  const subtotal = useMemo(() => {
+    return cart.lines.reduce((acc, line) => {
+      const { value } = parseMoney(line.product.price);
+      return acc + value * line.quantity;
+    }, 0);
+  }, [cart.lines]);
+
+  const handleQtyChange = async (productId: number, nextQty: number) => {
+    const qty = Math.max(1, Math.floor(nextQty));
+    setActionLoadingId(productId);
+    try {
+      const next = await updateCartItem(productId, qty);
+      setCart(next);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRemove = async (productId: number) => {
+    setActionLoadingId(productId);
+    try {
+      const next = await removeFromCartItem(productId);
+      setCart(next);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
   return (
     <>
         <NavbarOne/>  
@@ -35,6 +101,17 @@ export default function Cart() {
             <div className="container ">
                 <div className="flex xl:flex-row flex-col gap-[30px] lg:gap-[30px] xl:gap-[70px]">
                     <div className="flex-1 overflow-x-auto" data-aos="fade-up" data-aos-delay="100">
+                        {loading && (
+                          <div className="text-center text-sm text-gray-500 py-10">
+                            Loading...
+                          </div>
+                        )}
+                        {!loading && error && (
+                          <div className="text-center text-sm text-red-600 py-10">
+                            {error}
+                          </div>
+                        )}
+                        {!loading && !error && (
                         <table id="cart-table" className="responsive nowrap table-wrapper" style={{width:'100%'}}>
                             <thead className="table-header">
                                 <tr>
@@ -46,95 +123,86 @@ export default function Cart() {
                                 </tr>
                             </thead>
                             <tbody className="table-body">
-                                <tr className="">
-                                    <td className="md:w-[42%]">
-                                        <div className="flex items-center gap-3 md:gap-4 lg:gap-6 cart-product my-4">
+                                {cart.lines.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={5} className="text-center text-sm text-gray-500 py-10">
+                                      Your cart is empty.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  cart.lines.map((line) => {
+                                    const { value, symbol } = parseMoney(line.product.price);
+                                    const lineTotal = value * line.quantity;
+                                    const showSymbol = symbol || currencySymbol || '$';
+
+                                    return (
+                                      <tr key={line.product.id}>
+                                        <td className="md:w-[42%]">
+                                          <div className="flex items-center gap-3 md:gap-4 lg:gap-6 cart-product my-4">
                                             <div className="w-14 sm:w-20 flex-none">
-                                                <img src={cart1} alt="product"/>
+                                              <img src={line.product.image} alt={line.product.name} />
                                             </div>
                                             <div className="flex-1">
-                                                <h6 className="leading-none font-medium">Chair</h6>
-                                                <h5 className="font-semibold leading-none mt-2"><Link to="#">Modern Sofa Set</Link></h5>
+                                              <h6 className="leading-none font-medium">{line.product.tag || line.product.name}</h6>
+                                              <h5 className="font-semibold leading-none mt-2">
+                                                <Link to={`/product-details/${line.product.id}`}>{line.product.name}</Link>
+                                              </h5>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$45</h6>
-                                    </td>
-                                    <td>
-                                        <IncreDre/>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$312</h6>
-                                    </td>
-                                    <td>
-                                        <button className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center ml-auto duration-300 text-title dark:text-white">
-                                            <svg className="fill-current " width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z"/>
+                                          </div>
+                                        </td>
+                                        <td>
+                                          <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
+                                            {line.product.price}
+                                          </h6>
+                                        </td>
+                                        <td>
+                                          <div className="flex items-center gap-3">
+                                            <button
+                                              className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center duration-300 text-title dark:text-white"
+                                              onClick={() => handleQtyChange(line.product.id, line.quantity - 1)}
+                                              disabled={actionLoadingId === line.product.id || line.quantity <= 1}
+                                              aria-label="Decrease quantity"
+                                            >
+                                              -
+                                            </button>
+                                            <span className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
+                                              {line.quantity}
+                                            </span>
+                                            <button
+                                              className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center duration-300 text-title dark:text-white"
+                                              onClick={() => handleQtyChange(line.product.id, line.quantity + 1)}
+                                              disabled={actionLoadingId === line.product.id}
+                                              aria-label="Increase quantity"
+                                            >
+                                              +
+                                            </button>
+                                          </div>
+                                        </td>
+                                        <td>
+                                          <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
+                                            {showSymbol}
+                                            {Number.isFinite(lineTotal) ? lineTotal.toFixed(0) : 0}
+                                          </h6>
+                                        </td>
+                                        <td>
+                                          <button
+                                            className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center ml-auto duration-300 text-title dark:text-white"
+                                            onClick={() => handleRemove(line.product.id)}
+                                            disabled={actionLoadingId === line.product.id}
+                                            aria-label="Remove item"
+                                          >
+                                            <svg className="fill-current" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                              <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z" />
                                             </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td className="md:w-[42%]">
-                                        <div className="flex items-center gap-3 md:gap-4 lg:gap-6 cart-product mb-4">
-                                            <div className="w-14 sm:w-20 flex-none">
-                                                <img src={cart2} alt="product"/>
-                                            </div>
-                                            <div className="flex-1">
-                                                <h6 className="leading-none font-medium">Light/Lamp</h6>
-                                                <h5 className="font-semibold leading-none mt-2"><Link to="#">Classic Chair with Vase</Link></h5>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$120</h6>
-                                    </td>
-                                    <td>
-                                        <IncreDre/>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$780</h6>
-                                    </td>
-                                    <td>
-                                        <button className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center ml-auto duration-300 text-title dark:text-white">
-                                            <svg className="fill-current " width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td className="md:w-[42%]">
-                                        <div className="flex items-center gap-3 md:gap-4 lg:gap-6 cart-product">
-                                            <div className="w-14 sm:w-20 flex-none">
-                                                <img src={cart3} alt="product"/>
-                                            </div>
-                                            <div className="flex-1">
-                                                <h6 className="leading-none font-medium">Interior</h6>
-                                                <h5 className="font-semibold leading-none mt-2"><Link to="#">Luxury Hanging Lamp</Link></h5>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$90</h6>
-                                    </td>
-                                    <td>
-                                        <IncreDre/>
-                                    </td>
-                                    <td>
-                                        <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">$380</h6>
-                                    </td>
-                                    <td>
-                                        <button className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center ml-auto duration-300 text-title dark:text-white">
-                                            <svg className="fill-current " width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
                             </tbody>
                         </table>
+                        )}
                     </div>
 
                     <div data-aos="fade-up" data-aos-delay="300">
@@ -153,15 +221,18 @@ export default function Cart() {
                             <div className="text-right flex justify-end flex-col w-full ml-auto mr-0">
                                 <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium">
                                     <span>Sub Total:</span>
-                                    <span>$870</span>
+                                    <span>
+                                      {currencySymbol}
+                                      {subtotal.toFixed(0)}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
                                     <span>Coupon Discount:</span>
-                                    <span>-$20</span>
+                                    <span>-{currencySymbol}0</span>
                                 </div>
                                 <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
                                     <span>VAT:</span>
-                                    <span> $5</span>
+                                    <span>{currencySymbol}0</span>
                                 </div>
                                 
                             </div>
@@ -212,7 +283,10 @@ export default function Cart() {
                             <div className="mt-6 pt-6 border-t border-bdr-clr dark:border-bdr-clr-drk">
                                 <div className="flex justify-between flex-wrap font-semibold leading-none text-2xl">
                                     <span>Total:</span>
-                                    <span>&nbsp;$850</span>
+                                    <span>
+                                      &nbsp;{currencySymbol}
+                                      {subtotal.toFixed(0)}
+                                    </span>
                                 </div>
                             </div>
                         </div>

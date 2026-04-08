@@ -33,6 +33,9 @@ import LayoutOne   from '../../components/product/layout-one';
 import ScrollToTop from '../../components/scroll-to-top';
 
 import { productList, productTag } from '../../data/data';
+import { getProductById } from '../../api/products';
+import { addToCart } from '../../api/cart.api';
+import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
 import {
   FaFacebookF, FaTwitter, FaPinterestP, FaWhatsapp,
 } from 'react-icons/fa';
@@ -585,14 +588,66 @@ function DeliveryInfo() {
 // WishlistButton
 // ═══════════════════════════════════════════════════════════════════════════
 
-function WishlistButton() {
-  const [wished,setWished] = useState(false);
+function WishlistButton({ productId }: { productId: number }) {
+  const [wished, setWished] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (!Number.isFinite(productId) || productId <= 0) return;
+
+    isWishlisted(productId)
+      .then((v) => {
+        if (!alive) return;
+        setWished(v);
+      })
+      .catch(() => {
+        // ignore: keep existing state
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [productId]);
+
+  const toggle = async () => {
+    if (busy) return;
+    if (!Number.isFinite(productId) || productId <= 0) return;
+    setBusy(true);
+    try {
+      const next = await toggleWishlist(productId);
+      setWished(next.productIds.includes(productId));
+    } catch {
+      // ignore: localStorage fallback may still apply
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <button onClick={()=>setWished(w=>!w)} aria-label={wished?'Remove from wishlist':'Add to wishlist'}
+    <button
+      onClick={toggle}
+      disabled={busy}
+      aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-all duration-200 select-none"
-      style={{border:`1.5px solid ${wished?RED:'#d1d5db'}`,color:wished?RED:'#374151',background:wished?'#fef2f2':'#fff',cursor:'pointer'}}>
-      <LuHeart size={16} style={{fill:wished?RED:'none',stroke:RED,transition:'fill 0.2s, transform 0.15s',transform:wished?'scale(1.2)':'scale(1)'}}/>
-      {wished?'Wishlisted':'Wishlist'}
+      style={{
+        border: `1.5px solid ${wished ? RED : '#d1d5db'}`,
+        color: wished ? RED : '#374151',
+        background: wished ? '#fef2f2' : '#fff',
+        cursor: busy ? 'not-allowed' : 'pointer',
+        opacity: busy ? 0.85 : 1,
+      }}
+    >
+      <LuHeart
+        size={16}
+        style={{
+          fill: wished ? RED : 'none',
+          stroke: RED,
+          transition: 'fill 0.2s, transform 0.15s',
+          transform: wished ? 'scale(1.2)' : 'scale(1)',
+        }}
+      />
+      {wished ? 'Wishlisted' : 'Wishlist'}
     </button>
   );
 }
@@ -969,6 +1024,7 @@ export default function ProductDetails() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [quantity,      setQuantity]      = useState(1);
   const [isAdding,      setIsAdding]      = useState(false);
+  const [cartError,    setCartError]    = useState<string | null>(null);
 
   const OUT_OF_STOCK = STOCK_QTY === 0;
   const MAX_QTY      = OUT_OF_STOCK ? 0 : STOCK_QTY;
@@ -977,7 +1033,28 @@ export default function ProductDetails() {
   useEffect(() => { AOS.init({ once: true, duration: 600, easing: 'ease-out-cubic', offset: 60 }); }, []);
 
   const { id } = useParams<{ id: string }>();
-  const product = productList.find((item: any) => item.id === parseInt(id ?? '0', 10));
+  const parsedId = parseInt(id ?? '0', 10);
+  const fallbackProduct = productList.find((item: any) => item.id === parsedId);
+  const [product, setProduct] = useState<any>(fallbackProduct);
+
+  useEffect(() => {
+    let alive = true;
+    if (!Number.isFinite(parsedId)) return;
+
+    getProductById(parsedId)
+      .then((p) => {
+        if (!alive) return;
+        setProduct(p ?? fallbackProduct);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setProduct(fallbackProduct);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [parsedId]);
 
   const productName         = product?.name  ?? 'Classic Relaxable Chair';
   const productPrice        = product?.price ?? '$85.00';
@@ -1006,7 +1083,19 @@ export default function ProductDetails() {
   const handleDecrement = () => setQuantity(q => Math.max(1, q-1));
   const handleIncrement = () => setQuantity(q => Math.min(MAX_QTY, q+1));
   const handleQtyChange = (val: number) => setQuantity(val);
-  const handleAddToCart = () => { setIsAdding(true); setTimeout(()=>setIsAdding(false),1500); };
+  const handleAddToCart = async () => {
+    if (OUT_OF_STOCK) return;
+    if (!Number.isFinite(parsedId) || parsedId <= 0) return;
+    setCartError(null);
+    setIsAdding(true);
+    try {
+      await addToCart(parsedId, quantity);
+    } catch (e: any) {
+      setCartError(e?.message ?? 'Failed to add to cart.');
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   const sizes:string[]       = ['S','M','L','XL'];
   const colors:ColorOption[] = [{hex:'#D68553',defaultChecked:false},{hex:'#61646E',defaultChecked:true},{hex:'#E9E3DC',defaultChecked:false},{hex:'#9A9088',defaultChecked:false}];
@@ -1103,12 +1192,17 @@ export default function ProductDetails() {
                 {OUT_OF_STOCK ? <OutOfStockPanel/> : (
                   <div className="flex items-center gap-4 flex-wrap mb-2">
                     <QuantitySelector quantity={quantity} onDecrement={handleDecrement} onIncrement={handleIncrement} onChange={handleQtyChange} maxQty={MAX_QTY} disabled={false}/>
-                    <WishlistButton/>
+                    <WishlistButton productId={parsedId}/>
                   </div>
                 )}
                 <BulkOrderLink productName={productName} sku="CH_0015"/>
                 <BestOffersBox offers={OFFERS}/>
                 <AddToCartButtons onAddToCart={handleAddToCart} isAdding={isAdding} outOfStock={OUT_OF_STOCK}/>
+                {cartError && (
+                  <p className="text-xs font-medium mt-2" style={{ color: '#dc2626' }}>
+                    {cartError}
+                  </p>
+                )}
                 <div className="hidden"><IncreDre/></div>
               </div>
 

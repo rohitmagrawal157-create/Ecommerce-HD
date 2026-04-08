@@ -1,28 +1,33 @@
-import  { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FiArrowUp } from "react-icons/fi";
 
 const ScrollToTop = () => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
+  const isVisibleRef = useRef<boolean>(false);
 
-  // Show button when the user scrolls down
-  const toggleVisibility = () => {
-    if (window.scrollY > 300) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
-    }
-  };
+  useEffect(() => {
+    isVisibleRef.current = isVisible;
+  }, [isVisible]);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
-  };
+  }, []);
 
   useEffect(() => {
-    window.addEventListener("scroll", toggleVisibility);
-    return () => window.removeEventListener("scroll", toggleVisibility);
+    const handleScroll = () => {
+      const nextVisible = window.scrollY > 300;
+      // Avoid re-renders on every scroll tick by only updating when the boolean flips.
+      if (nextVisible !== isVisibleRef.current) {
+        isVisibleRef.current = nextVisible;
+        setIsVisible(nextVisible);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (

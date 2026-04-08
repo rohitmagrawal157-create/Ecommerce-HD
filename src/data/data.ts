@@ -4,8 +4,6 @@ import ct3 from '../assets/img/home-v1/pdct-cgry-03.jpg'
 
 import shop1 from '../assets/img/gallery/shop-01/shop-01.jpg'
 import shop2 from '../assets/img/gallery/shop-01/shop-02.jpg'
-import shop3 from '../assets/img/gallery/shop-01/shop-03.jpg'
-import shop4 from '../assets/img/gallery/shop-01/shop-04.jpg'
 import shop5 from '../assets/img/gallery/shop-01/shop-05.jpg'
 import shop6 from '../assets/img/gallery/shop-01/shop-06.jpg'
 import shop7 from '../assets/img/gallery/shop-01/shop-07.jpg'

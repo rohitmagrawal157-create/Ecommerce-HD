@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import bg   from '../../assets/img/shortcode/breadcumb.jpg';
-import bg1  from '../../assets/img/about/about-banner-01.jpg';
 import bg4  from '../../assets/img/about/video-bg.jpg';
 import about from '../../assets/img/svg/about.svg';
 import like  from '../../assets/img/svg/like.svg';

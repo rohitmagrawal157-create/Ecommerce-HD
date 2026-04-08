@@ -1,12 +1,13 @@
 import NavbarOne from "../../components/navbar/navbar-one";
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { productList } from "../../data/data";
 import LayoutOne from "../../components/product/layout-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Aos from "aos";
+import { searchProducts } from "../../api/products";
 
 interface Product{
     id: number;
@@ -20,6 +21,35 @@ export default function ProductCategory() {
   useEffect(()=>{
     Aos.init()
   },[])
+
+  const [searchParams] = useSearchParams();
+  const q = (searchParams.get('q') ?? '').trim().toLowerCase();
+
+  const [products, setProducts] = useState<Product[]>(productList as unknown as Product[]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    searchProducts(q)
+      .then((res) => {
+        if (!alive) return;
+        setProducts(res);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setProducts(productList as unknown as Product[]);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [q]);
+
   return (
     <>
         <NavbarOne/>
@@ -27,7 +57,7 @@ export default function ProductCategory() {
           <div className="text-center w-full">
               <h2 className="text-white text-8 md:text-[40px] font-normal leading-none text-center">Room Interior</h2>
               <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
-                  <li><Link to="/index">Home</Link></li>
+                  <li><Link to="/">Home</Link></li>
                   <li>/</li>
                   <li><Link to="/shop-v1">Shop</Link></li>
                   <li>/</li>
@@ -40,12 +70,19 @@ export default function ProductCategory() {
         <div className="container-fluid">
             <div data-aos="fade-up" data-aos-delay="200">
                 <div className="max-w-[1720px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-8 aos-init aos-animate" data-aos="fade-up" data-aos-delay="200">
-                  {productList.map((item:Product,index:number)=>{
+                  {products.map((item:Product,index:number)=>{
                     return(
                       <LayoutOne item={item} key={index}/>
                     )
                   })}
                 </div>
+
+                {loading && <div className="mt-6 text-center text-sm text-gray-600">Loading...</div>}
+                {!loading && q && (
+                  <div className="mt-6 text-center text-sm text-gray-600">
+                    Showing {products.length} result{products.length === 1 ? '' : 's'} for &quot;{q}&quot;
+                  </div>
+                )}
                 <div className="mt-10 md:mt-12 flex items-center justify-center gap-[10px]">
                     <Link to="#" className="text-title dark:text-white text-xl"><span className="lnr lnr-arrow-left"></span></Link>         
                     <Link to="#" className="w-8 sm:w-10 h-8 sm:h-10 bg-title bg-opacity-5 flex items-center justify-center leading-none text-base sm:text-lg font-medium text-title transition-all duration-300 hover:bg-opacity-100 hover:text-white dark:bg-white dark:bg-opacity-5 dark:text-white dark:hover:bg-opacity-100 dark:hover:text-title">01</Link>        

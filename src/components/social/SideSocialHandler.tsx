@@ -298,7 +298,6 @@ function useInjectStyles(css: string, id: string): void {
 
 const SideSocialHandler: React.FC<SideSocialHandlerProps> = ({
   whatsappLink   = 'https://wa.link/n1cs15',
-  chatPluginName = 'YellowMessengerPlugin',
   className      = '',
 }) => {
   useInjectStyles(STYLES, 'ssh-global-styles');
@@ -317,19 +316,6 @@ const SideSocialHandler: React.FC<SideSocialHandlerProps> = ({
 
   // Collapse both when mouse exits the whole widget group
   const handleWidgetLeave = useCallback(() => setOpenBtn(null), []);
-
-  // Trigger chat SDK
-  const handleChatSupport = useCallback((): void => {
-    const plugin = window[chatPluginName] as ChatPlugin | undefined;
-    if (plugin && typeof plugin.openBot === 'function') {
-      plugin.openBot();
-    } else {
-      console.warn(
-        `SideSocialHandler: window["${chatPluginName}"].openBot() not found.\n` +
-        `Tip: pass hideDefaultLauncher:true to your SDK config to hide the plugin's own floating button.`
-      );
-    }
-  }, [chatPluginName]);
 
   return (
     <div

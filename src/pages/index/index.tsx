@@ -7,37 +7,20 @@ import LayoutOne from '../../components/product/layout-one';
 import FooterOne from '../../components/footer/footer-one';
 import PartnerOne from '../../components/partner-one';
 import ScrollToTop from '../../components/scroll-to-top';
-import BlogOne from '../../components/blog/blog-one';
 
-import { categoryOne, featureOne, productList } from '../../data/data';
-import TinySlider from "tiny-slider-react";
+import { featureOne, productList } from '../../data/data';
 import 'tiny-slider/dist/tiny-slider.css';
 
-import chair from '../../assets/img/svg/chair.svg'
 import sofa from '../../assets/img/svg/sofa.svg'
-import bg from '../../assets/img/home-v1/choose-us-bg.jpg'
 import shape1 from '../../assets/img/home-v1/shape-01.png'
 import like from '../../assets/img/svg/like.svg'
-import bed from '../../assets/img/svg/bed.svg'
-import comment from '../../assets/img/svg/comment.svg'
 import hand from '../../assets/img/svg/hand.svg'
-
-import { RiShoppingBag2Line } from 'react-icons/ri';
-import { LuEye, LuHeart } from 'react-icons/lu';
-import { GoStarFill } from 'react-icons/go';
 
 import AOS from 'aos';
 // import NavbarFour from '../../components/navbar/navbar-four';
 import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
 import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
-import ProductCollection from '../../components/allproduct/productcollection.tsx';
-
-
-interface Category {
-    image: string;
-    item: string;
-    name: string;
-}
+import ProductCollection from '../../components/allproduct/ProductCollection.tsx';
 
 interface Feature {
     image: string;
@@ -57,33 +40,6 @@ function Index() {
     useEffect(() => {
         AOS.init();
     }, []);
-
-    let settings = {
-        container: '.tiny-three-item',
-        controls: false,
-        mouseDrag: true,
-        loop: true,
-        rewind: true,
-        autoplay: true,
-        autoplayButtonOutput: false,
-        autoplayTimeout: 3000,
-        navPosition: "bottom",
-        speed: 400,
-        gutter: 12,
-        responsive: {
-            992: {
-                items: 3
-            },
-
-            767: {
-                items: 2
-            },
-
-            320: {
-                items: 1
-            },
-        },
-    }
 
     return (
         <>

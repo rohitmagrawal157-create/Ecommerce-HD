@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { GoStarFill } from 'react-icons/go'
 import { LuEye, LuHeart } from 'react-icons/lu'
 import { RiShoppingBag2Line } from 'react-icons/ri'
 import { Link } from 'react-router-dom'
+import { addToCart } from '../../api/cart.api'
+import { isWishlisted, toggleWishlist } from '../../api/wishlist.api'
 
 interface Item{
     id: number;
@@ -12,6 +15,55 @@ interface Item{
 }
 
 export default function LayoutOne({ item }: { item: Item }) {
+  const [wished, setWished] = useState(false)
+  const [busy, setBusy] = useState<null | 'cart' | 'wishlist'>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    isWishlisted(item.id)
+      .then((v) => {
+        if (!alive) return
+        setWished(v)
+      })
+      .catch(() => {
+        // ignore
+      })
+    return () => {
+      alive = false
+    }
+  }, [item.id])
+
+  const handleWishlist = async () => {
+    if (busy) return
+    setBusy('wishlist')
+    setNotice(null)
+    try {
+      const next = await toggleWishlist(item.id)
+      const nowWished = next.productIds.includes(item.id)
+      setWished(nowWished)
+      setNotice(nowWished ? 'Added to wishlist' : 'Removed from wishlist')
+    } catch {
+      setNotice('Wishlist action failed')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleAddToCart = async () => {
+    if (busy) return
+    setBusy('cart')
+    setNotice(null)
+    try {
+      await addToCart(item.id, 1)
+      setNotice('Added to cart')
+    } catch {
+      setNotice('Add to cart failed')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
         <div className="group">
             <div className="relative overflow-hidden">
@@ -34,14 +86,24 @@ export default function LayoutOne({ item }: { item: Item }) {
                     </div>
                 }
                 <div className="absolute z-10 top-[25%] right-3  opacity-0 duration-300 transition-all group-hover:opacity-100 flex flex-col items-end gap-3">
-                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                        <LuHeart className="dark:text-white h-[22px] w-[20px]"/>                                                                      
-                        <span className="mt-1">Add to wishlist</span>
-                    </Link>
-                    <Link to="#" className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon">
-                        <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]"/>  
+                    <button
+                      type="button"
+                      onClick={handleWishlist}
+                      disabled={busy === 'wishlist'}
+                      className={`bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon ${busy === 'wishlist' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        <LuHeart className="dark:text-white h-[22px] w-[20px]" />
+                        <span className="mt-1">{wished ? 'Wishlisted' : 'Add to wishlist'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddToCart}
+                      disabled={busy === 'cart'}
+                      className={`bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon ${busy === 'cart' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        <RiShoppingBag2Line className="dark:text-white h-[22px] w-[20px]" />
                         <span className="mt-1">Add to Cart</span>
-                    </Link>
+                    </button>
                     <button className="bg-white dark:bg-title dark:text-white bg-opacity-80 flex items-center justify-center gap-2 px-4 py-[10px] text-base leading-none text-title rounded-[40px] h-14 overflow-hidden new-product-icon quick-view">
                         <LuEye className="dark:text-white h-[22px] w-[20px]"/>                                      
                         <span className="mt-1">Quick View</span>
@@ -54,6 +116,7 @@ export default function LayoutOne({ item }: { item: Item }) {
                     <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
                         <Link to={`/product-details/${item.id}`} className="text-underline">{item.name}</Link>
                     </h5>
+                    {notice && <p className="text-xs text-gray-500 mt-2">{notice}</p>}
                     <ul className="flex items-center gap-2 mt-1">
                         <li><GoStarFill className='text-yellow-500 size-4'/></li>
                         <li><GoStarFill className='text-yellow-500 size-4'/></li>

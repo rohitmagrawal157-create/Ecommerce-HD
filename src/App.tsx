@@ -58,11 +58,11 @@ function App() {
     
      <Routes>
           <Route path="/" element={<Index/>} />
-          {/* <Route path="/index-v2" element={<IndexTwo/>} />
+          <Route path="/index-v2" element={<IndexTwo/>} />
           <Route path="/index-v3" element={<IndexThree/>} />
-          <Route path="/index-v4" element={<IndexFour/>} /> */}
-          {/* <Route path="/index-v5" element={<IndexFive/>} /> */}
-          {/* <Route path="/index-v6" element={<IndexSix/>} /> */}
+          <Route path="/index-v4" element={<IndexFour/>} />
+          <Route path="/index-v5" element={<IndexFive/>} />
+          <Route path="/index-v6" element={<IndexSix/>} />
           <Route path="/about" element={<About/>} />
           <Route path="/pricing" element={<Pricing/>} />
           <Route path="/team" element={<Team/>} />

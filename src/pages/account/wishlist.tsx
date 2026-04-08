@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import NavbarOne from "../../components/navbar/navbar-one";
 import FooterOne from "../../components/footer/footer-one";
@@ -7,7 +7,9 @@ import ScrollToTop from "../../components/scroll-to-top";
 import AccountTab from "../../components/account/account-tab";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
-import { productList } from "../../data/data";
+import type { Product } from "../../api/products";
+import { addToCart } from "../../api/cart.api";
+import { getWishlist, removeFromWishlist, type WishlistState } from "../../api/wishlist.api";
 
 import { RiShoppingBag2Line } from "react-icons/ri";
 import { FaHeart } from "react-icons/fa";
@@ -15,18 +17,45 @@ import { GoStarFill } from "react-icons/go";
 
 import Aos from "aos";
 
-interface ProductData{
-    id: number;
-    image: string;
-    tag: string;
-    price: string;
-    name: string;
-}
-
 export default function Wishlist() {
-    useEffect(()=>{
-        Aos.init()
-    })
+    const navigate = useNavigate();
+    const [wishlist, setWishlist] = useState<WishlistState>({ productIds: [], products: [] });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        Aos.init();
+        let alive = true;
+        setLoading(true);
+        getWishlist()
+            .then((w) => {
+                if (!alive) return;
+                setWishlist(w);
+            })
+            .catch((e: any) => {
+                if (!alive) return;
+                setError(e?.message ?? 'Failed to load wishlist.');
+            })
+            .finally(() => {
+                if (!alive) return;
+                setLoading(false);
+            });
+
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    const handleRemove = async (productId: number) => {
+        const next = await removeFromWishlist(productId);
+        setWishlist(next);
+    };
+
+    const handleAddToCart = async (productId: number) => {
+        await addToCart(productId, 1);
+        navigate('/cart');
+    };
+
   return (
     <>
         <NavbarOne/>
@@ -49,30 +78,46 @@ export default function Wishlist() {
                         <AccountTab/>
                     </div>
                     <div className="w-full md:w-auto md:flex-1" data-aos="fade-up" data-aos-delay="300">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-6 lg::gap-8">
-                            {productList.slice(0,6).map((item:ProductData,index:number)=>{
+                        {loading ? (
+                            <div className="text-center text-sm text-gray-500 py-10">Loading...</div>
+                        ) : error ? (
+                            <div className="text-center text-sm text-red-600 py-10">{error}</div>
+                        ) : wishlist.products.length === 0 ? (
+                            <div className="text-center text-sm text-gray-500 py-10">Your wishlist is empty.</div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-6 lg::gap-8">
+                            {wishlist.products.map((item: Product, index: number) => {
                                 return(
-                                    <div className="group" key={index}>
+                                    <div className="group" key={item.id ?? index}>
                                         <div className="relative overflow-hidden group z-[5] before:absolute before:w-full before:h-full before:top-0 before:left-0 before:bg-title before:opacity-0 before:duration-300 before:z-[5] hover:before:opacity-80">
                                             <img className="w-full transform duration-300 group-hover:scale-110" src={item.image} alt="product-card"/>
 
                                             <div className="absolute z-10 top-0 w-full h-full flex items-center justify-center gap-2">
-                                                <Link to="/cart" className="w-9 lg:w-12 h-9 p-2 lg:h-12 bg-white dark:bg-title bg-opacity-10 flex items-center justify-center transform translate-y-8 opacity-0 transition-all group-hover:duration-500 group-hover:opacity-100 group-hover:translate-y-0 relative tooltip-icon">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAddToCart(item.id)}
+                                                    className="w-9 lg:w-12 h-9 p-2 lg:h-12 bg-white dark:bg-title bg-opacity-10 flex items-center justify-center transform translate-y-8 opacity-0 transition-all group-hover:duration-500 group-hover:opacity-100 group-hover:translate-y-0 relative tooltip-icon"
+                                                >
                                                     <RiShoppingBag2Line className="text-white size-6"/>
                                                     <span className="p-2 bg-white dark:bg-title text-xs text-title dark:text-white absolute -top-[60px] left-1/2 transform -translate-x-1/2 whitespace-nowrap rounded-[4px] opacity-0 invisible duration-300">Add to Cart
                                                         <span className="w-3 h-3 bg-white dark:bg-title absolute -bottom-[6px] left-1/2 transform -translate-x-1/2 rotate-45"></span>
                                                     </span>
-                                                </Link>
-                                                <button className="w-9 lg:w-12 h-9 p-2 lg:h-12 bg-white dark:bg-title bg-opacity-10 flex items-center justify-center translate-y-8 opacity-0 transition-all group-hover:duration-300 group-hover:opacity-100 group-hover:translate-y-0 relative tooltip-icon">   
-                                                    <FaHeart className="dark:text-white text-[#F0264A] size-6"/>   
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemove(item.id)}
+                                                    className="w-9 lg:w-12 h-9 p-2 lg:h-12 bg-white dark:bg-title bg-opacity-10 flex items-center justify-center translate-y-8 opacity-0 transition-all group-hover:duration-300 group-hover:opacity-100 group-hover:translate-y-0 relative tooltip-icon"
+                                                    aria-label="Remove from wishlist"
+                                                >
+                                                    <FaHeart className="dark:text-white text-[#F0264A] size-6"/>
                                                 </button>
                                             </div>
                                         </div>
                                         <div className="lg:pt-7 pt-5 flex gap-3 md:gap-4 flex-col">
                                             <h4 className="font-medium leading-none dark:text-white text-lg">{item.price}</h4>
                                             <div>
-                                                <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
-                                                    <Link to="/product-details" className="text-underline">{item.name}</Link>
+                                                    <h5 className="font-normal dark:text-white text-xl leading-[1.5]">
+                                                        <Link to={`/product-details/${item.id}`} className="text-underline">{item.name}</Link>
                                                 </h5>
                                                 <ul className="flex items-center gap-2 mt-1">
                                                     <li><GoStarFill className='text-yellow-500 size-4'/></li>
@@ -88,6 +133,7 @@ export default function Wishlist() {
                                 )
                             })}
                         </div>
+                        )}
                     </div>
                 </div>
             </div>
