@@ -111,6 +111,8 @@ function App() {
           <Route path="/blog-tag" element={<BlogTag/>} />
           <Route path="/contact" element={<Contact/>} />
           <Route path="/product-category" element={<ProductCategory/>} />
+
+          
      </Routes>
     </>
   )
