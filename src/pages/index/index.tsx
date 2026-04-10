@@ -21,6 +21,97 @@ import AOS from 'aos';
 import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
 import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
 import ProductCollection from '../../components/allproduct/productcollection.tsx';
+// import CategoryShopPage from '../shop/CategoryShopPage.tsx';
+// import { CATEGORIES } from '../../data/categoryData'
+// import { fetchCategoryConfig } from '../../api/categories.api'
+ 
+// ─── 1. Portrait Frames ────────────────────────────────────────────────────────
+// export function PortraitFrames() {
+//     const [config, setConfig] = useState(CATEGORIES['portrait-frames'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('portrait-frames').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 2. Canvas Paintings ───────────────────────────────────────────────────────
+// export function CanvasPaintings() {
+//     const [config, setConfig] = useState(CATEGORIES['canvas-paintings'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('canvas-paintings').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 3. Temple Art Prints ──────────────────────────────────────────────────────
+// export function TempleArtPrints() {
+//     const [config, setConfig] = useState(CATEGORIES['temple-art-prints'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('temple-art-prints').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 4. Wall Murals ────────────────────────────────────────────────────────────
+// export function WallMurals() {
+//     const [config, setConfig] = useState(CATEGORIES['wall-murals'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('wall-murals').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 5. Modern Wallpapers ──────────────────────────────────────────────────────
+// export function ModernWallpapers() {
+//     const [config, setConfig] = useState(CATEGORIES['modern-wallpapers'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('modern-wallpapers').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 6. Customize Blinds ──────────────────────────────────────────────────────
+// export function CustomizeBlinds() {
+//     const [config, setConfig] = useState(CATEGORIES['customize-blinds'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('customize-blinds').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 7. Neon Signs ─────────────────────────────────────────────────────────────
+// export function NeonSigns() {
+//     const [config, setConfig] = useState(CATEGORIES['neon-signs'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('neon-signs').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
+ 
+// ─── 8. Backlit LED ────────────────────────────────────────────────────────────
+// export function BacklitLed() {
+//     const [config, setConfig] = useState(CATEGORIES['backlit-led'])
+//     useEffect(() => {
+//         let alive = true
+//         fetchCategoryConfig('backlit-led').then((c) => { if (alive && c) setConfig(c) }).catch(() => {})
+//         return () => { alive = false }
+//     }, [])
+//     return <CategoryShopPage config={config} />
+// }
 
 interface Feature {
     image: string;

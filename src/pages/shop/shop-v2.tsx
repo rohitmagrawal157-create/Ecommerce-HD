@@ -17,6 +17,8 @@ import MultiRangeSlider from "multi-range-slider-react";
 
 import Aos from 'aos'
 
+import { FourSquare } from 'react-loading-indicators'
+
 interface Product{
     id: number;
     image: string;
@@ -29,9 +31,13 @@ export default function ShopV2() {
 
     const [minValue, setMinValue] = useState(0);
     const [maxValue, setMaxValue] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(()=>{
         Aos.init()
+        // brief loading state for page content
+        const t = setTimeout(() => setLoading(false), 250)
+        return () => clearTimeout(t)
     })
 
   return (
@@ -185,13 +191,19 @@ export default function ShopV2() {
                         </Link>
                     </div>
                     <div className="lg:max-w-[1100px] w-full" data-aos="fade-up" data-aos-delay="300">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-8">
-                            {productList.map((item:Product,index:number)=>{
-                                return(
-                                    <LayoutOne item={item} key={index} />
-                                )
-                            })}
-                        </div>
+                        {loading ? (
+                            <div className="flex items-center justify-center py-20">
+                                <FourSquare color="#BB976D" size="medium" />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-8">
+                                {productList.map((item:Product,index:number)=>{
+                                    return(
+                                        <LayoutOne item={item} key={index} />
+                                    )
+                                })}
+                            </div>
+                        )}
                         <div className="mt-10 md:mt-12 flex items-center justify-center gap-[10px]">
                             <Link to="#" className="text-title dark:text-white text-xl"><span className="lnr lnr-arrow-left"></span></Link>         
                             <Link to="#" className="w-8 sm:w-10 h-8 sm:h-10 bg-title bg-opacity-5 flex items-center justify-center leading-none text-base sm:text-lg font-medium text-title transition-all duration-300 hover:bg-opacity-100 hover:text-white dark:bg-white dark:bg-opacity-5 dark:text-white dark:hover:bg-opacity-100 dark:hover:text-title">01</Link>        

@@ -27,22 +27,29 @@ export default function Wishlist() {
         Aos.init();
         let alive = true;
         setLoading(true);
-        getWishlist()
-            .then((w) => {
-                if (!alive) return;
-                setWishlist(w);
-            })
-            .catch((e: any) => {
-                if (!alive) return;
-                setError(e?.message ?? 'Failed to load wishlist.');
-            })
-            .finally(() => {
-                if (!alive) return;
-                setLoading(false);
-            });
+        const refresh = () => {
+            setLoading(true);
+            getWishlist()
+                .then((w) => {
+                    if (!alive) return;
+                    setWishlist(w);
+                })
+                .catch((e: any) => {
+                    if (!alive) return;
+                    setError(e?.message ?? 'Failed to load wishlist.');
+                })
+                .finally(() => {
+                    if (!alive) return;
+                    setLoading(false);
+                });
+        };
+
+        refresh();
+        window.addEventListener('wishlist:changed', refresh as EventListener);
 
         return () => {
             alive = false;
+            window.removeEventListener('wishlist:changed', refresh as EventListener);
         };
     }, []);
 

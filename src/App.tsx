@@ -50,7 +50,16 @@ import BlogDetailsV3 from './pages/blog/blog-details-v3'
 import BlogTag from './pages/blog/blog-tag'
 import Contact from './pages/inner-pages/contact'
 import ProductCategory from './pages/shop/product-category'
-
+import ReturnPolicy from './pages/inner-pages/return-policy'
+// import { PortraitFrames, CanvasPaintings, TempleArtPrints, WallMurals, ModernWallpapers, CustomizeBlinds, NeonSigns, BacklitLed } from './pages/index'
+import PortraitFrames from './pages/category/PortraitFrames'
+import CanvasPaintings from './pages/category/CanvasPaintings'
+import TempleArtPrints from './pages/category/TempleArtPrints'
+import WallMurals from './pages/category/WallMurals'
+import ModernWallpapers from './pages/category/ModernWallpapers'
+import CustomizeBlinds from './pages/category/CustomizeBlinds'
+import NeonSigns from './pages/category/NeonSigns'
+import BacklitLed from './pages/category/BacklitLed'
 function App() {
 
   return (
@@ -84,7 +93,7 @@ function App() {
           <Route path="/wishlist" element={<Wishlist/>} />
           <Route path="/login" element={<Login/>} />
           <Route path="/register" element={<Register/>} />
-          <Route path="/forger-password" element={<ForgerPassword/>} />
+          <Route path="/forgot-password" element={<ForgerPassword/>} />
           <Route path="/coming-soon" element={<ComingSoon/>} />
           <Route path="/thank-you" element={<ThankYou/>} />
           <Route path="/shipping-method" element={<ShippingMethod/>} />
@@ -111,6 +120,16 @@ function App() {
           <Route path="/blog-tag" element={<BlogTag/>} />
           <Route path="/contact" element={<Contact/>} />
           <Route path="/product-category" element={<ProductCategory/>} />
+          <Route path="/return-policy" element={<ReturnPolicy />} />
+          {/* <Route path="/category/:slug" element={<CategoryPage />} /> */}
+          <Route path="/category/portrait-frames" element={<PortraitFrames />} />
+          <Route path="/category/canvas-paintings" element={<CanvasPaintings />} />
+          <Route path="/category/temple-art-prints" element={<TempleArtPrints />} />
+          <Route path="/category/wall-murals" element={<WallMurals />} />
+          <Route path="/category/modern-wallpapers" element={<ModernWallpapers />} />
+          <Route path="/category/customize-blinds" element={<CustomizeBlinds />} />
+          <Route path="/category/neon-signs" element={<NeonSigns />} />
+          <Route path="/category/backlit-led" element={<BacklitLed />} />
 
           
      </Routes>

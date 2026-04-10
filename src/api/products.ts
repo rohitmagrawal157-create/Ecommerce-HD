@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import { productList } from '../data/data';
 
 export interface Product {
+  color: string;
   id: number;
   image: string;
   tag: string;

@@ -1,19 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * ProductDetails.tsx — v6 Gallery Edition
+ * ProductDetails.tsx — v6 Gallery Edition (FIXED)
  * ─────────────────────────────────────────────────────────────────────────
- * GALLERY CHANGES:
- *  ① Main image sits at the top — large, full-width, prominent
- *  ② Thumbnails in a horizontal row BELOW the main image
- *  ③ Left ‹ and Right › arrow buttons navigate through thumbnails
- *  ④ Clicking any thumbnail sets it as the main image
- *  ⑤ Hovering the main image shows a CSS magnifier lens (true zoom)
- *  ⑥ Clicking the main image opens a fullscreen lightbox
- *  ⑦ Lightbox: keyboard Escape / arrow keys / click backdrop to close
- *  ⑧ Active thumbnail highlighted with gold border
- *  ⑨ Thumbnails scroll horizontally so any number of images work
- *  ⑩ Video thumbnail shows a play-button overlay
- *  All other product detail sections preserved exactly as before
+ * FIX: Keyboard navigation in gallery is disabled when lightbox is open.
+ *      ArrowLeft / ArrowRight / Escape are now handled correctly.
+ * Removed unused IncreDre component import.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -25,7 +16,6 @@ import product2 from '../../assets/img/gallery/product-detls/product-02.jpg';
 import product3 from '../../assets/img/gallery/product-detls/product-03.jpg';
 import product4 from '../../assets/img/gallery/product-detls/product-04.jpg';
 
-import IncreDre    from '../../components/incre-dre';
 import NavbarOne   from '../../components/navbar/navbar-one';
 import FooterOne   from '../../components/footer/footer-one';
 import DetailTab   from '../../components/product/detail-tab';
@@ -39,6 +29,7 @@ import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
 import {
   FaFacebookF, FaTwitter, FaPinterestP, FaWhatsapp,
 } from 'react-icons/fa';
+import { FourSquare } from 'react-loading-indicators';
 import {
   LuTruck, LuShieldCheck, LuRefreshCcw, LuPackage, LuStar,
   LuPencilLine, LuHeart, LuMapPin, LuClock, LuInfo, LuX,
@@ -188,16 +179,26 @@ function ProductGallery({ media, productName, discountPct }: ProductGalleryProps
   const prev = useCallback(() => setActiveIdx(i => (i - 1 + media.length) % media.length), [media.length]);
   const next = useCallback(() => setActiveIdx(i => (i + 1) % media.length),                [media.length]);
 
-  // Keyboard navigation
+  // ── FIXED KEYBOARD HANDLER ──────────────────────────────────────────────
+  // Disable gallery keyboard navigation when lightbox is open
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setLightboxOpen(false); }
-      if (e.key === 'ArrowLeft')  prev();
-      if (e.key === 'ArrowRight') next();
+      if (lightboxOpen) return;   // Lightbox has its own handlers
+      if (e.key === 'Escape') {
+        setLightboxOpen(false);
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prev();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        next();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [prev, next]);
+  }, [prev, next, lightboxOpen]);
 
   // Auto-scroll thumbnail strip to keep active thumb visible
   useEffect(() => {
@@ -909,7 +910,6 @@ function AccordionItem({ title, content, defaultOpen=false }: { title:string; co
 // ═══════════════════════════════════════════════════════════════════════════
 
 function DescriptionAccordion() {
-  // Controls whether the Description section is expanded/collapsed.
   const [isOpen, setIsOpen] = useState(true);
   const [expanded, setExpanded] = useState(false);
   return (
@@ -959,7 +959,8 @@ function ProductAccordions() {
         <table className="w-full border-collapse text-xs">
           <thead><tr style={{background:'#f9fafb'}}>{['Mode','< ₹500','> ₹500'].map(h=><th key={h} className="px-2.5 py-2 text-left font-bold border border-gray-200">{h}</th>)}</tr></thead>
           <tbody>{SHIP_ROWS.map(([m,lt,gt],i)=><tr key={m} style={{background:i%2===0?'#fff':'#f9fafb'}}><td className="px-2.5 py-2 border border-gray-200">{m}</td><td className="px-2.5 py-2 border border-gray-200 text-center">{lt}</td><td className="px-2.5 py-2 border border-gray-200 text-center font-bold" style={{color:gt==='Free'?'#16a34a':undefined}}>{gt}</td></tr>)}</tbody>
-        </table>}/>
+        </table>
+      }/>
     </div>
   );
 }
@@ -1036,11 +1037,13 @@ export default function ProductDetails() {
   const parsedId = parseInt(id ?? '0', 10);
   const fallbackProduct = productList.find((item: any) => item.id === parsedId);
   const [product, setProduct] = useState<any>(fallbackProduct);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let alive = true;
     if (!Number.isFinite(parsedId)) return;
 
+    setLoading(true);
     getProductById(parsedId)
       .then((p) => {
         if (!alive) return;
@@ -1049,6 +1052,10 @@ export default function ProductDetails() {
       .catch(() => {
         if (!alive) return;
         setProduct(fallbackProduct);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
       });
 
     return () => {
@@ -1106,6 +1113,23 @@ export default function ProductDetails() {
     <>
       <NavbarOne/>
       <SizeGuideModal open={sizeGuideOpen} onClose={()=>setSizeGuideOpen(false)}/>
+
+      {loading && (
+        <>
+          <div className="s-py-50">
+            <div className="container-fluid">
+              <div className="max-w-[1720px] mx-auto flex items-center justify-center" style={{ minHeight: 320 }}>
+                <FourSquare color={GOLD} size="large" />
+              </div>
+            </div>
+          </div>
+          <FooterOne/>
+          <ScrollToTop/>
+        </>
+      )}
+
+      {!loading && (
+        <>
 
       {/* Breadcrumb */}
       <div className="bg-[#F8F5F0] dark:bg-dark-secondary py-5 md:py-[30px]">
@@ -1203,7 +1227,6 @@ export default function ProductDetails() {
                     {cartError}
                   </p>
                 )}
-                <div className="hidden"><IncreDre/></div>
               </div>
 
               {/* Size / Color */}
@@ -1287,6 +1310,8 @@ export default function ProductDetails() {
 
       <FooterOne/>
       <ScrollToTop/>
+        </>
+      )}
     </>
   );
 }

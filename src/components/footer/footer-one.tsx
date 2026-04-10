@@ -1,17 +1,14 @@
 // src/components/footer/footer-one.tsx
 
 /**
- * FooterOne — Professional Footer
- * ────────────────────────────────
+ * FooterOne — Professional Footer (Updated for 8 Product Categories)
+ * ──────────────────────────────────────────────────────────────────
  * Column sequence (left → right):
- *   1. Top Categories
+ *   1. Shop by Category (8 real categories)
  *   2. About Us
- *   3. Brand column (logo · newsletter · email · phone · social)  ← CENTRE
+ *   3. Brand column (logo · newsletter · email · phone · social)
  *   4. Quick Links
- *   5. Help
- *
- * Background: wallpaper image with dark overlay (opacity-controlled)
- * so all text remains fully readable at any screen size.
+ *   5. Help (with correct policy routes)
  */
 
 import { useState, useEffect } from 'react';
@@ -38,8 +35,6 @@ const BORDER_COL   = 'rgba(255,255,255,0.12)';
 
 // Background image — wallpaper with chinoiserie/botanical feel
 const BG_IMAGE = `https://imgs.search.brave.com/sJldnUuNYOe-tPZhqqXG8yt4o72tO-hVGzZdU_0wYS8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9saWZl/bmNvbG9ycy5pbi9j/ZG4vc2hvcC9maWxl/cy9yb3NhLWNoaW5v/aXNlcmllLXdhbGxw/YXBlci1saXZpbmct/cm9vbS1jbGF5LWJl/aWdlLndlYnA_dj0x/NzY1ODgwNTk3Jndp/ZHRoPTMyMA`;
-// Overlay opacity: 0 = fully transparent (show image), 1 = fully opaque (hide image)
-// 0.82 keeps the pattern subtly visible while text is fully legible
 const OVERLAY_OPACITY = 0.84;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,80 +45,73 @@ const SOCIAL = [
   { Icon: FaFacebookF, href: 'https://facebook.com',  label: 'Facebook'  },
   { Icon: FaInstagram, href: 'https://instagram.com', label: 'Instagram' },
   { Icon: FaPinterest, href: 'https://pinterest.com', label: 'Pinterest' },
-//   { Icon: FaTwitter,   href: 'https://twitter.com',   label: 'Twitter'   },
   { Icon: FaYoutube,   href: 'https://youtube.com',   label: 'YouTube'   },
   { Icon: FaLinkedin,  href: 'https://linkedin.com',  label: 'LinkedIn'  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NAVIGATION COLUMNS — in exact display order
+// NAVIGATION COLUMNS — UPDATED FOR YOUR 8 PRODUCTS + CORRECT ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Column 1 — Top Categories
+// Column 1 — Shop by Category (your 8 real categories)
 const COL_CATEGORIES = {
-  heading: 'Top Categories',
+  heading: 'Shop by Category',
   links: [
-    { name: 'Dining',           href: '/categories/dining'          },
-    { name: 'Kitchen',          href: '/categories/kitchen'         },
-    { name: 'Décor',            href: '/categories/decor'           },
-    { name: 'Bath + Storage',   href: '/categories/bath-storage'    },
-    { name: 'Gifts',            href: '/categories/gifts'           },
-    { name: 'Bag',              href: '/categories/bag'             },
-    { name: 'Luxe',             href: '/categories/luxe'            },
-    { name: 'Soft Furnishing',  href: '/categories/soft-furnishing' },
-    { name: 'Stationery',       href: '/categories/stationery'      },
+    { name: 'Portrait Frames',    href: '/category/portrait-frames'   },
+    { name: 'Canvas Paintings',   href: '/category/canvas-paintings'  },
+    { name: 'Temple Art Prints',  href: '/category/temple-art-prints' },
+    { name: 'Wall Murals',        href: '/category/wall-murals'       },
+    { name: 'Modern Wallpapers',  href: '/category/modern-wallpapers' },
+    { name: 'Customize Blinds',   href: '/customize/blind'            }, // direct customizer
+    { name: 'Neon Signs',         href: '/customize/neon'             },
+    { name: 'Backlit LED',        href: '/category/backlit-led'       },
+    { name: 'Shop All',           href: '/shop'                       },
   ],
 };
 
-// Column 2 — About Us
+// Column 2 — About Us (only existing pages)
 const COL_ABOUT = {
   heading: 'About Us',
   links: [
-    { name: 'Our Story',                  href: '/about'          },
-    { name: 'Store Locator',              href: '/store-locator'  },
-    { name: 'Infinity Board',             href: '/board'          },
-    { name: 'Blog',                       href: '/blog-v1'        },
-    { name: 'Careers',                    href: '/careers'        },
-    { name: 'Designer Affiliate Program', href: '/affiliate'      },
-    { name: 'Infinity Store Events',      href: '/events'         },
+    { name: 'Our Story',    href: '/about'   },
+    { name: 'Blog',         href: '/blog-v1' },
+    { name: 'Contact Us',   href: '/contact' },
+    { name: 'FAQs',         href: '/faq'     },
   ],
 };
 
-// Column 4 — Quick Links
+// Column 4 — Quick Links (customer actions)
 const COL_QUICK = {
   heading: 'Quick Links',
   links: [
-    { name: 'Shop All',            href: '/shop-v1'          },
-    { name: 'Sale',                href: '/sale'             },
-    { name: 'Gifts For Christmas', href: '/gifts/christmas'  },
-    { name: 'Gifts For New Year',  href: '/gifts/new-year'   },
-    { name: 'Gift Cards',          href: '/gift-cards'       },
-    { name: 'Offers',              href: '/offers'           },
+    { name: 'Shop All',        href: '/shop'              },
+    { name: 'My Wishlist',     href: '/wishlist'          },
+    { name: 'My Cart',         href: '/cart'              },
+    { name: 'My Orders',       href: '/account/orders'    },
+    { name: 'Track Order',     href: '/track-order'       },
   ],
 };
 
-// Column 5 — Help
+// Column 5 — Help (policy routes fixed)
 const COL_HELP = {
   heading: 'Help',
   links: [
-    { name: 'Create a Return',    href: '/returns/create'  },
-    { name: 'Shipping',           href: '/shipping-method' },
-    { name: 'Privacy Policy',     href: '/privacy'         },
-    { name: 'Return Policy',      href: '/returns-policy'  },
-    { name: 'Terms & Conditions', href: '/terms-and-conditions' },
-    { name: 'Contact Us',         href: '/contact'         },
-    { name: 'FAQs',               href: '/faq'             },
+    { name: 'Shipping Policy',     href: '/shipping-policy'     },
+    { name: 'Return Policy',       href: '/return-policy'       },
+    { name: 'Privacy Policy',      href: '/privacy-policy'      },
+    { name: 'Terms & Conditions',  href: '/terms-and-conditions' },
+    { name: 'Contact Us',          href: '/contact'             },
+    { name: 'FAQs',                href: '/faq'                 },
   ],
 };
 
 const PAYMENT_METHODS = ['Visa', 'MasterCard', 'Amex', 'Discover', 'PayPal', 'UPI'];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INJECTED CSS
+// INJECTED CSS (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FOOTER_CSS = `
-  /* ── Link hover ──────────────────────────────────────────────────── */
   .fo-link {
     color:           ${TEXT_MUTED};
     font-size:       13.5px;
@@ -136,8 +124,6 @@ const FOOTER_CSS = `
     color:        ${ACCENT};
     padding-left: 4px;
   }
-
-  /* ── Section heading ─────────────────────────────────────────────── */
   .fo-heading {
     font-size:      11px;
     font-weight:    700;
@@ -149,8 +135,6 @@ const FOOTER_CSS = `
     border-bottom:  1px solid ${BORDER_COL};
     display:        block;
   }
-
-  /* ── Social icons ────────────────────────────────────────────────── */
   .fo-social {
     width:           36px;
     height:          36px;
@@ -171,8 +155,6 @@ const FOOTER_CSS = `
     color:        #fff;
     transform:    translateY(-3px);
   }
-
-  /* ── Newsletter input ────────────────────────────────────────────── */
   .fo-nl-wrap {
     display:      flex;
     align-items:  stretch;
@@ -218,8 +200,6 @@ const FOOTER_CSS = `
   }
   .fo-nl-btn:hover     { background: ${ACCENT_DARK}; }
   .fo-nl-btn:disabled  { opacity: 0.65; cursor: not-allowed; }
-
-  /* ── Payment pill ────────────────────────────────────────────────── */
   .fo-pay-pill {
     border:         1px solid ${BORDER_COL};
     border-radius:  4px;
@@ -236,7 +216,6 @@ const FOOTER_CSS = `
     color:        #fff;
     border-color: ${ACCENT};
   }
-
   @media (prefers-reduced-motion: reduce) {
     .fo-link, .fo-social, .fo-nl-btn, .fo-pay-pill { transition: none; }
   }
@@ -322,7 +301,6 @@ function Newsletter() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function FooterOne() {
-
   // Inject CSS once
   useEffect(() => {
     const ID = 'footer-one-styles';
@@ -341,10 +319,7 @@ export default function FooterOne() {
         fontFamily: "'DM Sans', system-ui, sans-serif",
       }}
     >
-      {/* ── Background image layer ──────────────────────────────────────
-          The wallpaper image renders at natural size + cover.
-          An absolutely-positioned overlay div sits on top at
-          OVERLAY_OPACITY to darken it so all white text is legible.  */}
+      {/* Background image layer */}
       <div
         aria-hidden="true"
         style={{
@@ -357,7 +332,7 @@ export default function FooterOne() {
           zIndex:             0,
         }}
       />
-      {/* Dark overlay — adjust OVERLAY_OPACITY constant above */}
+      {/* Dark overlay */}
       <div
         aria-hidden="true"
         style={{
@@ -368,39 +343,25 @@ export default function FooterOne() {
         }}
       />
 
-      {/* ── All footer content sits above the overlay (z-index: 2) ──── */}
+      {/* Content above overlay */}
       <div style={{ position: 'relative', zIndex: 2 }}>
 
-        {/* ══════════════════════════════════════════════════════════════
-            MAIN BODY
-        ══════════════════════════════════════════════════════════════ */}
+        {/* MAIN BODY */}
         <div style={{ padding: 'clamp(48px,5vw,72px) 0 0' }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 clamp(20px,4vw,56px)' }}>
 
-            {/*
-              5-COLUMN GRID (desktop)
-              ┌──────────────┬──────────────┬───────────────────┬──────────────┬──────────────┐
-              │ Top          │ About Us     │  BRAND (centre)   │ Quick Links  │ Help         │
-              │ Categories   │              │  logo+NL+contact  │              │              │
-              └──────────────┴──────────────┴───────────────────┴──────────────┴──────────────┘
-              Mobile: stacks to 2-col, brand column goes full width
-            */}
+            {/* 5-COLUMN GRID */}
             <div style={{
               display:             'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap:                 'clamp(32px, 4vw, 48px)',
               alignItems:          'start',
             }}>
-
-              {/* ── COLUMN 1: Top Categories ──────────────────────────── */}
               <NavColumn col={COL_CATEGORIES} />
-
-              {/* ── COLUMN 2: About Us ────────────────────────────────── */}
               <NavColumn col={COL_ABOUT} />
 
-              {/* ── COLUMN 3: Brand / Centre ──────────────────────────── */}
+              {/* Brand / Centre column */}
               <div>
-                {/* Logo mark */}
                 <div style={{ marginBottom: 20 }}>
                   <span style={{
                     fontSize:      32,
@@ -416,54 +377,33 @@ export default function FooterOne() {
                   <span style={{ fontSize: 11.5, color: TEXT_MUTED, letterSpacing: '0.08em', display: 'block', marginTop: 5 }}>
                     Home of thoughtful decor
                   </span>
-                  {/* Gold accent bar under logo */}
                   <div style={{ width: 40, height: 2, background: ACCENT, borderRadius: 1, marginTop: 10 }} />
                 </div>
 
-                {/* Stay in Touch heading */}
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 4, letterSpacing: '-0.1px' }}>
                   Stay In Touch
                 </h3>
-
-                {/* Newsletter */}
                 <Newsletter />
 
-                {/* Contact info */}
                 <div style={{ marginBottom: 24 }}>
                   <span className="fo-heading">Contact us</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                    <a
-                      href="mailto:info@Infinity.in"
-                      className="fo-link"
-                      style={{ display: 'flex', alignItems: 'center', gap: 9 }}
-                    >
+                    <a href="mailto:info@Infinity.in" className="fo-link" style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       <LuMail size={14} style={{ color: ACCENT, flexShrink: 0 }} />
                       info@Infinity.in
                     </a>
-                    <a
-                      href="tel:+919903504754"
-                      className="fo-link"
-                      style={{ display: 'flex', alignItems: 'center', gap: 9 }}
-                    >
+                    <a href="tel:+919903504754" className="fo-link" style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       <LuPhone size={14} style={{ color: ACCENT, flexShrink: 0 }} />
                       +91 99035 04754
                     </a>
                   </div>
                 </div>
 
-                {/* Social icons */}
                 <div>
                   <span className="fo-heading">Follow Us</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
                     {SOCIAL.map(({ Icon, href, label }) => (
-                      <a
-                        key={label}
-                        href={href}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={label}
-                        className="fo-social"
-                      >
+                      <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="fo-social">
                         <Icon size={13} />
                       </a>
                     ))}
@@ -471,19 +411,13 @@ export default function FooterOne() {
                 </div>
               </div>
 
-              {/* ── COLUMN 4: Quick Links ─────────────────────────────── */}
               <NavColumn col={COL_QUICK} />
-
-              {/* ── COLUMN 5: Help ────────────────────────────────────── */}
               <NavColumn col={COL_HELP} />
-
             </div>
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════
-            BOTTOM BAR — payments + copyright
-        ══════════════════════════════════════════════════════════════ */}
+        {/* BOTTOM BAR */}
         <div style={{ borderTop: `1px solid ${BORDER_COL}`, marginTop: 'clamp(40px,5vw,64px)' }}>
           <div style={{ maxWidth: 1720, margin: '0 auto', padding: 'clamp(20px,3vw,28px) clamp(20px,4vw,56px)' }}>
 
@@ -505,46 +439,35 @@ export default function FooterOne() {
                 ))}
               </div>
 
-              {/* Secure badge */}
               <div style={{
-                display:        'flex',
-                alignItems:     'center',
-                gap:            6,
-                color:          TEXT_MUTED,
-                fontSize:       12,
-                border:         `1px solid ${BORDER_COL}`,
-                padding:        '5px 12px',
-                borderRadius:   30,
-                background:     'rgba(255,255,255,0.04)',
+                display: 'flex', alignItems: 'center', gap: 6, color: TEXT_MUTED,
+                fontSize: 12, border: `1px solid ${BORDER_COL}`, padding: '5px 12px',
+                borderRadius: 30, background: 'rgba(255,255,255,0.04)',
               }}>
                 <LuShield size={13} color={ACCENT} />
                 <span>Secure Checkout</span>
               </div>
             </div>
 
-            {/* Copyright + legal links */}
+            {/* Copyright + legal links (corrected) */}
             <div style={{
-              borderTop:      `1px solid ${BORDER_COL}`,
-              paddingTop:     18,
-              display:        'flex',
-              flexWrap:       'wrap',
-              alignItems:     'center',
-              justifyContent: 'space-between',
-              gap:            12,
+              borderTop: `1px solid ${BORDER_COL}`, paddingTop: 18,
+              display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+              justifyContent: 'space-between', gap: 12,
             }}>
               <p style={{ fontSize: 12.5, color: TEXT_MUTED, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: 0 }}>
                 © Copyright {new Date().getFullYear()} Infinity. All rights reserved.
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                Designed & Developed by <FaHeart size={9} style={{ color: ACCENT }} /> Invictus Web Solutions Pvt Ltd. 
+                  Designed & Developed by <FaHeart size={9} style={{ color: ACCENT }} /> Invictus Web Solutions Pvt Ltd.
                 </span>
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
                 {[
-                  { name: 'Privacy Policy',  href: '/privacy'         },
+                  { name: 'Privacy Policy',  href: '/privacy-policy'      },
                   { name: 'Terms of Use',    href: '/terms-and-conditions' },
-                  { name: 'Shipping Policy', href: '/shipping-method'  },
-                  { name: 'Returns',         href: '/returns-policy'   },
+                  { name: 'Shipping Policy', href: '/shipping-policy'      },
+                  { name: 'Returns',         href: '/return-policy'        },
                 ].map(({ name, href }) => (
                   <Link
                     key={name}
@@ -561,11 +484,7 @@ export default function FooterOne() {
 
           </div>
         </div>
-        {/* END BOTTOM BAR */}
-
       </div>
-      {/* END z-index:2 content wrapper */}
-
     </footer>
   );
 }

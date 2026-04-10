@@ -1,60 +1,68 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import Aos from "aos";
 
 import NavbarOne from "../../components/navbar/navbar-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
-
-import bg from '../../assets/img/shortcode/breadcumb.jpg'
-import Aos from "aos";
+import bg from '../../assets/img/shortcode/breadcumb.jpg';
 
 import type { CartState } from "../../api/cart.api";
 import { getCart, removeFromCartItem, updateCartItem } from "../../api/cart.api";
 
+// Helper to parse price strings
+const parseMoney = (price: string): { value: number; symbol: string } => {
+  const s = price ?? '';
+  const symbol = s.includes('₹') ? '₹' : s.includes('$') ? '$' : '₹';
+  const normalized = s.replace(/,/g, '');
+  const match = normalized.match(/(\d+(\.\d+)?)/);
+  const value = match ? parseFloat(match[1]) : 0;
+  return { value, symbol };
+};
+
 export default function Cart() {
   const [cart, setCart] = useState<CartState>({ lines: [] });
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [pincode, setPincode] = useState("");
+  const [deliveryMsg, setDeliveryMsg] = useState<string | null>(null);
+  const [appliedOffer, setAppliedOffer] = useState<{ code: string; discount: number } | null>(null);
 
   useEffect(() => {
-    Aos.init();
+    Aos.init({ once: true, duration: 600 });
 
     let alive = true;
     setLoading(true);
-    getCart()
-      .then((c) => {
-        if (!alive) return;
-        setCart(c);
-      })
-      .catch((e: any) => {
-        if (!alive) return;
-        setError(e?.message ?? 'Failed to load cart.');
-      })
-      .finally(() => {
-        if (!alive) return;
-        setLoading(false);
-      });
-
-    return () => {
-      alive = false;
+    const refresh = () => {
+      setLoading(true);
+      getCart()
+        .then((c) => {
+          if (!alive) return;
+          setCart(c);
+        })
+        .catch((e: any) => {
+          if (!alive) return;
+          setError(e?.message ?? 'Failed to load cart.');
+        })
+        .finally(() => {
+          if (!alive) return;
+          setLoading(false);
+        });
     };
+
+    refresh();
+    window.addEventListener('cart:changed', refresh as EventListener);
+
+    return () => { alive = false; };
   }, []);
 
-  const parseMoney = (price: string): { value: number; symbol: string } => {
-    const s = price ?? '';
-    const symbol = s.includes('₹') ? '₹' : s.includes('$') ? '$' : '';
-    const normalized = s.replace(/,/g, '');
-    const match = normalized.match(/(\d+(\.\d+)?)/);
-    const value = match ? parseFloat(match[1]) : 0;
-    return { value, symbol };
-  };
-
   const currencySymbol = useMemo(() => {
-    if (cart.lines[0]?.product?.price) return parseMoney(cart.lines[0].product.price).symbol || '$';
-    return '$';
+    if (cart.lines[0]?.product?.price) return parseMoney(cart.lines[0].product.price).symbol || '₹';
+    return '₹';
   }, [cart.lines]);
 
+  // Calculate subtotal, total MRP, offer discount, etc.
   const subtotal = useMemo(() => {
     return cart.lines.reduce((acc, line) => {
       const { value } = parseMoney(line.product.price);
@@ -62,12 +70,29 @@ export default function Cart() {
     }, 0);
   }, [cart.lines]);
 
-  const handleQtyChange = async (productId: number, nextQty: number) => {
-    const qty = Math.max(1, Math.floor(nextQty));
+  // Mock original MRP (assume 50% higher for demo – replace with real data)
+  const totalMRP = useMemo(() => {
+    return cart.lines.reduce((acc, line) => {
+      const { value } = parseMoney(line.product.price);
+      // Assume MRP is double the selling price (50% off)
+      const mrp = value * 2;
+      return acc + mrp * line.quantity;
+    }, 0);
+  }, [cart.lines]);
+
+  const offerDiscount = totalMRP - subtotal;
+  const shipping = 699; // Fixed furniture shipping (example)
+  const platformFee = 10;
+  const total = subtotal + shipping + platformFee;
+
+  const handleQtyChange = async (productId: number, newQty: number) => {
+    const qty = Math.max(1, Math.floor(newQty));
     setActionLoadingId(productId);
     try {
       const next = await updateCartItem(productId, qty);
       setCart(next);
+    } catch (err) {
+      console.error("Update failed", err);
     } finally {
       setActionLoadingId(null);
     }
@@ -78,234 +103,248 @@ export default function Cart() {
     try {
       const next = await removeFromCartItem(productId);
       setCart(next);
+    } catch (err) {
+      console.error("Remove failed", err);
     } finally {
       setActionLoadingId(null);
     }
   };
+
+  const handlePincodeCheck = () => {
+    if (!pincode || pincode.length !== 6) {
+      setDeliveryMsg("Please enter a valid 6-digit pincode");
+      return;
+    }
+    // Mock delivery check
+    setTimeout(() => {
+      setDeliveryMsg("✓ Delivery available to this pincode. Standard delivery in 5-7 days.");
+    }, 500);
+  };
+
+  const applyOffer = (code: string, discount: number) => {
+    setAppliedOffer({ code, discount });
+  };
+
+  const primaryColor = "#96865d";
+
   return (
     <>
-        <NavbarOne/>  
+      <NavbarOne />
 
-        <div className="flex items-center gap-4 flex-wrap bg-overlay p-14 sm:p-16 before:bg-title before:bg-opacity-70" style={{backgroundImage:`url(${bg})`}}>
-            <div className="text-center w-full">
-                <h2 className="text-white text-8 md:text-[40px] font-normal leading-none text-center">Cart</h2>
-                <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
-                    <li><Link to="/">Home</Link></li>
-                    <li>/</li>
-                    <li className="text-primary">Cart</li>
-                </ul>
-            </div>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-4 flex-wrap bg-overlay p-14 sm:p-16 before:bg-title before:bg-opacity-70" style={{ backgroundImage: `url(${bg})` }}>
+        <div className="text-center w-full">
+          <h2 className="text-white text-8 md:text-[40px] font-normal leading-none text-center">Your Shopping Basket</h2>
+          <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
+            <li><Link to="/">Home</Link></li>
+            <li>/</li>
+            <li className="text-primary">Cart</li>
+          </ul>
         </div>
+      </div>
 
-        <div className="s-py-100">
-            <div className="container ">
-                <div className="flex xl:flex-row flex-col gap-[30px] lg:gap-[30px] xl:gap-[70px]">
-                    <div className="flex-1 overflow-x-auto" data-aos="fade-up" data-aos-delay="100">
-                        {loading && (
-                          <div className="text-center text-sm text-gray-500 py-10">
-                            Loading...
+      <div className="s-py-100">
+        <div className="container mx-auto px-4">
+          {loading && (
+            <div className="text-center py-16">
+              <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-3 text-gray-500">Loading your basket...</p>
+            </div>
+          )}
+          {!loading && error && (
+            <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">{error}</div>
+          )}
+          {!loading && !error && cart.lines.length === 0 && (
+            <div className="text-center py-16 bg-white dark:bg-dark-secondary rounded-xl">
+              <p className="text-gray-500">Your basket is empty.</p>
+              <Link to="/shop" className="inline-block mt-4 text-primary hover:underline">Continue Shopping</Link>
+            </div>
+          )}
+          {!loading && !error && cart.lines.length > 0 && (
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Left: Basket Items */}
+              <div className="flex-1">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold">{cart.lines.length} Product{cart.lines.length !== 1 ? 's' : ''}</h3>
+                  </div>
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {cart.lines.map((line) => {
+                      const { value, symbol } = parseMoney(line.product.price);
+                      const itemTotal = value * line.quantity;
+                      const mrpValue = value * 2; // mock MRP
+                      const saved = (mrpValue - value) * line.quantity;
+                      return (
+                        <div key={line.product.id} className="p-4 md:p-6 flex flex-col sm:flex-row gap-4">
+                          {/* Product Image - larger */}
+                          <div className="sm:w-32 md:w-40 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                            <img
+                              src={line.product.image}
+                              alt={line.product.name}
+                              className="w-full h-32 sm:h-36 object-cover"
+                            />
                           </div>
-                        )}
-                        {!loading && error && (
-                          <div className="text-center text-sm text-red-600 py-10">
-                            {error}
-                          </div>
-                        )}
-                        {!loading && !error && (
-                        <table id="cart-table" className="responsive nowrap table-wrapper" style={{width:'100%'}}>
-                            <thead className="table-header">
-                                <tr>
-                                    <th className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white">Product Info</th>
-                                    <th className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white">Price</th>
-                                    <th className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white">Quantity</th>
-                                    <th className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white">Total</th>
-                                    <th className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white">Remove</th>
-                                </tr>
-                            </thead>
-                            <tbody className="table-body">
-                                {cart.lines.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={5} className="text-center text-sm text-gray-500 py-10">
-                                      Your cart is empty.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  cart.lines.map((line) => {
-                                    const { value, symbol } = parseMoney(line.product.price);
-                                    const lineTotal = value * line.quantity;
-                                    const showSymbol = symbol || currencySymbol || '$';
-
-                                    return (
-                                      <tr key={line.product.id}>
-                                        <td className="md:w-[42%]">
-                                          <div className="flex items-center gap-3 md:gap-4 lg:gap-6 cart-product my-4">
-                                            <div className="w-14 sm:w-20 flex-none">
-                                              <img src={line.product.image} alt={line.product.name} />
-                                            </div>
-                                            <div className="flex-1">
-                                              <h6 className="leading-none font-medium">{line.product.tag || line.product.name}</h6>
-                                              <h5 className="font-semibold leading-none mt-2">
-                                                <Link to={`/product-details/${line.product.id}`}>{line.product.name}</Link>
-                                              </h5>
-                                            </div>
-                                          </div>
-                                        </td>
-                                        <td>
-                                          <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
-                                            {line.product.price}
-                                          </h6>
-                                        </td>
-                                        <td>
-                                          <div className="flex items-center gap-3">
-                                            <button
-                                              className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center duration-300 text-title dark:text-white"
-                                              onClick={() => handleQtyChange(line.product.id, line.quantity - 1)}
-                                              disabled={actionLoadingId === line.product.id || line.quantity <= 1}
-                                              aria-label="Decrease quantity"
-                                            >
-                                              -
-                                            </button>
-                                            <span className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
-                                              {line.quantity}
-                                            </span>
-                                            <button
-                                              className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center duration-300 text-title dark:text-white"
-                                              onClick={() => handleQtyChange(line.product.id, line.quantity + 1)}
-                                              disabled={actionLoadingId === line.product.id}
-                                              aria-label="Increase quantity"
-                                            >
-                                              +
-                                            </button>
-                                          </div>
-                                        </td>
-                                        <td>
-                                          <h6 className="text-base md:text-lg leading-none text-title dark:text-white font-semibold">
-                                            {showSymbol}
-                                            {Number.isFinite(lineTotal) ? lineTotal.toFixed(0) : 0}
-                                          </h6>
-                                        </td>
-                                        <td>
-                                          <button
-                                            className="w-8 h-8 bg-[#E8E9EA] dark:bg-dark-secondary flex items-center justify-center ml-auto duration-300 text-title dark:text-white"
-                                            onClick={() => handleRemove(line.product.id)}
-                                            disabled={actionLoadingId === line.product.id}
-                                            aria-label="Remove item"
-                                          >
-                                            <svg className="fill-current" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                              <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z" />
-                                            </svg>
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })
-                                )}
-                            </tbody>
-                        </table>
-                        )}
-                    </div>
-
-                    <div data-aos="fade-up" data-aos-delay="300">
-                        <div className="mb-[30px]">
-                            <h4 className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white mb-[15px]">
-                                Promo Code
-                            </h4>
-                            <div className="flex xs:flex-row flex-col gap-3">
-                                <input className="h-12 md:h-14 bg-snow dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300 placeholder:text-title dark:placeholder:text-white flex-1" type="text" placeholder="Coupon Code"/>
-                                <button className="btn btn-solid" data-text="Apply">
-                                    <span>Apply</span>
+                          {/* Product Details */}
+                          <div className="flex-1">
+                            <div className="flex flex-wrap justify-between gap-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-800 dark:text-white">{line.product.name}</h4>
+                                <p className="text-sm text-gray-500 mt-1">{line.product.tag || "Furniture"}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-lg font-bold">{symbol}{itemTotal.toFixed(0)}</div>
+                                <div className="text-sm text-gray-400 line-through">{symbol}{mrpValue.toFixed(0)}</div>
+                                <div className="text-xs text-green-600">You saved {symbol}{saved.toFixed(0)}</div>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                              Colour: {line.product.color || "Beige"}
+                            </div>
+                            <div className="mt-2 text-xs text-gray-400">
+                              [Choose delivery date at checkout]
+                            </div>
+                            <div className="mt-4 flex flex-wrap items-center gap-4">
+                              {/* Quantity Selector */}
+                              <div className="flex items-center border border-gray-300 rounded-md">
+                                <button
+                                  onClick={() => handleQtyChange(line.product.id, line.quantity - 1)}
+                                  disabled={actionLoadingId === line.product.id || line.quantity <= 1}
+                                  className="px-3 py-1 hover:bg-gray-100 disabled:opacity-50"
+                                >
+                                  -
                                 </button>
+                                <span className="px-3 py-1 min-w-[40px] text-center">{line.quantity}</span>
+                                <button
+                                  onClick={() => handleQtyChange(line.product.id, line.quantity + 1)}
+                                  disabled={actionLoadingId === line.product.id}
+                                  className="px-3 py-1 hover:bg-gray-100 disabled:opacity-50"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => handleRemove(line.product.id)}
+                                className="text-sm text-gray-500 hover:text-red-500 transition"
+                              >
+                                Remove
+                              </button>
+                              <button className="text-sm text-gray-500 hover:text-primary transition">
+                                Move to favourites
+                              </button>
                             </div>
+                          </div>
                         </div>
-                        <div className="bg-[#FAFAFA] dark:bg-dark-secondary pt-[30px] md:pt-[40px] px-[30px] md:px-[40px] pb-[30px] border border-[#17243026] border-opacity-15 rounded-xl">   
-                            <div className="text-right flex justify-end flex-col w-full ml-auto mr-0">
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium">
-                                    <span>Sub Total:</span>
-                                    <span>
-                                      {currencySymbol}
-                                      {subtotal.toFixed(0)}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
-                                    <span>Coupon Discount:</span>
-                                    <span>-{currencySymbol}0</span>
-                                </div>
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
-                                    <span>VAT:</span>
-                                    <span>{currencySymbol}0</span>
-                                </div>
-                                
-                            </div>
-                            <div className="mt-6 pt-6 border-t border-bdr-clr dark:border-bdr-clr-drk">
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
-                                    <div>
-                                        <label className="flex items-center gap-[10px] categoryies-iteem">
-                                            <input className="appearance-none hidden" type="radio" name="item-type"/>
-                                            <span className="w-4 h-4 rounded-full border border-title dark:border-white flex items-center justify-center duration-300">
-                                                <svg className="duration-300 opacity-0" width="8" height="8" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <rect width="10" height="10" rx="5" fill="#BB976D"/>
-                                                </svg>
-                                            </span>
-                                            <span className="sm:text-lg text-title dark:text-white block sm:leading-none transform translate-y-[3px] select-none">Free Shipping:</span>
-                                        </label>
-                                    </div>
-                                    <span> $0</span>
-                                </div>
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
-                                    <div>
-                                        <label className="flex items-center gap-[10px] categoryies-iteem">
-                                            <input className="appearance-none hidden" type="radio" name="item-type"/>
-                                            <span className="w-4 h-4 rounded-full border border-title dark:border-white flex items-center justify-center duration-300">
-                                                <svg className="duration-300 opacity-0" width="8" height="8" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <rect width="10" height="10" rx="5" fill="#BB976D"/>
-                                                </svg>
-                                            </span>
-                                            <span className="sm:text-lg text-title dark:text-white block sm:leading-none transform translate-y-[3px] select-none"> Fast Shipping:</span>
-                                        </label>
-                                    </div>
-                                    <span>$10</span>
-                                </div>
-                                <div className="flex justify-between flex-wrap text-base sm:text-lg text-title dark:text-white font-medium mt-3">
-                                    <div>
-                                        <label className="flex items-center gap-[10px] categoryies-iteem">
-                                            <input className="appearance-none hidden" type="radio" name="item-type"/>
-                                            <span className="w-4 h-4 rounded-full border border-title dark:border-white flex items-center justify-center duration-300">
-                                                <svg className="duration-300 opacity-0" width="8" height="8" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <rect width="10" height="10" rx="5" fill="#BB976D"/>
-                                                </svg>
-                                            </span>
-                                            <span className="sm:text-lg text-title dark:text-white block sm:leading-none transform translate-y-[3px] select-none"> Local Pickup:</span>
-                                        </label>
-                                    </div>
-                                    <span>$15</span>
-                                </div>
-                            </div>
-                            <div className="mt-6 pt-6 border-t border-bdr-clr dark:border-bdr-clr-drk">
-                                <div className="flex justify-between flex-wrap font-semibold leading-none text-2xl">
-                                    <span>Total:</span>
-                                    <span>
-                                      &nbsp;{currencySymbol}
-                                      {subtotal.toFixed(0)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="sm:mt-[10px] py-5 flex items-end gap-3 flex-wrap justify-end">
-                            <Link to="/shop-v1" className="btn btn-sm btn-outline !text-title hover:!text-white before:!z-[-1] dark:!text-white dark:hover:!text-title">
-                                Continue Shopping
-                            </Link>
-                            <Link to="/checkout" className="btn btn-sm btn-theme-solid !text-white hover:!text-primary before:!z-[-1]">
-                                Checkout
-                            </Link>
-                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Order Summary & Offers */}
+              <div className="lg:w-96">
+                <div className="sticky top-24 space-y-6">
+                  {/* Delivery Pincode Card */}
+                  <div className="bg-white dark:bg-dark-secondary rounded-xl shadow-sm p-5">
+                    <h4 className="font-semibold mb-3">Delivering to</h4>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter pin code"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                      />
+                      <button
+                        onClick={handlePincodeCheck}
+                        className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+                      >
+                        Check
+                      </button>
                     </div>
-                </div>    
+                    {deliveryMsg && (
+                      <p className={`text-xs mt-2 ${deliveryMsg.includes('✓') ? 'text-green-600' : 'text-red-500'}`}>
+                        {deliveryMsg}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Price Breakdown */}
+                  <div className="bg-white dark:bg-dark-secondary rounded-xl shadow-sm p-5">
+                    <h4 className="font-semibold mb-3">Price Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total MRP</span>
+                        <span>{currencySymbol}{totalMRP.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Offer discount</span>
+                        <span>-{currencySymbol}{offerDiscount.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Furniture & Large Items Shipping</span>
+                        <span>{currencySymbol}{shipping}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Platform fee Details</span>
+                        <span>{currencySymbol}{platformFee}</span>
+                      </div>
+                      <div className="border-t border-gray-200 pt-2 mt-2">
+                        <div className="flex justify-between font-bold text-base">
+                          <span>Total</span>
+                          <span className="text-primary">{currencySymbol}{total.toFixed(0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      to="/checkout"
+                      className="w-full block text-center mt-5 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      Checkout now
+                    </Link>
+                  </div>
+
+                  {/* Offers for you */}
+                  <div className="bg-white dark:bg-dark-secondary rounded-xl shadow-sm p-5">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      🏷️ Offers for you!
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-medium">10% off on prepaid orders</p>
+                          <p className="text-xs text-gray-500">Use code: PREPAID10</p>
+                        </div>
+                        <button
+                          onClick={() => applyOffer("PREPAID10", subtotal * 0.1)}
+                          className="text-xs px-3 py-1 border border-primary text-primary rounded hover:bg-primary hover:text-white transition"
+                        >
+                          Select
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-medium">Free Shipping on orders above ₹50,000</p>
+                          <p className="text-xs text-gray-500">Auto-applied</p>
+                        </div>
+                        <span className="text-xs text-green-600">Active</span>
+                      </div>
+                    </div>
+                    {appliedOffer && (
+                      <p className="text-xs text-green-600 mt-3">
+                        Coupon "{appliedOffer.code}" applied! {currencySymbol}{appliedOffer.discount.toFixed(0)} off.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
         </div>
+      </div>
 
-        <FooterOne/>
-
-        <ScrollToTop/>
+      <FooterOne />
+      <ScrollToTop />
     </>
-  )
+  );
 }
