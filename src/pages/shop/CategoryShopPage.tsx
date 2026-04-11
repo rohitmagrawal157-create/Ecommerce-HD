@@ -214,24 +214,24 @@
 //       )
 //     }
 
-//     // Price filter — strip currency symbols, support ₹ and $
+//     // Price filter — strip currency symbols, support $ and $
 //     list = list.filter((p) => {
 //       const raw = typeof p.price === 'string' ? p.price : String(p.price ?? '')
-//       const price = parseFloat(raw.replace(/[₹$,]/g, '')) || 0
+//       const price = parseFloat(raw.replace(/[$$,]/g, '')) || 0
 //       return price >= minValue && (maxValue === 0 || price <= maxValue)
 //     })
 
 //     // Sort
 //     if (sortBy === 'price-asc') {
 //       list.sort((a, b) => {
-//         const pa = parseFloat(String(a.price).replace(/[₹$,]/g, '')) || 0
-//         const pb = parseFloat(String(b.price).replace(/[₹$,]/g, '')) || 0
+//         const pa = parseFloat(String(a.price).replace(/[$$,]/g, '')) || 0
+//         const pb = parseFloat(String(b.price).replace(/[$$,]/g, '')) || 0
 //         return pa - pb
 //       })
 //     } else if (sortBy === 'price-desc') {
 //       list.sort((a, b) => {
-//         const pa = parseFloat(String(a.price).replace(/[₹$,]/g, '')) || 0
-//         const pb = parseFloat(String(b.price).replace(/[₹$,]/g, '')) || 0
+//         const pa = parseFloat(String(a.price).replace(/[$$,]/g, '')) || 0
+//         const pb = parseFloat(String(b.price).replace(/[$$,]/g, '')) || 0
 //         return pb - pa
 //       })
 //     } else if (sortBy === 'rating') {
@@ -371,11 +371,11 @@
 //                   />
 //                   <div className="flex items-center justify-between mt-3">
 //                     <span className="text-sm font-semibold" style={{ color: config.accent }}>
-//                       ₹{minValue}
+//                       ${minValue}
 //                     </span>
 //                     <span className="text-gray-400 text-xs">to</span>
 //                     <span className="text-sm font-semibold" style={{ color: config.accent }}>
-//                       ₹{maxValue}
+//                       ${maxValue}
 //                     </span>
 //                   </div>
 //                 </div>

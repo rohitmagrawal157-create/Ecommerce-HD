@@ -132,28 +132,28 @@ export const productList = [
         id: 1,
         image: "https://imgs.search.brave.com/Fh0bVSoFNZGyejmBi2ixP5KzMV2l1ZBscvJnOqPIBww/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/NzErMlNPUUoyWUwu/anBn",
         tag: "NEW",
-        price: "₹2,499",
+        price: "$2,499",
         name: "Temple Art Canvas Print"
       },
       {
         id: 2,
         image: "https://imgs.search.brave.com/xvRRFzB3ffBI183PkWbEf-qU-mcKpIOVeEo032IKxxs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9rb3Rh/cnQuaW4vY2RuL3No/b3AvZmlsZXMvZWZm/ZWN0MjZfMC5qcGc_/dj0xNzI0NjQ2MTM5/JndpZHRoPTUzMw",
         tag: "Hot Sale",
-        price: "₹1,899",
+        price: "$1,899",
         name: "Portrait Sketch - Charcoal"
       },
       {
         id: 3,
         image: "https://imgs.search.brave.com/QvITnnte9GaQQ3pX4RFyfZTQmlfWYWj83s7xthIUQKY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudXdhbGxzLmNv/bS9wcm9kdWN0cy8x/NTMwMDAvMTUzNzE5/L2MwMDAwN3BpZzEx/bXNfOTAwLndlYnA",
         tag: "10% OFF",
-        price: "₹3,299",
+        price: "$3,299",
         name: "Large Wall Mural"
       },
       {
         id: 4,
         image: "https://imgs.search.brave.com/sJldnUuNYOe-tPZhqqXG8yt4o72tO-hVGzZdU_0wYS8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9saWZl/bmNvbG9ycy5pbi9j/ZG4vc2hvcC9maWxl/cy9yb3NhLWNoaW5v/aXNlcmllLXdhbGxw/YXBlci1saXZpbmct/cm9vbS1jbGF5LWJl/aWdlLndlYnA_dj0x/NzY1ODgwNTk3Jndp/ZHRoPTMyMA",
         tag: "NEW",
-        price: "₹1,499",
+        price: "$1,499",
         name: "Modern Wallpaper Design"
       },
     {
