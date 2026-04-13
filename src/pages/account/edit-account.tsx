@@ -7,9 +7,7 @@ import FooterOne from '../../components/footer/footer-one';
 import ScrollToTop from '../../components/scroll-to-top';
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
 import {
-  LuUser, LuMail, LuPhone, LuMapPin, LuGlobe,
-  LuFileText, LuBriefcase, LuSave, LuRefreshCw,
-  LuCamera, LuShieldCheck
+  LuSave, LuRefreshCw, LuCamera, LuShieldCheck, LuUser
 } from 'react-icons/lu';
 import Aos from 'aos';
 
@@ -52,27 +50,6 @@ const INITIAL: FormState = {
   social: 'https://linkedin.com/in/kathlene',
 };
 
-interface FieldCfg {
-  key: keyof FormState;
-  label: string;
-  type: string;
-  ph: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
-const LEFT_FIELDS: FieldCfg[] = [
-  { key: 'fullName',    label: 'Full Name',    type: 'text',  ph: 'Enter your full name',    icon: <LuUser size={14}/>,      color: '#5B4FBE' },
-  { key: 'designation', label: 'Designation',  type: 'text',  ph: 'e.g. Product Designer',   icon: <LuBriefcase size={14}/>, color: '#E8314A' },
-  { key: 'phone',       label: 'Phone Number', type: 'tel',   ph: 'Your phone number',        icon: <LuPhone size={14}/>,     color: '#F97316' },
-  { key: 'email',       label: 'Email Address',type: 'email', ph: 'Your email address',       icon: <LuMail size={14}/>,      color: '#2563EB' },
-];
-
-const RIGHT_FIELDS: FieldCfg[] = [
-  { key: 'location', label: 'Location',    type: 'text', ph: 'City, Country',           icon: <LuMapPin size={14}/>, color: '#06B6D4' },
-  { key: 'social',   label: 'Web / Social',type: 'text', ph: 'https://yourwebsite.com', icon: <LuGlobe size={14}/>,  color: '#22C55E' },
-];
-
 export default function EditAccount() {
   useEffect(() => {
     Aos.init({ once: true, duration: 600 });
@@ -93,7 +70,6 @@ export default function EditAccount() {
   };
 
   const handleSave = () => {
-    // Basic validation
     if (!form.fullName.trim()) {
       alert('Full name is required');
       return;
@@ -106,7 +82,6 @@ export default function EditAccount() {
       alert('Phone number is required');
       return;
     }
-    // Here you would normally send data to API
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -139,7 +114,6 @@ export default function EditAccount() {
     if (/[0-9]/.test(pw)) s++;
     if (/[^A-Za-z0-9]/.test(pw)) s++;
     setStrength(s);
-    // Check confirm match if confirm has value
     if (confirmPassword && pw !== confirmPassword) {
       setPasswordError('Passwords do not match');
     } else {
@@ -228,7 +202,7 @@ export default function EditAccount() {
                 </div>
               </div>
 
-              {/* Personal Information */}
+              {/* ===== PERSONAL INFORMATION (No Icons in Inputs) ===== */}
               <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center gap-3">
                   <div
@@ -244,61 +218,94 @@ export default function EditAccount() {
                 </div>
 
                 <div className="p-6 sm:p-8">
-                  <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5">
                     {/* Left Column */}
-                    <div className="grid gap-5 w-full lg:w-1/2">
-                      {LEFT_FIELDS.map(cfg => (
-                        <div key={cfg.key}>
-                          <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">{cfg.label}</label>
-                          <div className="relative">
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 flex-shrink-0" style={{ color: cfg.color }}>
-                              {cfg.icon}
-                            </span>
-                            <input
-                              type={cfg.type}
-                              value={form[cfg.key]}
-                              placeholder={cfg.ph}
-                              onChange={e => update(cfg.key, e.target.value)}
-                              className="w-full h-12 rounded-xl pl-10 pr-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
-                            />
-                          </div>
-                        </div>
-                      ))}
+                    <div className="space-y-5">
+                      {/* Full Name */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Full Name</label>
+                        <input
+                          type="text"
+                          value={form.fullName}
+                          placeholder="Enter your full name"
+                          onChange={e => update('fullName', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
+
+                      {/* Designation */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Designation</label>
+                        <input
+                          type="text"
+                          value={form.designation}
+                          placeholder="e.g. Product Designer"
+                          onChange={e => update('designation', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
+
+                      {/* Phone Number */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={form.phone}
+                          placeholder="Your phone number"
+                          onChange={e => update('phone', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
+
+                      {/* Email Address */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Email Address</label>
+                        <input
+                          type="email"
+                          value={form.email}
+                          placeholder="Your email address"
+                          onChange={e => update('email', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
                     </div>
 
                     {/* Right Column */}
-                    <div className="grid gap-5 w-full lg:w-1/2">
-                      {RIGHT_FIELDS.map(cfg => (
-                        <div key={cfg.key}>
-                          <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">{cfg.label}</label>
-                          <div className="relative">
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 flex-shrink-0" style={{ color: cfg.color }}>
-                              {cfg.icon}
-                            </span>
-                            <input
-                              type={cfg.type}
-                              value={form[cfg.key]}
-                              placeholder={cfg.ph}
-                              onChange={e => update(cfg.key, e.target.value)}
-                              className="w-full h-12 rounded-xl pl-10 pr-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
-                            />
-                          </div>
-                        </div>
-                      ))}
+                    <div className="space-y-5">
+                      {/* Location */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Location</label>
+                        <input
+                          type="text"
+                          value={form.location}
+                          placeholder="City, Country"
+                          onChange={e => update('location', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
 
-                      {/* Bio (full width) */}
+                      {/* Web / Social */}
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Web / Social</label>
+                        <input
+                          type="text"
+                          value={form.social}
+                          placeholder="https://yourwebsite.com"
+                          onChange={e => update('social', e.target.value)}
+                          className="w-full h-12 rounded-xl px-4 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition"
+                        />
+                      </div>
+
+                      {/* Bio */}
                       <div>
                         <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Bio</label>
-                        <div className="relative">
-                          <LuFileText size={14} className="absolute left-3.5 top-3.5 flex-shrink-0" style={{ color: '#EC4899' }} />
-                          <textarea
-                            value={form.bio}
-                            rows={5}
-                            placeholder="Write a short bio..."
-                            onChange={e => update('bio', e.target.value)}
-                            className="w-full rounded-xl pl-10 pr-4 py-3 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition resize-none"
-                          />
-                        </div>
+                        <textarea
+                          value={form.bio}
+                          rows={5}
+                          placeholder="Write a short bio..."
+                          onChange={e => update('bio', e.target.value)}
+                          className="w-full rounded-xl px-4 py-3 text-[14px] border border-gray-300 focus:border-[#5B4FBE] outline-none transition resize-none"
+                        />
                         <p className="text-[11px] text-gray-400 mt-1 text-right">{form.bio.length}/250</p>
                       </div>
                     </div>
@@ -306,7 +313,7 @@ export default function EditAccount() {
                 </div>
               </div>
 
-              {/* Change Password */}
+              {/* Change Password Section (icons kept only for section header, not inside inputs) */}
               <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center gap-3">
                   <div

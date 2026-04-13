@@ -271,98 +271,141 @@ export default function MyAccount() {
               </div>
 
               {/* Order History Table */}
-              <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-[16px] font-extrabold text-gray-800">
-                      Order History
-                      <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: '#f3f1ff', color: '#5B4FBE' }}>
-                        {orders.length}
-                      </span>
-                    </h4>
-                    <p className="text-[12px] text-gray-400 mt-0.5">Your recent purchases</p>
-                  </div>
+             {/* Order History Table - Fixed */}
+<div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h4 className="text-[16px] font-extrabold text-gray-800">
+        Order History
+        <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: '#f3f1ff', color: '#5B4FBE' }}>
+          {orders.length}
+        </span>
+      </h4>
+      <p className="text-[12px] text-gray-400 mt-0.5">Your recent purchases</p>
+    </div>
 
-                  {/* Filter Tabs */}
-                  <div className="flex gap-2">
-                    {['All','Completed','Pending','Cancel'].map(tab => (
-                      <button 
-                        key={tab} 
-                        onClick={() => setActiveTab(tab)}
-                        className="px-3 py-1.5 rounded-full text-[11px] font-bold transition hidden sm:block"
-                        style={activeTab === tab 
-                          ? { background: BRAND, color: '#fff' } 
-                          : { background: '#f3f4f6', color: '#6b7280' }}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+    {/* Filter Tabs */}
+    <div className="flex gap-2">
+      {['All','Completed','Pending','Cancel'].map(tab => (
+        <button 
+          key={tab} 
+          onClick={() => setActiveTab(tab)}
+          className="px-3 py-1.5 rounded-full text-[11px] font-bold transition"
+          style={activeTab === tab 
+            ? { background: BRAND, color: '#fff' } 
+            : { background: '#f3f4f6', color: '#6b7280' }}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+  </div>
 
-                {/* Table Header */}
-                <div className="hidden sm:grid grid-cols-[1fr_80px_130px_100px] gap-4 px-6 py-3 border-b border-gray-100"
-                  style={{ background: '#fafafa' }}>
-                  {['Product','Price','Status','Actions'].map(h => (
-                    <span key={h} className="text-[11px] font-bold tracking-widest uppercase text-gray-400">{h}</span>
-                  ))}
-                </div>
+  {/* Table Header - Hidden on mobile, visible from md up */}
+  <div className="hidden md:grid grid-cols-[minmax(200px,1fr)_100px_140px_120px] gap-4 px-6 py-3 border-b border-gray-100 bg-gray-50/80">
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Product</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Price</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Status</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Actions</span>
+  </div>
 
-                <div className="divide-y divide-gray-100">
-                  {filtered.map((item, i) => {
-                    const st = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG];
-                    return (
-                      <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_130px_100px] gap-4 items-center px-6 py-4 hover:bg-gray-50 transition group">
-                        <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                          <div className="w-[64px] h-[64px] rounded-xl overflow-hidden border border-gray-100 flex-shrink-0">
-                            <img 
-                              src={item.image} 
-                              alt={item.name} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 block mb-1">{item.tag}</span>
-                            <h5 className="text-[14px] font-bold text-gray-800 leading-snug truncate">
-                              <Link to="#" className="hover:opacity-70 transition">{item.name}</Link>
-                            </h5>
-                          </div>
-                        </div>
-
-                        <div className="hidden sm:block">
-                          <GradText className="text-[15px] font-extrabold">$74</GradText>
-                        </div>
-
-                        <div className="hidden sm:flex">
-                          {st && (
-                            <span 
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
-                              style={{ background: st.bg, color: st.text, border: `1px solid ${st.text}22` }}
-                            >
-                              {st.icon} {item.status}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="hidden sm:flex items-center gap-2">
-                          <button title="View" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition">
-                            <LuEye size={13}/>
-                          </button>
-                          <button title="Download" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition">
-                            <LuDownload size={13}/>
-                          </button>
-                          {item.status === 'Pending' && (
-                            <button title="Track" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500 transition">
-                              <LuRefreshCw size={13}/>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+  {/* Order Rows */}
+  <div className="divide-y divide-gray-100">
+    {filtered.map((item, idx) => {
+      const st = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG];
+      return (
+        <div key={idx} className="px-6 py-4 hover:bg-gray-50 transition">
+          {/* Desktop/Tablet Layout - one line */}
+          <div className="hidden md:grid grid-cols-[minmax(200px,1fr)_100px_140px_120px] gap-4 items-center">
+            {/* Product */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
               </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400 block mb-0.5">{item.tag}</span>
+                <h5 className="text-sm font-semibold text-gray-800 truncate">{item.name}</h5>
+              </div>
+            </div>
+
+            {/* Price */}
+            <div>
+              <GradText className="text-base font-extrabold">{item.price}</GradText>
+            </div>
+
+            {/* Status */}
+            {st && (
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap"
+                  style={{ background: st.bg, color: st.text, border: `1px solid ${st.text}22` }}>
+                  {st.icon} {item.status}
+                </span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-1.5">
+              <button title="View" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600 transition">
+                <LuEye size={13} />
+              </button>
+              <button title="Download" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">
+                <LuDownload size={13} />
+              </button>
+              {item.status === 'Pending' && (
+                <button title="Track" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-600 transition">
+                  <LuRefreshCw size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Layout (below md) - inline row with all info */}
+          <div className="flex flex-col gap-3 md:hidden">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400">{item.tag}</span>
+                <h5 className="text-sm font-semibold text-gray-800">{item.name}</h5>
+              </div>
+              <GradText className="text-base font-extrabold">{item.price}</GradText>
+            </div>
+            <div className="flex items-center justify-between">
+              {st && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+                  style={{ background: st.bg, color: st.text }}>
+                  {st.icon} {item.status}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <button className="p-1.5 rounded-lg border border-gray-200 text-gray-500">
+                  <LuEye size={13} />
+                </button>
+                <button className="p-1.5 rounded-lg border border-gray-200 text-gray-500">
+                  <LuDownload size={13} />
+                </button>
+                {item.status === 'Pending' && (
+                  <button className="p-1.5 rounded-lg border border-gray-200 text-gray-500">
+                    <LuRefreshCw size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {/* Empty state */}
+  {filtered.length === 0 && (
+    <div className="text-center py-12 text-gray-400 text-sm">
+      No orders found for <strong className="text-gray-500">{activeTab}</strong> status.
+    </div>
+  )}
+</div>
 
             </div>
           </div>

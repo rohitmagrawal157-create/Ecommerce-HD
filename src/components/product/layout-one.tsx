@@ -170,142 +170,196 @@ function injectCSS() {
 }
 
 // ── Quick View Modal ───────────────────────────────────────────────────────────
-function QV({ item, wished, busy, cartAdded, onClose, onCart, onWish }:{
-  item:Item; wished:boolean; busy:null|'cart'|'wishlist'
-  cartAdded:boolean; onClose():void; onCart():void; onWish():void
+// ── Quick View Modal (professional redesign) ─────────────────────────────────
+function QV({ item, wished, busy, cartAdded, onClose, onCart, onWish }: {
+  item: Item; wished: boolean; busy: null | 'cart' | 'wishlist';
+  cartAdded: boolean; onClose(): void; onCart(): void; onWish(): void;
 }) {
-  const tc = tagColor(item.tag)
-  const showDiscount = item.discount || (SALE_TAGS.has(item.tag) && !item.discount)
-  const discPct  = item.discount ?? 20
-  const mrp      = item.originalPrice ?? (showDiscount ? computeMrp(item.price, discPct) : '')
-  const actualDisc = item.discount ?? (SALE_TAGS.has(item.tag) ? 20 : 0)
+  const tc = tagColor(item.tag);
+  const showDiscount = item.discount || (SALE_TAGS.has(item.tag) && !item.discount);
+  const discPct = item.discount ?? 20;
+  const mrp = item.originalPrice ?? (showDiscount ? computeMrp(item.price, discPct) : '');
+  const actualDisc = item.discount ?? (SALE_TAGS.has(item.tag) ? 20 : 0);
+  const ratingNum = item.rating ?? 4;
 
-  useEffect(()=>{
-    const fn=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()}
-    document.addEventListener('keydown',fn)
-    document.body.style.overflow='hidden'
-    return()=>{document.removeEventListener('keydown',fn);document.body.style.overflow=''}
-  },[onClose])
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', fn);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', fn);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
 
   return createPortal(
-    <div className="inf-qvbg fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{background:'rgba(0,0,0,0.78)',backdropFilter:'blur(6px)'}}
-      onClick={onClose}>
-      <div className="inf-qvm relative bg-white w-full max-w-[860px] flex flex-col sm:flex-row"
-        style={{boxShadow:'0 40px 100px rgba(0,0,0,0.5)'}}
-        onClick={e=>e.stopPropagation()}>
-
-        <button onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 bg-white flex items-center justify-center hover:bg-gray-50 transition-colors"
-          style={{border:`1px solid ${B.border}`}}>
-          <LuX size={14} color={B.muted}/>
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"
+          aria-label="Close"
+        >
+          <LuX size={16} className="text-gray-600" />
         </button>
 
-        {/* Image */}
-        <div className="relative w-full sm:w-[44%] flex-shrink-0 overflow-hidden"
-          style={{aspectRatio:'1/1',background:B.bgSoft}}>
-          <img src={item.image} alt={item.name} className="w-full h-full object-cover"/>
-          <div className="absolute inset-x-0 bottom-0 h-[2px]" style={{background:B.brandGrad}}/>
-          <span className="absolute top-0 left-0 text-white text-[9px] font-bold tracking-[0.14em] uppercase px-3 py-[5px]"
-            style={{background:tc}}>{item.tag}</span>
-          {actualDisc>0 && (
-            <span className="absolute top-7 left-0 text-white text-[9px] font-bold tracking-[0.1em] uppercase px-3 py-[4px]"
-              style={{background:'linear-gradient(135deg,#DC2626,#F97316)'}}>
-              -{actualDisc}% OFF
+        <div className="flex flex-col md:flex-row">
+          {/* Image section */}
+          <div className="relative w-full md:w-1/2 bg-gray-50 overflow-hidden">
+            <img
+              src={item.image}
+              alt={item.name}
+              className="w-full h-full object-cover"
+              style={{ aspectRatio: '1/1' }}
+            />
+            {/* Tag badge */}
+            <span
+              className="absolute top-4 left-4 text-white text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full"
+              style={{ background: tc }}
+            >
+              {item.tag}
             </span>
-          )}
-        </div>
+            {actualDisc > 0 && (
+              <span
+                className="absolute top-4 left-20 text-white text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full"
+                style={{ background: 'linear-gradient(135deg, #DC2626, #F97316)' }}
+              >
+                -{actualDisc}% OFF
+              </span>
+            )}
+          </div>
 
-        {/* Info */}
-        <div className="flex flex-col flex-1 p-8 sm:p-10">
-          <div className="flex items-center gap-2 mb-3">
-            <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:B.faint}}>
+          {/* Content section */}
+          <div className="flex-1 p-6 md:p-8 flex flex-col">
+            {/* Brand */}
+            <div className="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-2">
               INFINITY PRINT & SIGNAGE
-            </span>
-          </div>
-          <h3 style={{
-            fontFamily:"'DM Serif Display',Georgia,serif",
-            fontSize:22,fontWeight:400,color:B.text,
-            lineHeight:1.3,marginBottom:12
-          }}>{item.name}</h3>
-
-          {/* Stars + numeric */}
-          <div className="flex items-center gap-2 mb-5">
-            <div className="flex items-center gap-[2px]">
-              {[1,2,3,4,5].map(s=>(
-                <GoStarFill key={s} style={{
-                  width:13,height:13,
-                  color:s<=(item.rating??4)?B.yellow:'#D1D5DB'
-                }}/>
-              ))}
             </div>
-            <span style={{fontSize:13,fontWeight:700,color:B.body}}>
-              {(item.rating??4).toFixed(1)}
-            </span>
-            <span style={{fontSize:12,color:B.faint}}>(1,230 reviews)</span>
-          </div>
 
-          {/* Price block */}
-          <div className="flex items-baseline gap-3 mb-6">
-            <span className="inf-price" style={{fontSize:28,fontWeight:700}}>{item.price}</span>
-            {mrp && <span className="inf-mrp">{mrp}</span>}
-            {actualDisc>0 && <span className="inf-disc">-{actualDisc}%</span>}
-          </div>
+            {/* Product name */}
+            <h3 className="text-2xl md:text-3xl font-serif font-normal text-gray-900 mb-3">
+              {item.name}
+            </h3>
 
-          <div className="w-full h-[2px] mb-6" style={{background:B.brandGrad}}/>
-
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <span style={{fontSize:11,color:B.faint,textTransform:'uppercase',letterSpacing:'0.1em'}}>Category</span>
-              <span className="text-[9px] font-bold text-white px-2 py-[3px] uppercase tracking-widest"
-                style={{background:tc}}>{item.tag}</span>
+            {/* Rating */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <GoStarFill
+                    key={s}
+                    size={14}
+                    className={s <= ratingNum ? 'text-yellow-500' : 'text-gray-200'}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-gray-700">
+                {ratingNum.toFixed(1)}
+              </span>
+              <span className="text-xs text-gray-400">(1,230 reviews)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span style={{fontSize:11,color:B.faint,textTransform:'uppercase',letterSpacing:'0.1em'}}>SKU</span>
-              <span style={{fontSize:11,color:B.body,fontWeight:600}}>INF-{String(item.id).padStart(5,'0')}</span>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 mb-7">
-            <span style={{fontSize:11,color:B.faint,textTransform:'uppercase',letterSpacing:'0.1em',width:60}}>Qty</span>
-            <div className="flex items-center" style={{border:`1px solid ${B.border}`}}>
-              <button className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-50 transition-colors" style={{color:B.body}}>−</button>
-              <span className="w-10 text-center text-sm font-semibold" style={{color:B.text}}>1</span>
-              <button className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-50 transition-colors" style={{color:B.body}}>+</button>
+            {/* Price */}
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="inf-price text-2xl md:text-3xl font-bold">
+                {item.price}
+              </span>
+              {mrp && <span className="inf-mrp text-sm">{mrp}</span>}
+              {actualDisc > 0 && (
+                <span className="inf-disc text-[10px] px-2 py-0.5">-{actualDisc}%</span>
+              )}
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 mt-auto">
-            <button onClick={onCart} disabled={busy==='cart'}
-              className="flex-1 h-12 flex items-center justify-center gap-2 text-sm font-bold tracking-[0.08em] uppercase text-white transition-all duration-300"
-              style={{
-                background:cartAdded?B.green:B.brandGrad,
-                opacity:busy==='cart'?0.6:1,cursor:busy==='cart'?'not-allowed':'pointer',
-              }}>
-              {cartAdded?<><BsCheckLg size={14}/>Added to Cart</>:<><RiShoppingBag2Line size={15}/>Add to Cart</>}
-            </button>
-            <button onClick={onWish} disabled={busy==='wishlist'}
-              className="w-12 h-12 flex items-center justify-center transition-all duration-200"
-              style={{
-                border:wished?`1.5px solid ${B.red}`:`1.5px solid ${B.border}`,
-                background:wished?'#FFF0F0':'transparent',
-                opacity:busy==='wishlist'?0.5:1,cursor:busy==='wishlist'?'not-allowed':'pointer',
-              }}>
-              <LuHeart size={17} color={wished?B.red:B.muted} fill={wished?B.red:'none'}/>
-            </button>
+            <hr className="my-4 border-gray-100" />
+
+            {/* Details */}
+            <div className="flex flex-wrap gap-6 mb-6">
+              <div>
+                <div className="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-1">
+                  Category
+                </div>
+                <span
+                  className="text-[10px] font-bold text-white px-2 py-1 rounded-full"
+                  style={{ background: tc }}
+                >
+                  {item.tag}
+                </span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-1">
+                  SKU
+                </div>
+                <div className="text-sm font-medium text-gray-700">
+                  INF-{String(item.id).padStart(5, '0')}
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity selector */}
+            <div className="flex items-center gap-4 mb-8">
+              <div className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                Qty
+              </div>
+              <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                <button className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition">
+                  −
+                </button>
+                <span className="w-10 text-center text-sm font-semibold text-gray-800">1</span>
+                <button className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition">
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3 mt-auto">
+              <button
+                onClick={onCart}
+                disabled={busy === 'cart'}
+                className="flex-1 h-12 flex items-center justify-center gap-2 text-sm font-bold tracking-wide uppercase text-white rounded-full transition-all duration-300 disabled:opacity-60"
+                style={{
+                  background: cartAdded ? B.green : B.brandGrad,
+                }}
+              >
+                {cartAdded ? (
+                  <><BsCheckLg size={14} /> Added to Cart</>
+                ) : (
+                  <><RiShoppingBag2Line size={15} /> Add to Cart</>
+                )}
+              </button>
+              <button
+                onClick={onWish}
+                disabled={busy === 'wishlist'}
+                className="w-12 h-12 flex items-center justify-center rounded-full border transition-all disabled:opacity-60"
+                style={{
+                  borderColor: wished ? B.red : '#e5e7eb',
+                  background: wished ? '#FFF0F0' : 'transparent',
+                }}
+              >
+                <LuHeart size={18} color={wished ? B.red : '#9ca3af'} fill={wished ? B.red : 'none'} />
+              </button>
+            </div>
+
+            {/* View full details link */}
+            <Link
+              to={`/product-details/${item.id}`}
+              onClick={onClose}
+              className="mt-6 text-center text-xs text-gray-400 hover:text-purple-600 underline underline-offset-2 transition"
+            >
+              View full product details →
+            </Link>
           </div>
-          <Link to={`/product-details/${item.id}`} onClick={onClose}
-            className="mt-4 text-[11px] text-center underline underline-offset-2 transition-colors"
-            style={{color:B.faint}}
-            onMouseEnter={e=>(e.currentTarget.style.color=B.purple)}
-            onMouseLeave={e=>(e.currentTarget.style.color=B.faint)}>
-            View full product details →
-          </Link>
         </div>
       </div>
     </div>,
     document.body
-  )
+  );
 }
 
 // ── Main Card Component ────────────────────────────────────────────────────────

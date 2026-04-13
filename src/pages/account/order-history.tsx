@@ -146,150 +146,174 @@ export default function OrderHistory() {
               </div>
 
               {/* Order History Table Card */}
-              <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Order History Table Card - FIXED */}
+<div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  
+  {/* Header with search */}
+  <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h4 className="text-[16px] font-extrabold text-gray-800 flex items-center gap-2">
+        All Orders
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: '#f3f1ff', color: '#5B4FBE' }}>
+          {filtered.length}
+        </span>
+      </h4>
+      <p className="text-[12px] text-gray-400 mt-0.5">Track and manage your purchases</p>
+    </div>
+    <div className="relative">
+      <LuSearch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input 
+        value={search} 
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search orders…" 
+        className="h-10 pl-9 pr-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-[#5B4FBE] transition bg-gray-50 w-full sm:w-[200px]" 
+      />
+    </div>
+  </div>
 
-                {/* Header */}
-                <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-[16px] font-extrabold text-gray-800 flex items-center gap-2">
-                      All Orders
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: '#f3f1ff', color: '#5B4FBE' }}>
-                        {filtered.length}
-                      </span>
-                    </h4>
-                    <p className="text-[12px] text-gray-400 mt-0.5">Track and manage your purchases</p>
-                  </div>
+  {/* Filter tabs */}
+  <div className="px-6 py-4 border-b border-gray-100 flex gap-2 flex-wrap">
+    {['All','Completed','Pending','Cancel'].map(tab => (
+      <button 
+        key={tab} 
+        onClick={() => setActiveTab(tab)}
+        className="px-4 py-1.5 rounded-full text-[12px] font-bold transition"
+        style={activeTab === tab
+          ? { background: BRAND, color: '#fff' }
+          : { background: '#f3f4f6', color: '#6b7280' }}
+      >
+        {tab} 
+        <span className="opacity-60 ml-1">
+          {tab === 'All' ? orders.length : orders.filter(o => o.status === tab).length}
+        </span>
+      </button>
+    ))}
+  </div>
 
-                  {/* Search */}
-                  <div className="relative">
-                    <LuSearch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      value={search} 
-                      onChange={e => setSearch(e.target.value)}
-                      placeholder="Search orders…" 
-                      className="h-10 pl-9 pr-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-[#5B4FBE] transition bg-gray-50 w-[200px]" 
-                    />
-                  </div>
+  {/* ========== TABLE HEADER (visible from md upwards) ========== */}
+  <div className="hidden md:grid grid-cols-[minmax(180px,1fr)_100px_140px_130px] gap-4 px-6 py-3 border-b border-gray-100 bg-gray-50/80">
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Product</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Price</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Status</span>
+    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-400">Actions</span>
+  </div>
+
+  {/* ========== TABLE ROWS ========== */}
+  {filtered.length === 0 ? (
+    <div className="text-center py-16">
+      <div className="text-4xl mb-3">📦</div>
+      <p className="text-[15px] font-bold text-gray-700 mb-1">No orders found</p>
+      <p className="text-[13px] text-gray-400">Try adjusting your search or filter.</p>
+    </div>
+  ) : (
+    <div className="divide-y divide-gray-100">
+      {filtered.map((item, i) => {
+        const st = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG];
+        return (
+          <div key={i} className="px-6 py-4 hover:bg-gray-50 transition">
+            
+            {/* Desktop/Tablet layout (md and above) - ONE LINE */}
+            <div className="hidden md:grid grid-cols-[minmax(180px,1fr)_100px_140px_130px] gap-4 items-center">
+              
+              {/* Product */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 bg-gray-50">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                 </div>
-
-                {/* Filter Tabs */}
-                <div className="px-6 py-4 border-b border-gray-100 flex gap-2 flex-wrap">
-                  {['All','Completed','Pending','Cancel'].map(tab => (
-                    <button 
-                      key={tab} 
-                      onClick={() => setActiveTab(tab)}
-                      className="px-4 py-1.5 rounded-full text-[12px] font-bold transition"
-                      style={activeTab === tab
-                        ? { background: BRAND, color: '#fff' }
-                        : { background: '#f3f4f6', color: '#6b7280' }}
-                    >
-                      {tab} 
-                      <span className="opacity-60 ml-1">
-                        {tab === 'All' ? orders.length : orders.filter(o => o.status === tab).length}
-                      </span>
-                    </button>
-                  ))}
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 block mb-0.5">{item.tag}</span>
+                  <h5 className="text-sm font-semibold text-gray-800 truncate">{item.name}</h5>
                 </div>
+              </div>
 
-                {/* Table Header */}
-                <div className="hidden sm:grid grid-cols-[1fr_80px_140px_110px] gap-4 px-6 py-3 border-b border-gray-100"
-                  style={{ background: '#fafafa' }}>
-                  {['Product','Price','Status','Actions'].map(h => (
-                    <span key={h} className="text-[11px] font-bold tracking-widest uppercase text-gray-400">{h}</span>
-                  ))}
+              {/* Price */}
+              <div>
+                <GradText className="text-base font-extrabold whitespace-nowrap">{item.price}</GradText>
+              </div>
+
+              {/* Status - with nowrap to prevent line break */}
+              {st && (
+                <div>
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap"
+                    style={{ background: st.bg, color: st.text, border: `1px solid ${st.border}` }}
+                  >
+                    {st.icon} {item.status}
+                  </span>
                 </div>
+              )}
 
-                {/* Empty State */}
-                {filtered.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="text-4xl mb-3">📦</div>
-                    <p className="text-[15px] font-bold text-gray-700 mb-1">No orders found</p>
-                    <p className="text-[13px] text-gray-400">Try adjusting your search or filter.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100">
-                    {filtered.map((item, i) => {
-                      const st = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG];
-                      return (
-                        <div key={i}
-                          className="grid grid-cols-1 sm:grid-cols-[1fr_80px_140px_110px] gap-4 items-center px-6 py-4 hover:bg-gray-50 transition group">
-                          
-                          {/* Product */}
-                          <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                            <div className="w-[64px] h-[64px] rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 bg-gray-50">
-                              <img 
-                                src={item.image} 
-                                alt={item.name} 
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 block mb-1">{item.tag}</span>
-                              <h5 className="text-[14px] font-bold text-gray-800 leading-snug truncate">
-                                <Link to="#" className="hover:opacity-70 transition">{item.name}</Link>
-                              </h5>
-                            </div>
-                          </div>
-
-                          {/* Price */}
-                          <div className="hidden sm:block">
-                            <GradText className="text-[15px] font-extrabold">{item.price}</GradText>
-                          </div>
-
-                          {/* Status */}
-                          <div className="hidden sm:flex">
-                            {st && (
-                              <span 
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
-                                style={{ 
-                                  background: st.bg, 
-                                  color: st.text, 
-                                  border: `1px solid ${st.border}` 
-                                }}
-                              >
-                                {st.icon} {item.status}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="hidden sm:flex items-center gap-2">
-                            <button title="View Order" 
-                              className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-[#5B4FBE] hover:text-[#5B4FBE] transition">
-                              <LuEye size={13}/>
-                            </button>
-                            <button title="Download Invoice"
-                              className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
-                              <LuDownload size={13}/>
-                            </button>
-                            {item.status === 'Pending' && (
-                              <button title="Track Order"
-                                className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition">
-                                <LuRefreshCw size={13}/>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Footer */}
-                {filtered.length > 0 && (
-                  <div className="px-6 sm:px-8 py-4 border-t border-gray-100 flex items-center justify-between">
-                    <p className="text-[12px] text-gray-400">
-                      Showing <span className="font-bold text-gray-700">{filtered.length}</span> of{' '}
-                      <span className="font-bold text-gray-700">{orders.length}</span> orders
-                    </p>
-                    <button className="text-[12px] font-semibold flex items-center gap-1.5 hover:opacity-80 transition"
-                      style={{ background: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                      <LuFilter size={12} style={{ color: '#5B4FBE' }}/> More Filters
-                    </button>
-                  </div>
+              {/* Actions - fixed width, flex nowrap */}
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <button title="View Order" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-[#5B4FBE] hover:text-[#5B4FBE] transition">
+                  <LuEye size={13}/>
+                </button>
+                <button title="Download Invoice" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
+                  <LuDownload size={13}/>
+                </button>
+                {item.status === 'Pending' && (
+                  <button title="Track Order" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition">
+                    <LuRefreshCw size={13}/>
+                  </button>
                 )}
               </div>
+            </div>
+
+            {/* Mobile layout (below md) - still shows all info in a clean vertical stack */}
+            <div className="flex flex-col gap-3 md:hidden">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400">{item.tag}</span>
+                  <h5 className="text-sm font-semibold text-gray-800 truncate">{item.name}</h5>
+                </div>
+                <GradText className="text-base font-extrabold whitespace-nowrap">{item.price}</GradText>
+              </div>
+              <div className="flex items-center justify-between">
+                {st && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap"
+                    style={{ background: st.bg, color: st.text }}>
+                    {st.icon} {item.status}
+                  </span>
+                )}
+                <div className="flex items-center gap-2">
+                  <button className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
+                    <LuEye size={13} />
+                  </button>
+                  <button className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
+                    <LuDownload size={13} />
+                  </button>
+                  {item.status === 'Pending' && (
+                    <button className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
+                      <LuRefreshCw size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  {/* Footer */}
+  {filtered.length > 0 && (
+    <div className="px-6 sm:px-8 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-[12px] text-gray-400">
+        Showing <span className="font-bold text-gray-700">{filtered.length}</span> of{' '}
+        <span className="font-bold text-gray-700">{orders.length}</span> orders
+      </p>
+      <button className="text-[12px] font-semibold flex items-center gap-1.5 hover:opacity-80 transition"
+        style={{ background: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+        <LuFilter size={12} style={{ color: '#5B4FBE' }}/> More Filters
+      </button>
+    </div>
+  )}
+</div>
 
             </div>
           </div>

@@ -8,6 +8,7 @@ import ScrollToTop from "../../components/scroll-to-top";
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
 import type { CartState } from "../../api/cart.api";
 import { getCart, removeFromCartItem, updateCartItem } from "../../api/cart.api";
+import { toggleWishlist } from "../../api/wishlist.api"; // Import wishlist API
 
 // ── Brand tokens ─────────────────────────────────────────
 const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
@@ -31,11 +32,16 @@ function GradText({ children, className = '' }: { children: React.ReactNode; cla
 
 const parseMoney = (price: string): { value: number; symbol: string } => {
   const s = price ?? '';
-  const symbol = s.includes('$') ? '$' : s.includes('$') ? '$' : '$';
+  const symbol = s.includes('$') ? '$' : '$';
   const normalized = s.replace(/,/g, '');
   const match = normalized.match(/(\d+(\.\d+)?)/);
   const value = match ? parseFloat(match[1]) : 0;
   return { value, symbol };
+};
+
+// Helper to dispatch cart change event (updates navbar badge)
+const dispatchCartChange = () => {
+  window.dispatchEvent(new Event('cart:changed'));
 };
 
 export default function Cart() {
@@ -90,6 +96,7 @@ export default function Cart() {
     try {
       const next = await updateCartItem(productId, qty);
       setCart(next);
+      dispatchCartChange(); // Notify navbar
     } catch (err) {
       console.error('Update failed', err);
     } finally {
@@ -102,8 +109,29 @@ export default function Cart() {
     try {
       const next = await removeFromCartItem(productId);
       setCart(next);
+      dispatchCartChange(); // Notify navbar
     } catch (err) {
       console.error('Remove failed', err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleMoveToFavourites = async (productId: number) => {
+    setActionLoadingId(productId);
+    try {
+      // Add to wishlist
+      await toggleWishlist(productId);
+      // Remove from cart
+      await removeFromCartItem(productId);
+      // Refresh cart
+      const next = await getCart();
+      setCart(next);
+      // Notify both cart and wishlist components
+      dispatchCartChange();
+      window.dispatchEvent(new Event('wishlist:changed'));
+    } catch (err) {
+      console.error('Move to favourites failed', err);
     } finally {
       setActionLoadingId(null);
     }
@@ -284,6 +312,8 @@ export default function Cart() {
                               <span className="text-gray-300">|</span>
 
                               <button 
+                                onClick={() => handleMoveToFavourites(line.product.id)}
+                                disabled={isLoading}
                                 className="text-[13px] font-semibold transition"
                                 style={{ 
                                   background: BRAND, 
