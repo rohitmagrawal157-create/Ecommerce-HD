@@ -1,3 +1,17 @@
+// src/pages/auth/Login.tsx
+// ══════════════════════════════════════════════════════════════════════
+//  ALL LOGIC UNCHANGED:
+//  · handleSubmit validation (email/password required, email format)
+//  · localStorage.setItem("access_token", "demo_token")
+//  · navigate("/my-account") on success
+//  · isLoading / error / rememberMe state
+//  · Google / Facebook onClick handlers
+//
+//  CHANGED: Visual design updated to brand gradient system
+//  Brand: #5B4FBE → #E8314A → #F97316 (purple→red→orange)
+//  CTA:   #2563EB → #06B6D4 → #22C55E (blue→cyan→green)
+// ══════════════════════════════════════════════════════════════════════
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Aos from "aos";
@@ -7,192 +21,306 @@ import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
 import bg from '../../assets/img/bg/login.jpg';
 
-// Icons for social login
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
+import { LuMail, LuLock, LuArrowRight } from "react-icons/lu";
+
+// ── Brand tokens ──────────────────────────────────────────────────────────────
+const BRAND      = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)'
+const CTA        = 'linear-gradient(135deg,#2563EB 0%,#06B6D4 50%,#22C55E 100%)'
+const BRAND_SOLID = '#5B4FBE'
+const FONT       = "'DM Sans', sans-serif"
+
+// ── Reusable styled input ─────────────────────────────────────────────────────
+function AuthInput({
+  type, value, onChange, placeholder, icon: Icon, id,
+}: {
+  type: string; value: string; placeholder: string; id: string;
+  icon: React.ElementType;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <div style={{
+      position: 'relative',
+      border: `1.5px solid ${focused ? BRAND_SOLID : '#E5E7EB'}`,
+      borderRadius: 10,
+      background: focused ? '#FAFAFC' : '#fff',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      boxShadow: focused ? `0 0 0 3px rgba(91,79,190,0.10)` : 'none',
+      display: 'flex', alignItems: 'center',
+    }}>
+      <Icon size={16} style={{
+        position: 'absolute', left: 14, flexShrink: 0,
+        color: focused ? BRAND_SOLID : '#9CA3AF',
+        transition: 'color 0.2s',
+      }} />
+      <input
+        id={id} type={type} value={value} onChange={onChange}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', height: 48, paddingLeft: 42, paddingRight: 16,
+          background: 'transparent', border: 'none', outline: 'none',
+          fontFamily: FONT, fontSize: 14, color: '#111827',
+        }}
+      />
+    </div>
+  )
+}
+
+// ── Gradient submit button ────────────────────────────────────────────────────
+function GradButton({
+  children, loading, type = 'submit', onClick,
+}: {
+  children: React.ReactNode; loading?: boolean;
+  type?: 'submit' | 'button'; onClick?: () => void;
+}) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      type={type} onClick={onClick}
+      disabled={loading}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        width: '100%', height: 50, border: 'none', borderRadius: 10,
+        background: hov ? CTA : BRAND,
+        color: '#fff', fontFamily: FONT, fontSize: 14, fontWeight: 700,
+        letterSpacing: '0.04em', cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.75 : 1,
+        transition: 'background 0.35s ease, transform 0.15s',
+        transform: hov && !loading ? 'translateY(-1px)' : 'translateY(0)',
+        boxShadow: hov ? '0 8px 24px rgba(91,79,190,0.28)' : '0 4px 14px rgba(91,79,190,0.18)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}
+    >
+      {children}
+      {!loading && <LuArrowRight size={16} />}
+    </button>
+  )
+}
+
+// ── Social button ─────────────────────────────────────────────────────────────
+function SocialBtn({ icon: Icon, label, onClick, iconColor }: {
+  icon: React.ElementType; label: string; onClick: () => void; iconColor?: string;
+}) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      type="button" onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        height: 46, border: `1.5px solid ${hov ? BRAND_SOLID : '#E5E7EB'}`,
+        borderRadius: 10, background: hov ? '#FAFAFC' : '#fff',
+        fontFamily: FONT, fontSize: 13, fontWeight: 600, color: '#374151',
+        cursor: 'pointer', transition: 'all 0.2s',
+        boxShadow: hov ? `0 0 0 2px rgba(91,79,190,0.08)` : 'none',
+      }}
+    >
+      <Icon size={18} color={iconColor} />
+      {label}
+    </button>
+  )
+}
 
 export default function Login() {
   useEffect(() => {
     Aos.init({ once: true, duration: 600 });
   }, []);
 
+  // ── STATE (unchanged) ──────────────────────────────────────────────────────
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [email,      setEmail]      = useState("")
+  const [password,   setPassword]   = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [isLoading,  setIsLoading]  = useState(false)
+  const [error,      setError]      = useState("")
 
+  // ── HANDLER (unchanged) ────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-    if (!password.trim()) {
-      setError("Password is required");
-      return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    setIsLoading(true);
-
+    e.preventDefault()
+    setError("")
+    if (!email.trim())    { setError("Email is required"); return }
+    if (!password.trim()) { setError("Password is required"); return }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setError("Please enter a valid email address"); return }
+    setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      localStorage.setItem("access_token", "demo_token");
-      navigate("/my-account");
-    } catch (err) {
-      setError("Invalid email or password. Please try again.");
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      localStorage.setItem("access_token", "demo_token")
+      navigate("/my-account")
+    } catch {
+      setError("Invalid email or password. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const primaryColor = "#96865d";
-
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
       <NavbarOne />
 
-      <div className="flex flex-col md:flex-row min-h-[calc(100vh-200px)]">
-        
-        {/* Left Image Column */}
-        <div className="hidden md:block md:w-1/2 lg:w-2/5 xl:w-1/2 relative">
-          <img 
-            className="absolute inset-0 w-full h-full object-cover" 
-            src={bg} 
-            alt="login background" 
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 200px)', fontFamily: FONT }}>
+
+        {/* ── Left: Image with overlay text ── */}
+        <div style={{
+          flex: '0 0 45%', position: 'relative',
+          display: window.innerWidth < 768 ? 'none' : 'block',
+        }} className="hidden md:block md:w-[45%]">
+          <img
+            src={bg} alt="login"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
-          <div className="absolute inset-0 bg-black/30" />
+          {/* Dark gradient overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(160deg,rgba(91,79,190,0.75) 0%,rgba(14,14,20,0.80) 100%)',
+          }} />
+          {/* Overlay content */}
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            justifyContent: 'flex-end', padding: '56px 48px',
+          }}>
+            {/* Logo on image */}
+            <div style={{
+              backgroundImage: 'linear-gradient(90deg,#fff,rgba(255,255,255,0.7))',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text', fontSize: 28, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1,
+            }}>
+              Infinity
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, marginBottom: 32 }}>
+              printing &amp; signage
+            </div>
+            <h3 style={{ color: '#fff', fontSize: 26, fontWeight: 700, lineHeight: 1.3, margin: '0 0 12px' }}>
+              Welcome back to<br />your creative space
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7, margin: 0, maxWidth: 300 }}>
+              Sign in to manage your orders, track deliveries, and discover new designs crafted just for you.
+            </p>
+            {/* Decorative gradient bar */}
+            <div style={{ width: 48, height: 3, borderRadius: 2, background: BRAND, marginTop: 24 }} />
+          </div>
         </div>
 
-        {/* Right Form Column */}
-        <div className="w-full md:w-1/2 lg:w-3/5 xl:w-1/2 py-12 px-6 sm:px-10 lg:py-20 lg:px-16 flex items-center justify-center bg-white">
-          <div className="w-full max-w-md mx-auto">
-            
-            <div data-aos="fade-up" data-aos-delay="100">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-                Welcome back!
+        {/* ── Right: Form ── */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#fff', padding: '48px 24px',
+        }}>
+          <div style={{ width: '100%', maxWidth: 420 }}>
+
+            {/* Heading */}
+            <div data-aos="fade-up" data-aos-delay="100" style={{ marginBottom: 32 }}>
+              {/* Mini gradient pill */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'rgba(91,79,190,0.08)', borderRadius: 20,
+                padding: '5px 12px', marginBottom: 14,
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: BRAND }} />
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: BRAND_SOLID }}>
+                  Welcome Back
+                </span>
+              </div>
+              <h2 style={{ fontSize: 30, fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.2 }}>
+                Sign in to your account
               </h2>
-              <p className="text-base text-gray-500 mt-2">
-                Sign in to your account to continue shopping.
+              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
+                Continue your creative journey with Infinity.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-8">
-              
-              {/* Email Field */}
-              <div data-aos="fade-up" data-aos-delay="200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <form onSubmit={handleSubmit}>
+
+              {/* Email */}
+              <div data-aos="fade-up" data-aos-delay="200" style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                   Email Address
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#96865d] focus:border-[#96865d] outline-none transition"
-                  placeholder="you@example.com"
-                />
+                <AuthInput id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com" icon={LuMail} />
               </div>
 
-              {/* Password Field */}
-              <div className="mt-5" data-aos="fade-up" data-aos-delay="300">
-                <div className="flex justify-between items-center">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-[#96865d] hover:underline"
-                  >
+              {/* Password */}
+              <div data-aos="fade-up" data-aos-delay="300" style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</label>
+                  <Link to="/forgot-password" style={{
+                    fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                    backgroundImage: BRAND, WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                  }}>
                     Forgot password?
                   </Link>
                 </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#96865d] focus:border-[#96865d] outline-none transition"
-                  placeholder="••••••••"
-                />
+                <AuthInput id="password" type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" icon={LuLock} />
               </div>
 
-              {/* Remember Me Checkbox */}
-              <div className="mt-4 flex items-center" data-aos="fade-up" data-aos-delay="400">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 border-2 border-gray-300 rounded checked:bg-[#96865d] checked:border-[#96865d]"
-                  />
-                  <span className="text-sm text-gray-600 select-none">
-                    Remember me
-                  </span>
+              {/* Remember me */}
+              <div data-aos="fade-up" data-aos-delay="400" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <input
+                  type="checkbox" id="remember"
+                  checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
+                  style={{ width: 15, height: 15, accentColor: BRAND_SOLID, cursor: 'pointer' }}
+                />
+                <label htmlFor="remember" style={{ fontSize: 13, color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}>
+                  Remember me
                 </label>
               </div>
 
-              {/* Error Message */}
+              {/* Error */}
               {error && (
-                <div className="mt-3 text-sm text-red-600 bg-red-50 p-3 rounded" data-aos="fade-up">
-                  {error}
+                <div data-aos="fade-up" style={{
+                  marginTop: 12, padding: '10px 14px',
+                  background: '#FEF2F2', border: '1px solid #FECACA',
+                  borderRadius: 8, fontSize: 13, color: '#DC2626',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{ fontSize: 15 }}>⚠</span> {error}
                 </div>
               )}
 
-              {/* Submit Button */}
-              <div className="mt-6" data-aos="fade-up" data-aos-delay="500">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 rounded-lg font-semibold text-white transition disabled:opacity-70 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </button>
+              {/* Submit */}
+              <div data-aos="fade-up" data-aos-delay="500" style={{ marginTop: 20 }}>
+                <GradButton loading={isLoading}>
+                  {isLoading ? 'Signing in…' : 'Sign In'}
+                </GradButton>
               </div>
             </form>
 
-            {/* Social Login */}
-            <div className="mt-8" data-aos="fade-up" data-aos-delay="600">
-              <div className="relative flex items-center justify-center">
-                <div className="border-t border-gray-200 w-full" />
-                <span className="bg-white px-3 text-sm text-gray-500 absolute">
-                  Or continue with
-                </span>
-              </div>
-
-              <div className="mt-5 flex gap-4">
-                <button
-                  className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                  onClick={() => console.log("Google login")}
-                >
-                  <FcGoogle size={20} />
-                  <span className="text-sm font-medium">Google</span>
-                </button>
-
-                <button
-                  className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                  onClick={() => console.log("Facebook login")}
-                >
-                  <FaFacebook size={20} className="text-blue-600" />
-                  <span className="text-sm font-medium">Facebook</span>
-                </button>
-              </div>
+            {/* Divider */}
+            <div data-aos="fade-up" data-aos-delay="600" style={{ margin: '24px 0', position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
+              <span style={{ padding: '0 14px', fontSize: 12, color: '#9CA3AF', background: '#fff', whiteSpace: 'nowrap' }}>
+                Or continue with
+              </span>
+              <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
             </div>
 
-            {/* Register Link */}
-            <p className="mt-8 text-center text-sm text-gray-600" data-aos="fade-up" data-aos-delay="700">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-[#96865d] font-semibold hover:underline">
+            {/* Social */}
+            <div data-aos="fade-up" data-aos-delay="700" style={{ display: 'flex', gap: 12 }}>
+              <SocialBtn icon={FcGoogle} label="Google" onClick={() => console.log("Google login")} />
+              <SocialBtn icon={FaFacebook} label="Facebook" onClick={() => console.log("Facebook login")} iconColor="#1877F2" />
+            </div>
+
+            {/* Register link */}
+            <p data-aos="fade-up" data-aos-delay="800" style={{ marginTop: 28, textAlign: 'center', fontSize: 13, color: '#6B7280' }}>
+              Don't have an account?{' '}
+              <Link to="/register" style={{
+                fontWeight: 700, textDecoration: 'none',
+                backgroundImage: BRAND, WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              }}>
                 Create an account
               </Link>
             </p>
+
           </div>
         </div>
       </div>
@@ -200,5 +328,5 @@ export default function Login() {
       <FooterOne />
       <ScrollToTop />
     </>
-  );
+  )
 }

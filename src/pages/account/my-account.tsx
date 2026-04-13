@@ -1,177 +1,376 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
+import AccountTab from '../../components/account/account-tab';
+import NavbarOne from '../../components/navbar/navbar-one';
+import FooterOne from '../../components/footer/footer-one';
+import ScrollToTop from '../../components/scroll-to-top';
+import bg from '../../assets/img/shortcode/breadcumb.jpg';
+import {
+  LuMail, LuMapPin, LuPhoneCall, LuPackage,
+  LuClock, LuCircle, LuExternalLink, LuEye, LuDownload, LuRefreshCw
+} from 'react-icons/lu';
+import { cartData } from '../../data/data';
+import { useEffect, useState } from 'react';
+import Aos from 'aos';
 
-import AccountTab from '../../components/account/account-tab'
-import NavbarOne from '../../components/navbar/navbar-one'
-import FooterOne from '../../components/footer/footer-one'
-import ScrollToTop from '../../components/scroll-to-top'
+const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
+const CTA   = 'linear-gradient(90deg,#2563EB,#06B6D4,#22C55E)';
 
-import bg from '../../assets/img/shortcode/breadcumb.jpg'
-
-import { LuMail, LuMapPin, LuPhoneCall } from 'react-icons/lu'
-
-import { cartData } from '../../data/data'
-import { useEffect } from 'react'
-import Aos from 'aos'
-
-interface CartData{
-    image: string;
-    tag: string;
-    name: string;
-    price: string;
-    status: string;
+function GradText({ children, grad = BRAND, className = '' }: {
+  children: React.ReactNode; grad?: string; className?: string
+}) {
+  return (
+    <span className={className} style={{
+      background: grad,
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+      display: 'inline-block'
+    }}>
+      {children}
+    </span>
+  );
 }
 
+interface CartData { 
+  image: string; 
+  tag: string; 
+  name: string; 
+  price: string; 
+  status: string 
+}
+
+const STATUS_CONFIG = {
+  Completed: { 
+    grad: 'linear-gradient(90deg,#22C55E,#16a34a)', 
+    icon: <LuCircle size={12}/>, 
+    bg: '#f0fdf4', 
+    text: '#16a34a' 
+  },
+  Pending:   { 
+    grad: 'linear-gradient(90deg,#F97316,#EC991D)', 
+    icon: <LuClock size={12}/>, 
+    bg: '#fff7ed', 
+    text: '#ea580c' 
+  },
+  Cancel:    { 
+    grad: 'linear-gradient(90deg,#E8314A,#dc2626)', 
+    icon: <LuCircle size={12}/>, 
+    bg: '#fef2f2', 
+    text: '#dc2626' 
+  },
+};
+
+const STATS = [
+  { label: 'Total Orders', value: '24', key: 'all',       icon: <LuPackage size={20}/>, grad: BRAND },
+  { label: 'Completed',    value: '18', key: 'Completed', icon: <LuCircle size={20}/>, grad: CTA   },
+  { label: 'Pending',      value: '4',  key: 'Pending',   icon: <LuClock size={20}/>, grad: 'linear-gradient(90deg,#F97316,#EC991D)' },
+  { label: 'Cancelled',    value: '2',  key: 'Cancel',    icon: <LuCircle size={20}/>, grad: 'linear-gradient(90deg,#E8314A,#dc2626)' },
+];
+
+const CONTACT_ITEMS = [
+  { icon: <LuPhoneCall size={16}/>, value: '+111 - (1234 5678 99)' },
+  { icon: <LuMail size={16}/>,      value: 'furnixar123@gmail.com' },
+  { icon: <LuMapPin size={16}/>,    value: '23/A Lake Side, New Arizona, USA' },
+];
+
 export default function MyAccount() {
-    useEffect(()=>{
-        Aos.init()
-    })
+  useEffect(() => { 
+    Aos.init({ once: true, duration: 600 }) 
+  }, []);
+
+  const [activeTab, setActiveTab] = useState('All');
+  const orders = cartData as CartData[];
+
+  const filtered = orders.filter(o =>
+    activeTab === 'All' || o.status === activeTab
+  );
+
   return (
     <>
-        <NavbarOne/>
+      <NavbarOne />
 
-        <div className="flex items-center gap-4 flex-wrap bg-overlay p-14 sm:p-16 before:bg-title before:bg-opacity-70" style={{backgroundImage:`url(${bg})`}}>
-            <div className="text-center w-full">
-                <h2 className="text-white text-8 md:text-[40px] font-normal leading-none text-center">My Account</h2>
-                <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
-                    <li><Link to="/">Home</Link></li>
-                    <li>/</li>
-                    <li className="text-primary">Account</li>
-                </ul>
-            </div>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-4 flex-wrap bg-overlay p-14 sm:p-16 before:bg-title before:bg-opacity-70"
+        style={{ backgroundImage: `url(${bg})` }}>
+        <div className="text-center w-full">
+          <h2 className="text-white md:text-[40px] font-normal leading-none">My Account</h2>
+          <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
+            <li><Link to="/">Home</Link></li>
+            <li>/</li>
+            <li><GradText>Account</GradText></li>
+          </ul>
         </div>
+      </div>
 
-        <div className="s-py-100">
-            <div className="container-fluid">
-                <div className="max-w-[1720px] mx-auto flex items-start gap-8 md:gap-12 2xl:gap-24 flex-col md:flex-row my-profile-navtab">
-                    <div className="w-full md:w-[200px] lg:w-[300px] flex-none" data-aos="fade-up" data-aos-delay="100">
-                        <AccountTab/>
-                    </div>
-                    <div className="w-full md:w-auto md:flex-1 overflow-auto" data-aos="fade-up" data-aos-delay="300">  
-                        <div className="w-full max-w-[951px] bg-[#F8F8F9] dark:bg-dark-secondary p-5 sm:p-8 lg:p-[50px]">
-                            <div>
-                                <h3 className="font-semibold leading-none">Kathlene Roser</h3>
-                                <span className="leading-none mt-3">Product Designer</span>
-                            </div>
-                            <p className="text-base sm:text-lg mt-5 sm:mt-8 md:mt-10 text-justify">
-                                All the Lorem Ipsum generators on the Internet tend to repeat predefined on the Internet. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Non, lobortis in in tortor lectus iaculis viverra. Adipiscing lobortis interdum fringilla euismod odio vitae nam pulvinar elementum. Nibh purus integer elementum in. Tellus vulputate habitasse ut vulputate posuere habitant vel tempor varius. 
-                            </p>
-                            <div className="mt-5 sm:mt-8 md:mt-10 grid gap-4 sm:gap-6">
-                                <Link to="#" className="flex items-center gap-2">
-                                    <LuPhoneCall className="text-primary size-5"/>
-                                    <span className="leading-none font-medium text-base sm:text-lg">+111 - (1234 5678 99)</span>
-                                </Link>
-                                <Link to="#" className="flex items-center gap-2">
-                                    <LuMail className="text-primary size-5"/>
-                                    <span className="leading-none font-medium text-base sm:text-lg">furnixar123@gmail.com</span>
-                                </Link>
-                                <Link to="#" className="flex items-center gap-2">
-                                    <LuMapPin className="text-primary size-5"/>
-                                    <span className="leading-none font-medium text-base sm:text-lg">23/ A Lake Side , New Arizona , USA</span>
-                                </Link>
-                            </div>                        
-                        </div>
-                        <div className="w-full max-w-[951px] bg-[#F8F8F9] dark:bg-dark-secondary p-5 sm:p-8 lg:p-[50px]">
-                            <div className="flex items-start flex-col lg:flex-row gap-5 sm:gap-6">
-                                <div className="grid gap-5 sm:gap-6 w-full lg:w-1/2">
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Full Name</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" type="text" placeholder="Enter your full name"/>
-                                    </div>
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Designation</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" type="text" placeholder="Enter your designation"/>
-                                    </div>
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Phone No.</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300 appearance-none" type="number" placeholder="Type your phone number"/>
-                                    </div>
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Mail</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" type="email" placeholder="Enter your email address"/>
-                                    </div>
-                                </div>
-                                <div className="grid gap-5 sm:gap-6 w-full lg:w-1/2">
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Location</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" type="text" placeholder="Enter your location"/>
-                                    </div>
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Bio</label>
-                                        <textarea className="w-full h-28 md:h-[168px] bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" name="Message" placeholder="Write your bio . . ."></textarea>
-                                    </div>
-                                    <div>
-                                        <label className="text-base md:text-lg text-title dark:text-white leading-none mb-2 sm:mb-3 block">Web / Social Media</label>
-                                        <input className="w-full h-12 md:h-14 bg-white dark:bg-dark-secondary border border-[#E3E5E6] text-title dark:text-white focus:border-primary p-4 outline-none duration-300" type="text" placeholder="www.facebook.com/johndoe"/>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-5 sm:mt-8 md:mt-12">
-                                <button className="btn btn-solid" data-text="Save Change">
-                                    <span>Save Change</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div className="bg-[#F8F8F9] dark:bg-dark-secondary p-5 sm:p-8 lg:p-[50px] order-history-table" >
-                            <ul className="order-history">
-                                <li className="title flex items-center justify-between gap-5 pb-[10px] sm:pb-5 border-b border-bdr-clr dark:border-bdr-clr-drk">
-                                    <span className="cart-product-title text-lg md:text-xl font-semibold leading-none text-title dark:text-white block w-[270px] sm:w-[310px] xl:w-[330px]">Product</span>
-                                    <span className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white w-[60px]">Price</span>
-                                    <span className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white w-[100px]">Status</span>
-                                    <span className="text-lg md:text-xl font-semibold leading-none text-title dark:text-white w-[72px]">Remove</span>
-                                </li>
-                                {cartData.map((item:CartData,index:number)=>{
-                                    return(
-                                        <li className="flex items-center justify-between gap-5 py-[15px] sm:py-[15px] border-b border-bdr-clr dark:border-bdr-clr-drk" key={index}>
-                                            <div className="flex items-center gap-3 md:gap-4 lg:gap-6 ordered-product w-[270px] sm:w-[310px] xl:w-[330px]">
-                                                <div className="w-16 sm:w-[90px] flex-none">
-                                                    <img src={item.image} alt="product"/>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <span className="text-[15px] font-medium leading-none">{item.tag}</span>
-                                                    <h5 className="font-semibold leading-none mt-2 md:mt-4"><Link to="#">{item.name}</Link></h5>
-                                                </div>
-                                            </div>
+      <div className="s-py-100">
+        <div className="container-fluid">
+          <div className="max-w-[1720px] mx-auto flex items-start gap-8 md:gap-12 2xl:gap-20 flex-col md:flex-row my-profile-navtab">
 
-                                            <span className="text-base md:text-lg leading-none text-title dark:text-white font-semibold text-left w-[60px]">$74</span>
+            {/* Sidebar */}
+            <div className="w-full md:w-[200px] lg:w-[240px] flex-none" data-aos="fade-up" data-aos-delay="100">
+              <AccountTab />
+            </div>
 
-                                            <div className="w-[100px]">
-                                                {item.status === 'Completed' && 
-                                                    <Link to="#" className="bg-[#31A051] py-[7px] px-[10px] font-semibold leading-none text-white text-sm rounded">
-                                                        Completed
-                                                    </Link>
-                                                }
-                                                {item.status === 'Pending' && 
-                                                    <Link to="#" className="bg-[#EC991D] py-[7px] px-[10px] font-semibold leading-none text-white text-sm rounded">
-                                                        Pending
-                                                    </Link>
-                                                }
-                                                {item.status === 'Cancel' && 
-                                                    <Link to="#" className="bg-[#E13939] py-[7px] px-[10px] font-semibold leading-none text-white text-sm rounded">
-                                                        Cancel
-                                                    </Link>
-                                                }
-                                            </div>
+            {/* Main Content */}
+            <div className="w-full md:flex-1 space-y-5" data-aos="fade-up" data-aos-delay="200">
 
-                                            <div className="w-[72px] flex justify-end">
-                                                <button className="w-8 h-8 flex-none bg-[#E8E9EA] dark:bg-title flex items-center justify-center duration-300 text-title dark:text-white">
-                                                    <svg className="fill-current " width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M0.546875 1.70822L1.70481 0.550293L5.98646 4.83195L10.2681 0.550293L11.3991 1.6813L7.11746 5.96295L11.453 10.2985L10.295 11.4564L5.95953 7.12088L1.67788 11.4025L0.546875 10.2715L4.82853 5.98988L0.546875 1.70822Z"/>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </li>
-                                    )
-                                })}
-                            </ul>
-                        </div>
-                    </div>
+              {/* Profile Summary Card */}
+              <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                {/* Gradient Banner */}
+                <div className="h-[100px] w-full relative"
+                  style={{ }}>
+                  <div
+                    className="absolute inset-0 opacity-30"
+                    style={{ backgroundImage: 'radial-gradient(#5B4FBE22 1px, transparent 10px)', backgroundSize: '24px 24px' }}
+                  />
                 </div>
+
+                <div className="px-6 sm:px-8 pb-7 -mt-9">
+                  {/* Avatar + Name */}
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+                    <div className="flex items-end gap-4">
+                      <div className="w-[72px] h-[72px] rounded-2xl border-4 border-white shadow-xl flex items-center justify-center text-[22px] font-extrabold text-white flex-shrink-0"
+                        style={{ background: BRAND }}>
+                        KR
+                      </div>
+                      <div className="pb-1">
+                        <h3 className="text-[20px] font-extrabold text-gray-200 leading-tight">
+                          Kathlene Roser
+                        </h3>
+                        <GradText className="text-[13px] font-bold">Product Designer</GradText>
+                      </div>
+                    </div>
+
+                    <Link to="/account/edit"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-bold self-start sm:self-auto hover:opacity-90 transition"
+                      style={{ background: BRAND }}>
+                      Edit Profile <LuExternalLink size={13}/>
+                    </Link>
+                  </div>
+
+                  {/* Gradient Divider */}
+                  <div className="h-px w-full mb-5"
+                    style={{ background: 'linear-gradient(90deg,#5B4FBE33,#E8314A22,transparent)' }} />
+
+                  {/* Bio */}
+                  <p className="text-[14px] text-gray-500 leading-relaxed mb-6">
+                    Passionate about creating beautiful, functional spaces. Lover of canvas paintings, ambient lighting, and everything that makes a space feel alive.
+                  </p>
+
+                  {/* Contact Info */}
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {CONTACT_ITEMS.map(({ icon, value }, index) => (
+                      <div key={index} 
+                        className="flex  items-center gap-3 px-4 py-3.5 rounded-xl bg-green-600">
+                        <span className="flex-shrink-0 opacity-70 text-white">{icon}</span>
+                        <span className="text-[13px] font-medium text-white leading-snug truncate">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Row */}
+              <div className="w-full max-w-[951px] grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {STATS.map(({ label, value, key, icon, grad }) => (
+                  <button 
+                    key={key}
+                    onClick={() => setActiveTab(key === 'all' ? 'All' : key)}
+                    className="bg-white rounded-2xl border p-4 shadow-sm flex items-center gap-3 text-left transition hover:shadow-md hover:-translate-y-0.5"
+                    style={{ borderColor: '#f0f0f4' }}
+                  >
+                    <div className="w-[46px] h-[46px] rounded-xl flex items-center justify-center text-white flex-shrink-0"
+                      style={{ background: grad }}>
+                      {icon}
+                    </div>
+                    <div>
+                      <div className="text-[24px] font-extrabold leading-none">
+                        <GradText grad={grad}>{value}</GradText>
+                      </div>
+                      <div className="text-[10px] font-bold text-gray-400 mt-0.5 tracking-widest uppercase">{label}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Update Profile Form */}
+              <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-[17px] font-extrabold text-gray-800">Update Profile</h4>
+                    <p className="text-[12px] text-gray-400 mt-0.5">Keep your information up to date</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+                    style={{ background: BRAND }}>
+                    <LuPhoneCall size={15}/>
+                  </div>
+                </div>
+
+                <div className="p-6 sm:p-8">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Left Column */}
+                    <div className="grid gap-5 w-full lg:w-1/2">
+                      {[
+                        { label: 'Full Name',    type: 'text',  ph: 'Enter your full name'   },
+                        { label: 'Designation',  type: 'text',  ph: 'e.g. Product Designer'  },
+                        { label: 'Phone No.',    type: 'tel',   ph: 'Your phone number'       },
+                        { label: 'Email',        type: 'email', ph: 'Your email address'      },
+                      ].map(({ label, type, ph }) => (
+                        <div key={label}>
+                          <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">{label}</label>
+                          <input 
+                            type={type} 
+                            placeholder={ph}
+                            className="w-full h-12 rounded-xl px-4 text-[14px] outline-none transition border border-gray-300 focus:border-[#5B4FBE]" 
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="grid gap-5 w-full lg:w-1/2">
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Location</label>
+                        <input 
+                          type="text" 
+                          placeholder="City, Country"
+                          className="w-full h-12 rounded-xl px-4 text-[14px] outline-none transition border border-gray-300 focus:border-[#5B4FBE]" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Bio</label>
+                        <textarea 
+                          placeholder="Write your bio..." 
+                          rows={4}
+                          className="w-full rounded-xl px-4 py-3 text-[14px] outline-none transition border border-gray-300 focus:border-[#5B4FBE] resize-none" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-2 block">Web / Social</label>
+                        <input 
+                          type="text" 
+                          placeholder="https://yourwebsite.com"
+                          className="w-full h-12 rounded-xl px-4 text-[14px] outline-none transition border border-gray-300 focus:border-[#5B4FBE]" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex gap-3">
+                    <button 
+                      className="px-8 py-3 rounded-xl text-white text-[14px] font-bold hover:opacity-90 transition"
+                      style={{ background: BRAND }}
+                    >
+                      Save Changes
+                    </button>
+                    <button className="px-6 py-3 rounded-xl border border-gray-200 text-[14px] font-semibold text-gray-500 hover:bg-gray-50 transition">
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order History Table */}
+              <div className="w-full max-w-[951px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-[16px] font-extrabold text-gray-800">
+                      Order History
+                      <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: '#f3f1ff', color: '#5B4FBE' }}>
+                        {orders.length}
+                      </span>
+                    </h4>
+                    <p className="text-[12px] text-gray-400 mt-0.5">Your recent purchases</p>
+                  </div>
+
+                  {/* Filter Tabs */}
+                  <div className="flex gap-2">
+                    {['All','Completed','Pending','Cancel'].map(tab => (
+                      <button 
+                        key={tab} 
+                        onClick={() => setActiveTab(tab)}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-bold transition hidden sm:block"
+                        style={activeTab === tab 
+                          ? { background: BRAND, color: '#fff' } 
+                          : { background: '#f3f4f6', color: '#6b7280' }}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Table Header */}
+                <div className="hidden sm:grid grid-cols-[1fr_80px_130px_100px] gap-4 px-6 py-3 border-b border-gray-100"
+                  style={{ background: '#fafafa' }}>
+                  {['Product','Price','Status','Actions'].map(h => (
+                    <span key={h} className="text-[11px] font-bold tracking-widest uppercase text-gray-400">{h}</span>
+                  ))}
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {filtered.map((item, i) => {
+                    const st = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG];
+                    return (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_130px_100px] gap-4 items-center px-6 py-4 hover:bg-gray-50 transition group">
+                        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                          <div className="w-[64px] h-[64px] rounded-xl overflow-hidden border border-gray-100 flex-shrink-0">
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 block mb-1">{item.tag}</span>
+                            <h5 className="text-[14px] font-bold text-gray-800 leading-snug truncate">
+                              <Link to="#" className="hover:opacity-70 transition">{item.name}</Link>
+                            </h5>
+                          </div>
+                        </div>
+
+                        <div className="hidden sm:block">
+                          <GradText className="text-[15px] font-extrabold">$74</GradText>
+                        </div>
+
+                        <div className="hidden sm:flex">
+                          {st && (
+                            <span 
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
+                              style={{ background: st.bg, color: st.text, border: `1px solid ${st.text}22` }}
+                            >
+                              {st.icon} {item.status}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="hidden sm:flex items-center gap-2">
+                          <button title="View" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition">
+                            <LuEye size={13}/>
+                          </button>
+                          <button title="Download" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition">
+                            <LuDownload size={13}/>
+                          </button>
+                          {item.status === 'Pending' && (
+                            <button title="Track" className="w-8 h-8 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500 transition">
+                              <LuRefreshCw size={13}/>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
+          </div>
         </div>
+      </div>
 
-        <FooterOne/>
-
-        <ScrollToTop/>
+      <FooterOne />
+      <ScrollToTop />
     </>
-  )
+  );
 }

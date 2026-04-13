@@ -108,7 +108,7 @@ export default function CustomizeBlinds() {
 
           <div className="flex items-start gap-10 xl:gap-14">
             <aside className="hidden lg:block flex-shrink-0" style={{ width: '220px' }} data-aos="fade-up" data-aos-delay="100">
-              <h3 className="text-[12px] font-semibold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400 mb-5">Filters</h3>
+              <h3 className="text-[12px] font-semibold  uppercase text-gray-500 dark:text-gray-400 mb-5">Filters</h3>
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 <details className="group">
                   <summary className="flex items-center justify-between py-[15px] cursor-pointer select-none list-none">

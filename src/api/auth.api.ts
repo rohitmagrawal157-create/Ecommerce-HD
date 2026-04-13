@@ -29,9 +29,22 @@ export async function login(req: LoginRequest): Promise<AuthUser> {
 }
 
 export async function register(req: RegisterRequest): Promise<AuthUser> {
-  const res = await apiClient.post<AuthResponse>('/auth/register', req);
-  window.localStorage.setItem('access_token', res.data.access_token);
-  return res.data.user;
+  // Prefer using the configured API base, but fall back to the hostinger
+  // register endpoint if necessary. The external service expects a
+  // POST to /api/register.
+  const externalUrl =
+    'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/register';
+
+  // Use full URL so this works even if VITE_API_BASE_URL isn't set.
+  const res = await apiClient.post<any>(externalUrl, req);
+
+  const data = res.data ?? {};
+  if (data?.access_token) {
+    window.localStorage.setItem('access_token', data.access_token);
+  }
+
+  // Try to return the server user object when available, otherwise return the raw data.
+  return (data.user as AuthUser) ?? (data as AuthUser);
 }
 
 export async function logout(): Promise<void> {

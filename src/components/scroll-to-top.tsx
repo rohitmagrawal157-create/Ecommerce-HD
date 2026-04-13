@@ -1,3 +1,4 @@
+// src/components/scroll-to-top.tsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FiArrowUp } from "react-icons/fi";
 
@@ -32,11 +33,16 @@ const ScrollToTop = () => {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-        {isVisible && (
-            <button onClick={scrollToTop} className="bg-[#BB976D] text-white hover:bg-black p-3 shadow-lg transition duration-300">
-              <FiArrowUp/>
-            </button>
-        )}
+      {isVisible && (
+        <button
+          onClick={scrollToTop}
+          style={{ background: "linear-gradient(135deg, #6B3FA0 10%, #DC2626 50%, #F97316 100%" }}
+          className="text-white hover:opacity-90 p-3 shadow-lg transition duration-300 rounded-full"
+          aria-label="Scroll to top"
+        >
+          <FiArrowUp size={20} />
+        </button>
+      )}
     </div>
   );
 };

@@ -4,6 +4,8 @@ import { getCategoryConfig, CATEGORIES } from '../data/categoryData'
 
 type ApiResult<T> = { data: T; error: null } | { data: T; error: string }
 
+
+
 export async function fetchCategoryConfig(slug: string): Promise<CategoryConfig | undefined> {
   try {
     const res = await apiClient.get<unknown>(`/categories/${slug}`)
@@ -47,6 +49,40 @@ export async function fetchCategoryProducts(slug: string, params: Record<string,
   // Fallback to local CATEGORIES map
   const fallback = CATEGORIES[slug]?.products ?? []
   return { data: fallback as CategoryProduct[], error: 'Using fallback data' }
+}
+
+// Fetch list of categories from server. Falls back to local `CATEGORIES` map on error.
+export async function listCategories(): Promise<{ data: CategoryConfig[]; error: null | string }> {
+  const externalUrl =
+    'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/categories'
+
+  try {
+    const res = await apiClient.get<unknown>(externalUrl)
+    const payload = res.data
+
+    if (Array.isArray(payload)) return { data: payload as CategoryConfig[], error: null }
+    if (payload && Array.isArray((payload as any).data)) return { data: (payload as any).data as CategoryConfig[], error: null }
+
+    // Unexpected but non-error response — try to coerce
+    return { data: (payload as any) as CategoryConfig[], error: null }
+  } catch (err: any) {
+    // eslint-disable-next-line no-console
+    console.warn('listCategories: request failed, using local fallback', err?.message ?? err)
+    return { data: Object.values(CATEGORIES), error: 'Using fallback data' }
+  }
+}
+
+// Create a new category on the server. Returns created category object.
+export async function createCategory(body: Partial<CategoryConfig>): Promise<CategoryConfig> {
+  const externalUrl =
+    'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/categories'
+
+  const res = await apiClient.post<any>(externalUrl, body)
+  const data = res.data
+
+  if (!data) throw new Error('Empty response from server')
+
+  return data as CategoryConfig
 }
 
 export default {

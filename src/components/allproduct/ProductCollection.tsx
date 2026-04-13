@@ -7,6 +7,7 @@ import { RiShoppingBag2Line } from 'react-icons/ri';
 import { GoStarFill } from 'react-icons/go';
 import { addToCart } from '../../api/cart.api';
 import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
+import features from '../../assets/img/png/features.png';
 
 // ── Brand tokens ─────────────────────────────────────────
 const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
@@ -195,12 +196,25 @@ export default function ProductCollection() {
     <div className="s-py-100-50" data-aos="fade-up">
       <div className="container-fluid">
 
-        {/* Header */}
+        {/* ── Section Header with Icon ── */}
         <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
-          <h3 className="leading-none mt-4 md:mt-6 text-2xl md:text-3xl font-bold"
+
+          {/* Professional icon (star/sparkle inside gradient circle) */}
+          <div>
+                <img
+                  src={features}
+                  className="mx-auto w-14 sm:w-24"
+                  alt=""
+                  style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,0.25))' }}
+                />
+              </div>
+
+          {/* Gradient heading */}
+          <h3 className="leading-none text-2xl md:text-3xl font-bold"
             style={{ background: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block' }}>
             Featured Products
           </h3>
+
           {/* Gradient accent line */}
           <div style={{ width: 48, height: 3, borderRadius: 2, margin: '10px auto 0', background: BRAND }} />
           <p className="mt-4 text-gray-500 text-sm md:text-base">
@@ -208,6 +222,7 @@ export default function ProductCollection() {
           </p>
         </div>
 
+        {/* Products Grid (unchanged) */}
         <div className="max-w-[1720px] mx-auto flex gap-5 sm:gap-8 flex-col lg:flex-row">
           <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[766px] w-full">
             {products.slice(0, 4).map(item => <ProductCard item={item} key={item.id} />)}

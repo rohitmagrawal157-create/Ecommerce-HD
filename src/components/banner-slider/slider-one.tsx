@@ -45,7 +45,7 @@ export default function SliderOne() {
                   {/* Year — brand gradient text */}
                   <span className="font-black text-[72px] md:text-[92px] lg:text-[118px] leading-none tracking-[-4px]"
                     style={{ background: 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                    2025
+                    2026
                   </span>
                   <img src={summerIcon} alt="Summer" className="w-[110px] md:w-[145px] lg:w-[185px] -mb-2" />
                 </div>
@@ -128,7 +128,7 @@ export default function SliderOne() {
                 <div className="flex items-end justify-center lg:justify-start gap-3">
                   <span className="font-black text-[72px] md:text-[92px] lg:text-[118px] leading-none tracking-[-4px]"
                     style={{ background: 'linear-gradient(90deg,#2563EB,#06B6D4,#22C55E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                    2025
+                    2026
                   </span>
                   <img src={summerIcon} alt="Summer" className="w-[110px] md:w-[145px] lg:w-[185px] -mb-2" />
                 </div>
@@ -206,7 +206,7 @@ export default function SliderOne() {
                 <div className="flex items-end justify-center lg:justify-start gap-3">
                   <span className="font-black text-[72px] md:text-[92px] lg:text-[118px] leading-none tracking-[-4px]"
                     style={{ background: 'linear-gradient(90deg,#E8314A,#F97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                    2025
+                    2026
                   </span>
                   <img src={summerIcon} alt="Summer" className="w-[110px] md:w-[145px] lg:w-[185px] -mb-2" />
                 </div>
