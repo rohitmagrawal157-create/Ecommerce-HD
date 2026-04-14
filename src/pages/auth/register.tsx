@@ -1,13 +1,8 @@
 // src/pages/auth/Register.tsx
 // ══════════════════════════════════════════════════════════════════════
-//  ALL LOGIC UNCHANGED:
-//  · handleSubmit validation (fullName, email format, password 6+, agreeTerms)
-//  · apiRegister({ name: fullName, email, password })
-//  · navigate('/login') on success
-//  · fullName / email / password / agreeTerms / isLoading / error state
-//  · Google / Facebook onClick handlers
-//
-//  CHANGED: Visual design updated to brand gradient system
+//  ALL LOGIC UNCHANGED EXCEPT:
+//  · Added mobile number field (state, validation, API call)
+//  · Mobile validation: 10 digits, numeric only
 // ══════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
@@ -23,7 +18,7 @@ import { register as apiRegister } from '../../api/auth.api';
 
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
-import { LuUser, LuMail, LuLock, LuArrowRight, LuShieldCheck } from "react-icons/lu";
+import { LuUser, LuMail, LuLock, LuArrowRight, LuShieldCheck, LuSmartphone } from "react-icons/lu";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const BRAND       = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)'
@@ -127,28 +122,36 @@ export default function Register() {
     Aos.init({ once: true, duration: 600 });
   }, []);
 
-  // ── STATE (unchanged) ──────────────────────────────────────────────────────
+  // ── STATE (added mobile) ───────────────────────────────────────────────────
   const navigate = useNavigate()
   const [fullName,    setFullName]    = useState("")
   const [email,       setEmail]       = useState("")
+  const [mobile,      setMobile]      = useState("")   // <-- new
   const [password,    setPassword]    = useState("")
   const [agreeTerms,  setAgreeTerms]  = useState(false)
   const [isLoading,   setIsLoading]   = useState(false)
   const [error,       setError]       = useState("")
 
-  // ── HANDLER (unchanged) ────────────────────────────────────────────────────
+  // ── HANDLER (added mobile validation) ──────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     if (!fullName.trim())  { setError("Full name is required"); return }
     if (!email.trim())     { setError("Email is required"); return }
     if (!/^\S+@\S+\.\S+$/.test(email)) { setError("Please enter a valid email address"); return }
+    if (!mobile.trim())    { setError("Mobile number is required"); return }
+    if (!/^\d{10}$/.test(mobile.replace(/\D/g, ''))) { setError("Please enter a valid 10-digit mobile number"); return }
     if (!password.trim())  { setError("Password is required"); return }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return }
     if (!agreeTerms)       { setError("You must agree to the Terms & Conditions"); return }
     setIsLoading(true)
     try {
-      await apiRegister({ name: fullName, email, password })
+      await apiRegister({ 
+        name: fullName, 
+        email, 
+        password, 
+        mobile: mobile.replace(/\D/g, '')  // send only digits
+      })
       navigate('/login')
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please try again.')
@@ -164,48 +167,19 @@ export default function Register() {
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 200px)', fontFamily: FONT }}>
 
-        {/* ── Left: Image with overlay ── */}
+        {/* ── Left: Image with overlay (unchanged) ── */}
         <div style={{ flex: '0 0 45%', position: 'relative' }} className="hidden md:block md:w-[45%]">
-          <img
-            src={bg} alt="register"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          {/* Gradient overlay — CTA direction for register (blue→green) */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(160deg,rgba(37,99,235,0.72) 0%,rgba(14,14,20,0.82) 100%)',
-          }} />
-          {/* Overlay content */}
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            justifyContent: 'flex-end', padding: '56px 48px',
-          }}>
-            <div style={{
-              backgroundImage: 'linear-gradient(90deg,#fff,rgba(255,255,255,0.7))',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text', fontSize: 28, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1,
-            }}>Infinity</div>
-            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, marginBottom: 32 }}>
-              printing &amp; signage
-            </div>
-            <h3 style={{ color: '#fff', fontSize: 26, fontWeight: 700, lineHeight: 1.3, margin: '0 0 12px' }}>
-              Join thousands of<br />happy customers
-            </h3>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7, margin: 0, maxWidth: 300 }}>
-              Create your account to access exclusive deals, track orders, and personalise your design experience.
-            </p>
-            {/* Feature bullets */}
+          <img src={bg} alt="register" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg,rgba(37,99,235,0.72) 0%,rgba(14,14,20,0.82) 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '56px 48px' }}>
+            <div style={{ backgroundImage: 'linear-gradient(90deg,#fff,rgba(255,255,255,0.7))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontSize: 28, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1 }}>Infinity</div>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, marginBottom: 32 }}>printing &amp; signage</div>
+            <h3 style={{ color: '#fff', fontSize: 26, fontWeight: 700, lineHeight: 1.3, margin: '0 0 12px' }}>Join thousands of<br />happy customers</h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7, margin: 0, maxWidth: 300 }}>Create your account to access exclusive deals, track orders, and personalise your design experience.</p>
             <div style={{ marginTop: 24, display: 'grid', gap: 10 }}>
-              {[
-                'Free delivery on first order',
-                'Exclusive member discounts',
-                'Real-time order tracking',
-              ].map(f => (
+              {['Free delivery on first order', 'Exclusive member discounts', 'Real-time order tracking'].map(f => (
                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 20, height: 20, borderRadius: '50%',
-                    background: CTA, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: CTA, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <LuShieldCheck size={11} color="#fff" />
                   </div>
                   <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{f}</span>
@@ -217,31 +191,17 @@ export default function Register() {
         </div>
 
         {/* ── Right: Form ── */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: '#fff', padding: '48px 24px',
-          overflowY: 'auto',
-        }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px', overflowY: 'auto' }}>
           <div style={{ width: '100%', maxWidth: 420 }}>
 
-            {/* Heading */}
+            {/* Heading (unchanged) */}
             <div data-aos="fade-up" data-aos-delay="100" style={{ marginBottom: 28 }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'rgba(37,99,235,0.08)', borderRadius: 20,
-                padding: '5px 12px', marginBottom: 14,
-              }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.08)', borderRadius: 20, padding: '5px 12px', marginBottom: 14 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: CTA }} />
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2563EB' }}>
-                  New Account
-                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2563EB' }}>New Account</span>
               </div>
-              <h2 style={{ fontSize: 30, fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.2 }}>
-                Create your account
-              </h2>
-              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
-                Join us to start shopping and get exclusive offers.
-              </p>
+              <h2 style={{ fontSize: 30, fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.2 }}>Create your account</h2>
+              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Join us to start shopping and get exclusive offers.</p>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -249,33 +209,29 @@ export default function Register() {
               {/* Full Name */}
               <div data-aos="fade-up" data-aos-delay="200" style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Full Name</label>
-                <AuthInput id="fullName" type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                  placeholder="John Doe" icon={LuUser} />
+                <AuthInput id="fullName" type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="John Doe" icon={LuUser} />
               </div>
 
               {/* Email */}
               <div data-aos="fade-up" data-aos-delay="300" style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Email Address</label>
-                <AuthInput id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com" icon={LuMail} />
+                <AuthInput id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" icon={LuMail} />
+              </div>
+
+              {/* ── NEW: Mobile Number ── */}
+              <div data-aos="fade-up" data-aos-delay="350" style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mobile Number</label>
+                <AuthInput id="mobile" type="tel" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="9876543210" icon={LuSmartphone} />
               </div>
 
               {/* Password */}
               <div data-aos="fade-up" data-aos-delay="400" style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Password</label>
-                <AuthInput id="password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Min. 6 characters" icon={LuLock} />
-                {/* Password strength hint */}
+                <AuthInput id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" icon={LuLock} />
                 {password.length > 0 && (
                   <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
                     {[1,2,3,4].map(i => (
-                      <div key={i} style={{
-                        flex: 1, height: 3, borderRadius: 2,
-                        background: password.length >= i * 3
-                          ? i <= 1 ? '#E8314A' : i <= 2 ? '#F97316' : i <= 3 ? '#EAB308' : '#22C55E'
-                          : '#E5E7EB',
-                        transition: 'background 0.3s',
-                      }} />
+                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: password.length >= i * 3 ? (i <= 1 ? '#E8314A' : i <= 2 ? '#F97316' : i <= 3 ? '#EAB308' : '#22C55E') : '#E5E7EB', transition: 'background 0.3s' }} />
                     ))}
                     <span style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 4, flexShrink: 0, alignSelf: 'center' }}>
                       {password.length < 3 ? 'Weak' : password.length < 6 ? 'Fair' : password.length < 9 ? 'Good' : 'Strong'}
@@ -284,75 +240,48 @@ export default function Register() {
                 )}
               </div>
 
-              {/* Terms checkbox */}
+              {/* Terms checkbox (unchanged) */}
               <div data-aos="fade-up" data-aos-delay="500" style={{ marginBottom: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)}
-                    style={{ width: 15, height: 15, marginTop: 2, accentColor: BRAND_SOLID, cursor: 'pointer', flexShrink: 0 }}
-                  />
+                  <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} style={{ width: 15, height: 15, marginTop: 2, accentColor: BRAND_SOLID, cursor: 'pointer', flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>
                     I agree to the{' '}
-                    <Link to="/terms-and-conditions" style={{
-                      fontWeight: 600, textDecoration: 'none',
-                      backgroundImage: BRAND, WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-                    }}>Terms & Conditions</Link>
+                    <Link to="/terms-and-conditions" style={{ fontWeight: 600, textDecoration: 'none', backgroundImage: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Terms & Conditions</Link>
                     {' '}and{' '}
-                    <Link to="/privacy-policy" style={{
-                      fontWeight: 600, textDecoration: 'none',
-                      backgroundImage: BRAND, WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-                    }}>Privacy Policy</Link>
+                    <Link to="/privacy-policy" style={{ fontWeight: 600, textDecoration: 'none', backgroundImage: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Privacy Policy</Link>
                   </span>
                 </label>
               </div>
 
-              {/* Error */}
+              {/* Error (unchanged) */}
               {error && (
-                <div data-aos="fade-up" style={{
-                  marginTop: 10, padding: '10px 14px',
-                  background: '#FEF2F2', border: '1px solid #FECACA',
-                  borderRadius: 8, fontSize: 13, color: '#DC2626',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}>
+                <div data-aos="fade-up" style={{ marginTop: 10, padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 15 }}>⚠</span> {error}
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit (unchanged) */}
               <div data-aos="fade-up" data-aos-delay="600" style={{ marginTop: 20 }}>
-                <GradButton loading={isLoading}>
-                  {isLoading ? 'Creating account…' : 'Create Account'}
-                </GradButton>
+                <GradButton loading={isLoading}>{isLoading ? 'Creating account…' : 'Create Account'}</GradButton>
               </div>
             </form>
 
-            {/* Divider */}
+            {/* Divider & Social (unchanged) */}
             <div data-aos="fade-up" data-aos-delay="700" style={{ margin: '22px 0', position: 'relative', display: 'flex', alignItems: 'center' }}>
               <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
-              <span style={{ padding: '0 14px', fontSize: 12, color: '#9CA3AF', background: '#fff', whiteSpace: 'nowrap' }}>
-                Or sign up with
-              </span>
+              <span style={{ padding: '0 14px', fontSize: 12, color: '#9CA3AF', background: '#fff', whiteSpace: 'nowrap' }}>Or sign up with</span>
               <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
             </div>
 
-            {/* Social */}
             <div data-aos="fade-up" data-aos-delay="700" style={{ display: 'flex', gap: 12 }}>
               <SocialBtn icon={FcGoogle} label="Google" onClick={() => console.log("Google signup")} />
               <SocialBtn icon={FaFacebook} label="Facebook" onClick={() => console.log("Facebook signup")} iconColor="#1877F2" />
             </div>
 
-            {/* Login link */}
+            {/* Login link (unchanged) */}
             <p data-aos="fade-up" data-aos-delay="800" style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: '#6B7280' }}>
               Already have an account?{' '}
-              <Link to="/login" style={{
-                fontWeight: 700, textDecoration: 'none',
-                backgroundImage: BRAND, WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              }}>
-                Sign in
-              </Link>
+              <Link to="/login" style={{ fontWeight: 700, textDecoration: 'none', backgroundImage: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Sign in</Link>
             </p>
           </div>
         </div>

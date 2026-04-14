@@ -89,9 +89,9 @@ export default function SliderOne() {
                     style={{ border: '2px solid transparent', backgroundClip: 'padding-box', boxShadow: '0 0 0 2px #5B4FBE33, 0 12px 40px rgba(91,79,190,0.18)' }}>
                     <div className="text-4xl font-bold"
                       style={{ background: 'linear-gradient(90deg,#5B4FBE,#E8314A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                      $89
+                      ₹89
                     </div>
-                    <div className="text-sm text-gray-400 line-through">$105</div>
+                    <div className="text-sm text-gray-400 line-through">₹105</div>
                     <div className="text-xs font-semibold mt-1 tracking-wide"
                       style={{ background: 'linear-gradient(90deg,#E8314A,#F97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       SAVE 15%
@@ -168,9 +168,9 @@ export default function SliderOne() {
                     style={{ boxShadow: '0 0 0 2px #2563EB33, 0 12px 40px rgba(37,99,235,0.18)' }}>
                     <div className="text-4xl font-bold"
                       style={{ background: 'linear-gradient(90deg,#2563EB,#06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                      $120
+                      ₹120
                     </div>
-                    <div className="text-sm text-gray-400 line-through">$133</div>
+                    <div className="text-sm text-gray-400 line-through">₹133</div>
                     <div className="text-xs font-semibold mt-1 tracking-wide"
                       style={{ background: 'linear-gradient(90deg,#06B6D4,#22C55E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       SAVE 10%
@@ -246,9 +246,9 @@ export default function SliderOne() {
                     style={{ boxShadow: '0 0 0 2px #E8314A33, 0 12px 40px rgba(232,49,74,0.18)' }}>
                     <div className="text-4xl font-bold"
                       style={{ background: 'linear-gradient(90deg,#E8314A,#F97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                      $99
+                      ₹99
                     </div>
-                    <div className="text-sm text-gray-400 line-through">$124</div>
+                    <div className="text-sm text-gray-400 line-through">₹124</div>
                     <div className="text-xs font-semibold mt-1 tracking-wide"
                       style={{ background: 'linear-gradient(90deg,#F97316,#5B4FBE)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       SAVE 20%

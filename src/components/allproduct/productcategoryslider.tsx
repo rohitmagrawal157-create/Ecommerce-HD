@@ -52,47 +52,47 @@ const settings = {
 };
 
 // ── NEW Professional Icon (grid of product cards) ────────────────────────────
-function CollectionIcon() {
-  return (
-    <div
-      className="mx-auto mb-4"
-      style={{
-        width: 72,
-        height: 72,
-        borderRadius: 20,
-        background: BRAND,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 8px 28px rgba(91,79,190,0.30)',
-      }}
-    >
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 36 36"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Four product card squares arranged in a 2x2 grid (clean, modern) */}
-        <rect x="2" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-        <rect x="20" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-        <rect x="2" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-        <rect x="20" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-        {/* Small sparkle / star in top-left card */}
-        <path
-          d="M8 8 L8.5 6.5 L9 8 L10.5 8.5 L9 9 L8.5 10.5 L8 9 L6.5 8.5 L8 8Z"
-          fill="white" fillOpacity="0.9"
-        />
-        {/* Heart in bottom-right card */}
-        <path
-          d="M27 26 C27 24.5 25.5 23.5 24.5 24.5 C23.5 25.5 24 27 27 29 C30 27 30.5 25.5 29.5 24.5 C28.5 23.5 27 24.5 27 26Z"
-          fill="white" fillOpacity="0.9"
-        />
-      </svg>
-    </div>
-  );
-}
+// function CollectionIcon() {
+//   return (
+//     <div
+//       className="mx-auto mb-4"
+//       style={{
+//         width: 72,
+//         height: 72,
+//         borderRadius: 20,
+//         background: BRAND,
+//         display: 'flex',
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//         boxShadow: '0 8px 28px rgba(91,79,190,0.30)',
+//       }}
+//     >
+//       <svg
+//         width="36"
+//         height="36"
+//         viewBox="0 0 36 36"
+//         fill="none"
+//         xmlns="http://www.w3.org/2000/svg"
+//       >
+//         {/* Four product card squares arranged in a 2x2 grid (clean, modern) */}
+//         <rect x="2" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
+//         <rect x="20" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
+//         <rect x="2" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
+//         <rect x="20" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
+//         {/* Small sparkle / star in top-left card */}
+//         <path
+//           d="M8 8 L8.5 6.5 L9 8 L10.5 8.5 L9 9 L8.5 10.5 L8 9 L6.5 8.5 L8 8Z"
+//           fill="white" fillOpacity="0.9"
+//         />
+//         {/* Heart in bottom-right card */}
+//         <path
+//           d="M27 26 C27 24.5 25.5 23.5 24.5 24.5 C23.5 25.5 24 27 27 29 C30 27 30.5 25.5 29.5 24.5 C28.5 23.5 27 24.5 27 26Z"
+//           fill="white" fillOpacity="0.9"
+//         />
+//       </svg>
+//     </div>
+//   );
+// }
 
 export default function ProductCategorySlider() {
   const sliderRef = useRef<any>(null);

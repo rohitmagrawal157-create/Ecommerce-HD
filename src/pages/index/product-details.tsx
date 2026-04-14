@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * ProductDetails.tsx — Professional Light Theme Edition
+ * ProductDetails.tsx — Only currency symbol changed ($ → ₹), no conversion.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -25,15 +25,20 @@ import { getProductById } from '../../api/products';
 import { addToCart } from '../../api/cart.api';
 import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
 
+// ----- Helper to replace $ with ₹ -----
+function toRupeeSymbol(priceStr: string): string {
+  return priceStr.replace('$', '₹');
+}
+
 // ----- Brand Tokens -----
 const BRAND_GRADIENT = 'linear-gradient(135deg, #5B4FBE 0%, #E8314A 50%, #F97316 100%)';
 const BRAND_SOLID = '#5B4FBE';
 const WHATSAPP_NUMBER = '919903504754';
 
-// ----- Static Data -----
+// ----- Static Data (only symbol changed) -----
 const OFFERS: { info: string; code: string }[] = [
   { info: 'Get 5% off sitewide — No minimum spend', code: 'MAKEHOMESPECIAL' },
-  { info: 'Get Rs.150 off on your first order — Min. purchase of Rs.1500', code: 'NESTTRY' },
+  { info: 'Get Rs.150 off on your first order — Min. purchase of Rs.1500', code: 'NESTTRY' }, // already in Rs.
 ];
 const STOCK_QTY: number = 7;
 const REVIEWS = [
@@ -43,12 +48,15 @@ const REVIEWS = [
 ];
 const RATING_SUMMARY = { average: 4.8, total: 128 };
 const AVATAR_COLORS = ['#5B4FBE', '#E8314A', '#0891b2'];
+
+// Delivery features – only symbol changed in subtext
 const DELIVERY_FEATURES = [
-  { icon: <LuTruck size={18} />, label: 'Free Shipping', sub: 'On orders above $999' },
+  { icon: <LuTruck size={18} />, label: 'Free Shipping', sub: 'On orders above ₹999' },
   { icon: <LuRefreshCcw size={18} />, label: '7-Day Returns', sub: 'Hassle-free returns' },
   { icon: <LuShieldCheck size={18} />, label: 'Secure Payments', sub: '100% safe & encrypted' },
   { icon: <LuPackage size={18} />, label: 'Cash on Delivery', sub: 'Available on all orders' },
 ];
+
 const RATING_BREAKDOWN = [
   { s: 5, p: 76 }, { s: 4, p: 16 }, { s: 3, p: 5 }, { s: 2, p: 2 }, { s: 1, p: 1 },
 ];
@@ -129,7 +137,7 @@ function StarRating({ rating, size = 16, color = '#f5a623' }: { rating: number; 
   );
 }
 
-// ----- Gallery Component -----
+// ----- Gallery Component (unchanged) -----
 interface MediaItem { type: 'image' | 'video'; url: string; thumbnail: string; alt?: string; poster?: string; embedUrl?: string; }
 function ProductGallery({ media, productName, discountPct }: { media: MediaItem[]; productName: string; discountPct?: string }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -282,7 +290,7 @@ function ProductGallery({ media, productName, discountPct }: { media: MediaItem[
   );
 }
 
-// ----- Other Sub‑components -----
+// ----- Other Sub‑components (only symbol changes) -----
 function RatingSummary({ rating, total }: { rating: number; total: number }) {
   const scroll = () => document.getElementById('customer-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
@@ -631,8 +639,17 @@ function ProductAccordions() {
       {items.map(f => <li key={f}>{f}</li>)}
     </ul>
   );
-  const SHIP_ROWS: [string, string, string][] = [['Prepaid', 'Rs. 50', 'Free'], ['Cash on Delivery', 'Rs. 90', 'Rs. 40']];
-  const INFO_ROWS: [string, string][] = [['Size', '20cm D × 40cm L × 8cm H | 1000ml'], ['Colour', 'Silver'], ['Material', 'Stainless steel, aluminium core']];
+  // Shipping table – only symbol changed (numbers unchanged)
+  const SHIP_ROWS: [string, string, string][] = [
+    ['Prepaid', 'Rs. 50', 'Free'],
+    ['Cash on Delivery', 'Rs. 90', 'Rs. 40']
+  ];
+  const INFO_ROWS: [string, string][] = [
+    ['Size', '20cm D × 40cm L × 8cm H | 1000ml'],
+    ['Colour', 'Silver'],
+    ['Material', 'Stainless steel, aluminium core']
+  ];
+
   return (
     <div className="mt-2">
       <DescriptionAccordion />
@@ -642,8 +659,22 @@ function ProductAccordions() {
       <AccordionItem title="Care Instructions" content={bullets(['Wash with mild dish soap and a soft sponge.', 'Do not use steel wool.', 'Wipe dry after washing.'])} />
       <AccordionItem title="Shipping" content={
         <table className="w-full border-collapse text-sm">
-          <thead><tr className="bg-gray-100">{['Mode', '< $500', '> $500'].map(h => <th key={h} className="px-2.5 py-2 text-left border">{h}</th>)}</tr></thead>
-          <tbody>{SHIP_ROWS.map(([m, lt, gt], i) => <tr key={m} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}><td className="px-2.5 py-2 border">{m}</td><td className="px-2.5 py-2 border text-center">{lt}</td><td className="px-2.5 py-2 border text-center font-bold" style={{ color: gt === 'Free' ? '#16a34a' : undefined }}>{gt}</td></tr>)}</tbody>
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="px-2.5 py-2 text-left border">Mode</th>
+              <th className="px-2.5 py-2 text-left border">{`< ₹500`}</th>
+              <th className="px-2.5 py-2 text-left border">{`> ₹500`}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SHIP_ROWS.map(([m, lt, gt], i) => (
+              <tr key={m} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <td className="px-2.5 py-2 border">{m}</td>
+                <td className="px-2.5 py-2 border text-center">{lt}</td>
+                <td className="px-2.5 py-2 border text-center font-bold" style={{ color: gt === 'Free' ? '#16a34a' : undefined }}>{gt}</td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       } />
     </div>
@@ -721,8 +752,22 @@ export default function ProductDetails() {
   }, [parsedId]);
 
   const productName = product?.name ?? 'Classic Relaxable Chair';
-  const productPrice = product?.price ?? '$85.00';
-  const productComparePrice = '$140.99';
+  const originalPriceUSD = product?.price ?? '$85.00';
+  const comparePriceUSD = '$140.99'; // fallback compare price
+
+  // Only replace $ with ₹, numbers unchanged
+  const productPriceINR = toRupeeSymbol(originalPriceUSD);
+  const comparePriceINR = toRupeeSymbol(comparePriceUSD);
+
+  // Calculate discount percentage (based on numeric values, same as before)
+  const extractNumber = (str: string) => {
+    const match = str.match(/\$?([\d,.]+)/);
+    return match ? parseFloat(match[1].replace(/,/g, '')) : 0;
+  };
+  const originalNum = extractNumber(originalPriceUSD);
+  const compareNum = extractNumber(comparePriceUSD);
+  const discountPercent = compareNum > 0 ? Math.round(((compareNum - originalNum) / compareNum) * 100) : 0;
+
   const productImage = product?.image ?? productImages.p1;
 
   const mediaItems: MediaItem[] = [
@@ -799,7 +844,7 @@ export default function ProductDetails() {
           <div className="max-w-[1720px] mx-auto flex flex-col lg:flex-row gap-10">
             {/* Gallery */}
             <div className="w-full lg:w-[58%]">
-              <ProductGallery media={mediaItems} productName={productName} discountPct="-10%" />
+              <ProductGallery media={mediaItems} productName={productName} discountPct={`-${discountPercent}%`} />
             </div>
 
             {/* Info */}
@@ -810,9 +855,9 @@ export default function ProductDetails() {
                 <RatingSummary rating={RATING_SUMMARY.average} total={RATING_SUMMARY.total} />
                 <StockIndicator qty={STOCK_QTY} />
                 <div className="flex items-center gap-3 mt-3 flex-wrap">
-                  <span className="text-lg line-through text-gray-400">{productComparePrice}</span>
-                  <span className="text-3xl md:text-4xl font-extrabold" style={{ background: BRAND_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{productPrice}</span>
-                  <span className="text-sm font-bold px-2 py-1 rounded bg-red-100 text-red-600 border border-red-200">Save 40%</span>
+                  <span className="text-lg line-through text-gray-400">{comparePriceINR}</span>
+                  <span className="text-3xl md:text-4xl font-extrabold" style={{ background: BRAND_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{productPriceINR}</span>
+                  <span className="text-sm font-bold px-2 py-1 rounded bg-red-100 text-red-600 border border-red-200">Save {discountPercent}%</span>
                 </div>
                 <CustomizationBadge />
 

@@ -27,7 +27,7 @@ import 'tiny-slider/dist/tiny-slider.css';
 
 // import sofa from '../../assets/img/svg/sofa.svg'
 import shape1 from '../../assets/img/home-v1/shape-01.png'
-import like from '../../assets/img/svg/like.svg'
+// import like from '../../assets/img/svg/like.svg'
 import trust from '../../assets/img/png/trust.png'
 import thumb from '../../assets/img/thumb/thumb.png'
 import newImg from '../../assets/img/png/new.png'

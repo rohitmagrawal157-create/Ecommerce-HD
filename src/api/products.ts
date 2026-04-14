@@ -3,6 +3,9 @@ import { productList } from '../data/data';
 import { CATEGORIES } from '../data/categoryData';
 
 export interface Product {
+  rating: number;
+  originalPrice: string;
+  discount: number;
   color: string;
   id: number;
   image: string;

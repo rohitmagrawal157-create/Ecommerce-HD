@@ -19,34 +19,35 @@ interface Product {
   badge?: { label: string; grad: string };
 }
 
+// Updated prices: $ → ₹ (numbers unchanged)
 const products: Product[] = [
   {
-    id: 1, name: 'Premium Canvas Print – Abstract Waves', price: '$129.99', oldPrice: '$189.99',
+    id: 1, name: 'Premium Canvas Print – Abstract Waves', price: '₹129.99', oldPrice: '₹189.99',
     badge: { label: 'HOT', grad: 'linear-gradient(90deg,#E8314A,#F97316)' },
     image: 'https://imgs.search.brave.com/xFTkEltVU-Fcai1S5B6E96-71Q6WDcSLGbEv3mJDxsc/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly81Lmlt/aW1nLmNvbS9kYXRh/NS9TRUxMRVIvRGVm/YXVsdC8yMDIzLzEw/LzM1MTU4NDYwMC9R/US9HTS9WWC8xOTc4/OTQwMDkvcHJpbnRl/ZC1jYW52YXMtNTAw/eDUwMC5qcGc',
   },
   {
-    id: 4, name: 'Portrait Sketch – Charcoal Drawing', price: '$89.99', oldPrice: '$129.99',
+    id: 4, name: 'Portrait Sketch – Charcoal Drawing', price: '₹89.99', oldPrice: '₹129.99',
     badge: { label: 'NEW', grad: 'linear-gradient(90deg,#5B4FBE,#EC4899)' },
     image: 'https://imgs.search.brave.com/pO3_geDNJr-PHRVvzlSlXdVEI8SCMrHvO8C_TPKAtpE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9rb3Rh/cnQuaW4vY2RuL3No/b3AvZmlsZXMvZWZm/ZWN0MDFfNS5qcGc_/dj0xNzIxMjU0NDA2/JndpZHRoPTUzMw',
   },
   {
-    id: 2, name: 'Customizable Wood Blind', price: '$159.99', oldPrice: '$219.99',
+    id: 2, name: 'Customizable Wood Blind', price: '₹159.99', oldPrice: '₹219.99',
     badge: { label: 'SALE', grad: 'linear-gradient(90deg,#2563EB,#06B6D4)' },
     image: 'http://imgs.search.brave.com/8pvxihMVVfCFrOag3N0XXUlhAiCEuXmOgqEdPrDfxjA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudGhkc3RhdGlj/LmNvbS9wcm9kdWN0/SW1hZ2VzLzc2NWIy/ZTNhLTcwYjctNGVk/ZC1hNTY2LWNmYjBi/MjY5MWI3Yy9zdm4v/YXNzb3J0ZWQtY29s/b3JzLWJhbGktd29v/ZC1ibGluZHMtNTM0/ODk4LTY0XzYwMC5q/cGc',
   },
   {
-    id: 3, name: 'Neon Signage – Custom LED', price: '$249.99', oldPrice: '$329.99',
+    id: 3, name: 'Neon Signage – Custom LED', price: '₹249.99', oldPrice: '₹329.99',
     badge: { label: 'HOT', grad: 'linear-gradient(90deg,#E8314A,#F97316)' },
     image: 'https://imgs.search.brave.com/HmDJxfWjB5hRZqdcv4eGpsgJOCgBDwZ33VWtzjD2DAU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE1/NjUyMDY1OTU2NDAt/NmNmZDkwZTBhZTA5/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1UaDhmRzVsYjI0/bE1qQnphV2R1ZkdW/dWZEQjhmREI4Zkh3/dw',
   },
   {
-    id: 5, name: 'Temple Art – Handmade Painting', price: '$149.99', oldPrice: '$199.99',
+    id: 5, name: 'Temple Art – Handmade Painting', price: '₹149.99', oldPrice: '₹199.99',
     badge: { label: 'NEW', grad: 'linear-gradient(90deg,#5B4FBE,#EC4899)' },
     image: 'https://m.media-amazon.com/images/I/71z78D0J8VL._AC_UF894,1000_QL80_.jpg',
   },
   {
-    id: 6, name: 'Wall Mural – Large Format', price: '$199.99', oldPrice: '$269.99',
+    id: 6, name: 'Wall Mural – Large Format', price: '₹199.99', oldPrice: '₹269.99',
     badge: { label: 'SALE', grad: 'linear-gradient(90deg,#2563EB,#06B6D4)' },
     image: 'https://imgs.search.brave.com/WRQWwv92NnMS5xJ59lU6PMBKvVKPoPoAHRkS1FId_ZA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/OTE3LURaOGU3TEwu/anBn',
   },

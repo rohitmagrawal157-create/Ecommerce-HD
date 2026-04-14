@@ -444,7 +444,7 @@ export default function FooterOne() {
               display:'flex',flexWrap:'wrap',gap:10,
               flex:'0 0 auto',
             }}>
-              {TRUST_BADGES.map((badge, idx) => (
+              {TRUST_BADGES.map((badge) => (
                 <div key={badge.label} style={{
                   background:'rgba(255,255,255,0.04)',
                   border:`1px solid ${B.border}`,

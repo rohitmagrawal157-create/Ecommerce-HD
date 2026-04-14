@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 
 import NavbarOne from "../../components/navbar/navbar-one";
@@ -13,30 +13,30 @@ import { getWishlist, removeFromWishlist, type WishlistState } from "../../api/w
 
 import { RiShoppingBag2Line, RiDeleteBinLine } from "react-icons/ri";
 import { GoStarFill } from "react-icons/go";
-import { LuEye, LuHeart } from "react-icons/lu";
+import {  LuHeart } from "react-icons/lu";
 import { BsCheckLg } from "react-icons/bs";
 
 import Aos from "aos";
 
 // Brand tokens (same as LayoutOne)
-const B = {
-  brandGrad: 'linear-gradient(135deg, #6B3FA0 0%, #DC2626 50%, #F97316 100%)',
-  ctaGrad:   'linear-gradient(135deg, #0EA5C2 0%, #16A34A 60%, #84CC16 100%)',
-  purple:    '#6B3FA0',
-  red:       '#DC2626',
-  orange:    '#F97316',
-  teal:      '#0EA5C2',
-  green:     '#16A34A',
-  pink:      '#EC4899',
-  yellow:    '#EAB308',
-  bg:        '#FFFFFF',
-  bgSoft:    '#FAFAFA',
-  border:    '#EBEBF0',
-  text:      '#111827',
-  body:      '#374151',
-  muted:     '#6B7280',
-  faint:     '#9CA3AF',
-};
+// const B = {
+//   brandGrad: 'linear-gradient(135deg, #6B3FA0 0%, #DC2626 50%, #F97316 100%)',
+//   ctaGrad:   'linear-gradient(135deg, #0EA5C2 0%, #16A34A 60%, #84CC16 100%)',
+//   purple:    '#6B3FA0',
+//   red:       '#DC2626',
+//   orange:    '#F97316',
+//   teal:      '#0EA5C2',
+//   green:     '#16A34A',
+//   pink:      '#EC4899',
+//   yellow:    '#EAB308',
+//   bg:        '#FFFFFF',
+//   bgSoft:    '#FAFAFA',
+//   border:    '#EBEBF0',
+//   text:      '#111827',
+//   body:      '#374151',
+//   muted:     '#6B7280',
+//   faint:     '#9CA3AF',
+// };
 
 // Helper to compute MRP for sale items (if originalPrice missing)
 function computeMrp(price: string, discountPct = 20): string {
@@ -50,7 +50,7 @@ function computeMrp(price: string, discountPct = 20): string {
 const SALE_TAGS = new Set(['Sale', 'Hot Sale', '10% OFF', 'Hot']);
 
 export default function Wishlist() {
-  const navigate = useNavigate();
+//   const navigate = useNavigate();
   const [wishlist, setWishlist] = useState<WishlistState>({ productIds: [], products: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -207,9 +207,9 @@ export default function Wishlist() {
         <div className="container-fluid">
           <div className="max-w-[1720px] mx-auto flex items-start gap-8 md:gap-12 2xl:gap-24 flex-col md:flex-row my-profile-navtab">
             {/* Sidebar */}
-            <div className="w-full md:w-[200px] lg:w-[300px] flex-none" data-aos="fade-up" data-aos-delay="100">
+            {/* <div className="w-full md:w-[200px] lg:w-[300px] flex-none" data-aos="fade-up" data-aos-delay="100">
               <AccountTab />
-            </div>
+            </div> */}
 
             {/* Wishlist Products Grid */}
             <div className="w-full md:w-auto md:flex-1" data-aos="fade-up" data-aos-delay="300">
