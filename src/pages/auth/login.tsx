@@ -1,15 +1,7 @@
 // src/pages/auth/Login.tsx
 // ══════════════════════════════════════════════════════════════════════
-//  ALL LOGIC UNCHANGED:
-//  · handleSubmit validation (email/password required, email format)
-//  · localStorage.setItem("access_token", "demo_token")
-//  · navigate("/my-account") on success
-//  · isLoading / error / rememberMe state
-//  · Google / Facebook onClick handlers
-//
-//  CHANGED: Visual design updated to brand gradient system
-//  Brand: #5B4FBE → #E8314A → #F97316 (purple→red→orange)
-//  CTA:   #2563EB → #06B6D4 → #22C55E (blue→cyan→green)
+//  Integrated with real login API
+//  POST: /Shopping-Cart/public/api/login
 // ══════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
@@ -25,13 +17,17 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { LuMail, LuLock, LuArrowRight } from "react-icons/lu";
 
-// ── Brand tokens ──────────────────────────────────────────────────────────────
+// ── API Configuration ──────────────────────────────────────────────────────
+const LOGIN_API_URL =
+  'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/login';
+
+// ── Brand tokens (unchanged) ──────────────────────────────────────────────
 const BRAND      = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)'
 const CTA        = 'linear-gradient(135deg,#2563EB 0%,#06B6D4 50%,#22C55E 100%)'
 const BRAND_SOLID = '#5B4FBE'
 const FONT       = "'DM Sans', sans-serif"
 
-// ── Reusable styled input ─────────────────────────────────────────────────────
+// ── Reusable styled input (unchanged) ─────────────────────────────────────
 function AuthInput({
   type, value, onChange, placeholder, icon: Icon, id,
 }: {
@@ -70,7 +66,7 @@ function AuthInput({
   )
 }
 
-// ── Gradient submit button ────────────────────────────────────────────────────
+// ── Gradient submit button (unchanged) ─────────────────────────────────────
 function GradButton({
   children, loading, type = 'submit', onClick,
 }: {
@@ -102,7 +98,7 @@ function GradButton({
   )
 }
 
-// ── Social button ─────────────────────────────────────────────────────────────
+// ── Social button (unchanged) ──────────────────────────────────────────────
 function SocialBtn({ icon: Icon, label, onClick, iconColor }: {
   icon: React.ElementType; label: string; onClick: () => void; iconColor?: string;
 }) {
@@ -132,7 +128,6 @@ export default function Login() {
     Aos.init({ once: true, duration: 600 });
   }, []);
 
-  // ── STATE (unchanged) ──────────────────────────────────────────────────────
   const navigate = useNavigate();
   const [email,      setEmail]      = useState("")
   const [password,   setPassword]   = useState("")
@@ -140,20 +135,53 @@ export default function Login() {
   const [isLoading,  setIsLoading]  = useState(false)
   const [error,      setError]      = useState("")
 
-  // ── HANDLER (unchanged) ────────────────────────────────────────────────────
+  // ── API Login Handler ────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    // Validation (same as before)
     if (!email.trim())    { setError("Email is required"); return }
     if (!password.trim()) { setError("Password is required"); return }
     if (!/^\S+@\S+\.\S+$/.test(email)) { setError("Please enter a valid email address"); return }
+
     setIsLoading(true)
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      localStorage.setItem("access_token", "demo_token")
-      navigate("/my-account")
-    } catch {
-      setError("Invalid email or password. Please try again.")
+      const response = await fetch(LOGIN_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Extract error message from API response
+        const errorMsg = data?.message || data?.error || 'Login failed. Please check your credentials.'
+        throw new Error(errorMsg)
+      }
+
+      // Assume the API returns an access token (field names may vary)
+      // Common keys: 'token', 'access_token', 'data.token'
+      const token = data?.token || data?.access_token || data?.data?.token
+      if (!token) {
+        throw new Error('No token received from server.')
+      }
+
+      // Store token
+      localStorage.setItem('access_token', token)
+
+      // If "remember me" is checked, you could also store a refresh token or extend expiry
+      // (optional – not required for basic functionality)
+
+      // Navigate to account page
+      navigate('/my-account')
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -166,7 +194,7 @@ export default function Login() {
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 200px)', fontFamily: FONT }}>
 
-        {/* ── Left: Image with overlay text ── */}
+        {/* Left: Image with overlay text (unchanged) */}
         <div style={{
           flex: '0 0 45%', position: 'relative',
           display: window.innerWidth < 768 ? 'none' : 'block',
@@ -175,17 +203,14 @@ export default function Login() {
             src={bg} alt="login"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
-          {/* Dark gradient overlay */}
           <div style={{
             position: 'absolute', inset: 0,
             background: 'linear-gradient(160deg,rgba(91,79,190,0.75) 0%,rgba(14,14,20,0.80) 100%)',
           }} />
-          {/* Overlay content */}
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             justifyContent: 'flex-end', padding: '56px 48px',
           }}>
-            {/* Logo on image */}
             <div style={{
               backgroundImage: 'linear-gradient(90deg,#fff,rgba(255,255,255,0.7))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -202,12 +227,11 @@ export default function Login() {
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7, margin: 0, maxWidth: 300 }}>
               Sign in to manage your orders, track deliveries, and discover new designs crafted just for you.
             </p>
-            {/* Decorative gradient bar */}
             <div style={{ width: 48, height: 3, borderRadius: 2, background: BRAND, marginTop: 24 }} />
           </div>
         </div>
 
-        {/* ── Right: Form ── */}
+        {/* Right: Form */}
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: '#fff', padding: '48px 24px',
@@ -216,7 +240,6 @@ export default function Login() {
 
             {/* Heading */}
             <div data-aos="fade-up" data-aos-delay="100" style={{ marginBottom: 32 }}>
-              {/* Mini gradient pill */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 background: 'rgba(91,79,190,0.08)', borderRadius: 20,
@@ -274,7 +297,7 @@ export default function Login() {
                 </label>
               </div>
 
-              {/* Error */}
+              {/* Error display */}
               {error && (
                 <div data-aos="fade-up" style={{
                   marginTop: 12, padding: '10px 14px',
@@ -286,7 +309,7 @@ export default function Login() {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit button */}
               <div data-aos="fade-up" data-aos-delay="500" style={{ marginTop: 20 }}>
                 <GradButton loading={isLoading}>
                   {isLoading ? 'Signing in…' : 'Sign In'}
@@ -303,7 +326,7 @@ export default function Login() {
               <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
             </div>
 
-            {/* Social */}
+            {/* Social login buttons (still demo) */}
             <div data-aos="fade-up" data-aos-delay="700" style={{ display: 'flex', gap: 12 }}>
               <SocialBtn icon={FcGoogle} label="Google" onClick={() => console.log("Google login")} />
               <SocialBtn icon={FaFacebook} label="Facebook" onClick={() => console.log("Facebook login")} iconColor="#1877F2" />
@@ -328,5 +351,5 @@ export default function Login() {
       <FooterOne />
       <ScrollToTop />
     </>
-  )
+  );
 }

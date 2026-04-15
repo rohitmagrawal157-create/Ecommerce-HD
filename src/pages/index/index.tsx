@@ -121,7 +121,7 @@ function Index() {
           letterSpacing: '0.06em',
           textDecoration: 'none',
           transition: 'opacity 0.2s, transform 0.2s',
-          borderRadius: 0,
+          borderRadius: 10,
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLAnchorElement).style.opacity = '0.88';
