@@ -1,32 +1,31 @@
-// src/components/scroll-to-top.tsx
+// src/components/scroll-to-top.tsx (extended)
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom"; // 👈 add
 import { FiArrowUp } from "react-icons/fi";
 
 const ScrollToTop = () => {
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const isVisibleRef = useRef<boolean>(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const isVisibleRef = useRef(false);
+  const { pathname } = useLocation(); // 👈 get route
 
+  // 👇 Auto-scroll to top on route change
   useEffect(() => {
-    isVisibleRef.current = isVisible;
-  }, [isVisible]);
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
+  // ... rest of your existing code (scroll button logic)
   const scrollToTop = useCallback(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       const nextVisible = window.scrollY > 300;
-      // Avoid re-renders on every scroll tick by only updating when the boolean flips.
       if (nextVisible !== isVisibleRef.current) {
         isVisibleRef.current = nextVisible;
         setIsVisible(nextVisible);
       }
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

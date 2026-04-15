@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import NavbarOne from "../../components/navbar/navbar-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
-import AccountTab from "../../components/account/account-tab";
+// import AccountTab from "../../components/account/account-tab";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
 import type { Product } from "../../api/products";
