@@ -27,6 +27,10 @@ import {
   LuHeart, LuShoppingBasket, LuSearch, LuMapPin,
   LuTruck, LuSmartphone, LuCircle, LuX,
   LuChevronDown, LuChevronRight, LuMenu, LuUser, LuShieldCheck,
+  LuClipboardCheck,
+  LuGift,
+  LuFootprints,
+  LuSave,
 } from 'react-icons/lu';
 import { RiEBike2Line } from 'react-icons/ri';
 
@@ -555,9 +559,13 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 // ── ProfileDropdown ────────────────────────────────────────────────────────
-// Shown when logged in: gradient avatar circle with first initial + dropdown menu
+/// ── ProfileDropdown (professional, polished) ─────────────────────────────────
 function ProfileDropdown({
-  user, isOpen, onToggle, onLogout, containerRef,
+  user,
+  isOpen,
+  onToggle,
+  onLogout,
+  containerRef,
 }: {
   user: { name: string; email: string } | null;
   isOpen: boolean;
@@ -565,45 +573,145 @@ function ProfileDropdown({
   onLogout: () => void;
   containerRef: React.RefObject<HTMLDivElement>;
 }) {
+  // Menu items with Lucide icons (replaces emojis)
   const ITEMS = [
-    { icon: '👤', label: 'My Profile',       path: '/my-profile'    },
-    { icon: '📦', label: 'Order History',    path: '/order-history' },
-    { icon: '❤️',  label: 'My Wishlist',      path: '/wishlist'      },
-    { icon: '🛒', label: 'My Cart',          path: '/cart'          },
-    { icon: '⚙️',  label: 'Account Settings', path: '/my-profile'   },
+    { icon: LuUser,       label: 'My Profile',       path: '/my-profile'    },
+    { icon: LuClipboardCheck,    label: 'Order History',    path: '/order-history' },
+    { icon: LuHeart,      label: 'My Wishlist',      path: '/wishlist'      },
+    { icon: LuGift,label: 'My Cart',          path: '/cart'          },
+    { icon: LuFootprints,   label: 'Account Settings', path: '/my-profile'    },
   ];
+
+  const initial = user?.name?.trim()?.[0]?.toUpperCase() ?? '?';
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      {/* Person icon trigger (instead of avatar circle) */}
+      {/* Trigger button – person icon + label */}
       <button
         onClick={onToggle}
         className="hcn-icon-btn"
-        style={{ position: 'relative' }}
         aria-label="Account menu"
         aria-expanded={isOpen}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '2px',
+          background: 'none',
+          border: 'none',
+          padding: '5px 9px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          transition: 'background 0.14s ease',
+        }}
       >
-        <LuUser className="hcn-ico" size={21} color="#444" />
-        <span className="hcn-lbl" style={{ fontSize: 10.5, color: '#555', fontFamily: FONT, fontWeight: 500 }}>Account</span>
-        {isOpen && (
-          <span style={{ position: 'absolute', bottom: 2, right: 2, width: 8, height: 8, background: '#5B4FBE', borderRadius: '50%' }} />
-        )}
+        <div style={{ position: 'relative' }}>
+          <LuUser size={21} color="#444" />
+          {/* Small open indicator dot */}
+          {isOpen && (
+            <span
+              style={{
+                position: 'absolute',
+                bottom: -2,
+                right: -4,
+                width: 8,
+                height: 8,
+                background: BRAND_SOLID,
+                borderRadius: '50%',
+                border: '1px solid #fff',
+              }}
+            />
+          )}
+        </div>
+        <span
+          className="hcn-lbl"
+          style={{
+            fontSize: '10.5px',
+            color: '#555',
+            fontFamily: FONT,
+            fontWeight: 500,
+          }}
+        >
+          Account
+        </span>
       </button>
 
-      {/* Dropdown menu (unchanged) */}
-      <div className={`hcn-profile-drop ${isOpen ? 'is-open' : 'is-shut'}`}>
-        {/* Header with user info */}
-        <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.border}`, background: '#fafaf9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Optional: keep small avatar in dropdown header */}
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: BRAND_GRAD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: '#fff', flexShrink: 0 }}>
-              {user?.name?.trim()?.[0]?.toUpperCase() ?? '?'}
+      {/* Dropdown panel */}
+      <div
+        className={`hcn-profile-drop ${isOpen ? 'is-open' : 'is-shut'}`}
+        style={{
+          position: 'absolute',
+          top: 'calc(100% + 10px)',
+          right: 0,
+          minWidth: '260px',
+          background: C.white,
+          borderRadius: '16px',
+          border: `1px solid ${C.borderMd}`,
+          boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)',
+          zIndex: 9010,
+          overflow: 'hidden',
+          transformOrigin: 'top right',
+          transition: 'opacity 0.18s ease, transform 0.18s ease',
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen ? 'scale(1)' : 'scale(0.96)',
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+      >
+        {/* Header: user avatar + name/email */}
+        <div
+          style={{
+            padding: '16px 16px 12px',
+            borderBottom: `1px solid ${C.border}`,
+            background: '#FAFAFC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Avatar circle */}
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: BRAND_GRAD,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: 18,
+                color: '#fff',
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(91,79,190,0.3)',
+              }}
+            >
+              {initial}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: C.text, fontFamily: FONT, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  color: C.text,
+                  fontFamily: FONT,
+                  lineHeight: 1.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {user?.name ?? 'User'}
               </div>
-              <div style={{ fontSize: 11, color: C.light, fontFamily: FONT, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: C.light,
+                  fontFamily: FONT,
+                  marginTop: 2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {user?.email ?? ''}
               </div>
             </div>
@@ -611,20 +719,72 @@ function ProfileDropdown({
         </div>
 
         {/* Menu items */}
-        <div style={{ padding: '6px 0' }}>
-          {ITEMS.map(item => (
-            <Link key={item.label} to={item.path} className="hcn-pdrop-item" onClick={onToggle}>
-              <span className="pdrop-icon" style={{ fontSize: 14 }}>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+        <div style={{ padding: '8px 0' }}>
+          {ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.label}
+                to={item.path}
+                onClick={onToggle}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  fontFamily: FONT,
+                  color: C.text,
+                  textDecoration: 'none',
+                  transition: 'background 0.14s ease, color 0.14s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = C.brandBg;
+                  e.currentTarget.style.color = BRAND_SOLID;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = C.text;
+                }}
+              >
+                <Icon size={16} strokeWidth={1.8} style={{ color: 'inherit', flexShrink: 0 }} />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="hcn-pdrop-divider" />
+        <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
 
-        <div style={{ padding: '6px 0 8px' }}>
-          <button onClick={onLogout} className="hcn-pdrop-item danger">
-            <span className="pdrop-icon" style={{ fontSize: 14, background: '#fff0f3' }}>🚪</span>
+        {/* Sign out button */}
+        <div style={{ padding: '8px 0 12px' }}>
+          <button
+            onClick={() => {
+              onToggle();
+              onLogout();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '10px 16px',
+              background: 'none',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 500,
+              fontFamily: FONT,
+              color: '#E11D48',
+              textAlign: 'left',
+              cursor: 'pointer',
+              transition: 'background 0.14s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F3')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <LuSave size={16} strokeWidth={1.8} style={{ flexShrink: 0 }} />
             Sign Out
           </button>
         </div>
