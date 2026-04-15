@@ -179,7 +179,7 @@ export default function Login() {
       // (optional – not required for basic functionality)
 
       // Navigate to account page
-      navigate('/my-account')
+      navigate('/')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
     } finally {

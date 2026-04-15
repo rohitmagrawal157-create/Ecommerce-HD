@@ -262,6 +262,43 @@ const STYLES = `
   .hcn-simple-drop.is-shut{opacity:0;transform:scaleY(.96);pointer-events:none}
   .hcn-drop-link{display:block;padding:9px 18px;font-size:13px;font-family:${FONT};color:${C.muted};transition:background .14s,color .14s}
   .hcn-drop-link:hover{background:${C.brandBg};color:${BRAND_SOLID}}
+
+  /* ── Profile avatar + dropdown ───────────────────────────────────── */
+  .hcn-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; font-family: ${FONT};
+    background: ${BRAND_GRAD}; color: #fff;
+    cursor: pointer; border: 2px solid transparent;
+    transition: box-shadow .2s, border-color .2s;
+    flex-shrink: 0; user-select: none;
+  }
+  .hcn-avatar:hover { box-shadow: 0 0 0 3px rgba(91,79,190,.25); border-color: #5B4FBE44; }
+  .hcn-avatar.is-open { box-shadow: 0 0 0 3px rgba(91,79,190,.3); border-color: #5B4FBE; }
+
+  .hcn-profile-drop {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    min-width: 220px; background: ${C.white};
+    border-radius: 14px; border: 1px solid ${C.border};
+    box-shadow: 0 20px 60px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.06);
+    z-index: 9010; overflow: hidden;
+    transform-origin: top right;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .hcn-profile-drop.is-open { opacity:1; transform:scale(1); pointer-events:auto; }
+  .hcn-profile-drop.is-shut { opacity:0; transform:scale(.94); pointer-events:none; }
+
+  .hcn-pdrop-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; font-size: 13.5px; font-weight: 500;
+    font-family: ${FONT}; color: ${C.text}; text-decoration: none;
+    transition: background .14s, color .14s; cursor: pointer;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .hcn-pdrop-item:hover { background: ${C.brandBg}; color: ${BRAND_SOLID}; }
+  .hcn-pdrop-item.danger:hover { background: #fff5f5; color: #e11d48; }
+  .hcn-pdrop-item .pdrop-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f4f3fa; flex-shrink: 0; }
+  .hcn-pdrop-divider { height: 1px; background: ${C.border}; margin: 4px 0; }
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -517,6 +554,84 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
+// ── ProfileDropdown ────────────────────────────────────────────────────────
+// Shown when logged in: gradient avatar circle with first initial + dropdown menu
+function ProfileDropdown({
+  user, isOpen, onToggle, onLogout, containerRef,
+}: {
+  user: { name: string; email: string } | null;
+  isOpen: boolean;
+  onToggle: () => void;
+  onLogout: () => void;
+  containerRef: React.RefObject<HTMLDivElement>;
+}) {
+  const ITEMS = [
+    { icon: '👤', label: 'My Profile',       path: '/my-profile'    },
+    { icon: '📦', label: 'Order History',    path: '/order-history' },
+    { icon: '❤️',  label: 'My Wishlist',      path: '/wishlist'      },
+    { icon: '🛒', label: 'My Cart',          path: '/cart'          },
+    { icon: '⚙️',  label: 'Account Settings', path: '/my-profile'   },
+  ];
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      {/* Person icon trigger (instead of avatar circle) */}
+      <button
+        onClick={onToggle}
+        className="hcn-icon-btn"
+        style={{ position: 'relative' }}
+        aria-label="Account menu"
+        aria-expanded={isOpen}
+      >
+        <LuUser className="hcn-ico" size={21} color="#444" />
+        <span className="hcn-lbl" style={{ fontSize: 10.5, color: '#555', fontFamily: FONT, fontWeight: 500 }}>Account</span>
+        {isOpen && (
+          <span style={{ position: 'absolute', bottom: 2, right: 2, width: 8, height: 8, background: '#5B4FBE', borderRadius: '50%' }} />
+        )}
+      </button>
+
+      {/* Dropdown menu (unchanged) */}
+      <div className={`hcn-profile-drop ${isOpen ? 'is-open' : 'is-shut'}`}>
+        {/* Header with user info */}
+        <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.border}`, background: '#fafaf9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Optional: keep small avatar in dropdown header */}
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: BRAND_GRAD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: '#fff', flexShrink: 0 }}>
+              {user?.name?.trim()?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: C.text, fontFamily: FONT, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+                {user?.name ?? 'User'}
+              </div>
+              <div style={{ fontSize: 11, color: C.light, fontFamily: FONT, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+                {user?.email ?? ''}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu items */}
+        <div style={{ padding: '6px 0' }}>
+          {ITEMS.map(item => (
+            <Link key={item.label} to={item.path} className="hcn-pdrop-item" onClick={onToggle}>
+              <span className="pdrop-icon" style={{ fontSize: 14 }}>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hcn-pdrop-divider" />
+
+        <div style={{ padding: '6px 0 8px' }}>
+          <button onClick={onLogout} className="hcn-pdrop-item danger">
+            <span className="pdrop-icon" style={{ fontSize: 14, background: '#fff0f3' }}>🚪</span>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -535,11 +650,14 @@ export default function NavbarOne() {
   const [cartCount,     setCartCount]     = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isAuth,        setIsAuth]        = useState(false);
+  const [authUser,      setAuthUser]      = useState<{name:string;email:string}|null>(null);
+  const [profileOpen,   setProfileOpen]   = useState(false);
   const [scrolled,      setScrolled]      = useState(false);
   const [mobHidden,     setMobHidden]     = useState(false);
   const [navbarBottom,  setNavbarBottom]  = useState(0);
   const [activeChip,    setActiveChip]    = useState<string | null>(null);
   const [catBarScroll,  setCatBarScroll]  = useState({ left: false, right: false });
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const navRef    = useRef<HTMLElement>(null);
   const catBarRef = useRef<HTMLDivElement>(null);
@@ -609,25 +727,54 @@ export default function NavbarOne() {
     } catch {}
   }, []);
 
+  // Reads auth state from localStorage — called on mount + any auth change event
+  const syncAuth = useCallback(() => {
+    const token = window.localStorage.getItem('access_token');
+    const raw   = window.localStorage.getItem('auth_user');
+    setIsAuth(Boolean(token));
+    if (token && raw) {
+      try { setAuthUser(JSON.parse(raw)); } catch { setAuthUser(null); }
+    } else {
+      setAuthUser(null);
+    }
+  }, []);
+
   useEffect(() => {
-    setIsAuth(Boolean(window.localStorage.getItem('access_token')));
+    syncAuth();
     refreshCounts();
 
     const onCart    = () => refreshCounts();
     const onWl      = () => refreshCounts();
+    // Fires on cross-tab changes
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'access_token') setIsAuth(Boolean(window.localStorage.getItem('access_token')));
+      if (e.key === 'access_token' || e.key === 'auth_user') syncAuth();
       if (e.key?.startsWith('cart') || e.key?.startsWith('wishlist')) refreshCounts();
     };
-    window.addEventListener('cart:changed',     onCart     as EventListener);
-    window.addEventListener('wishlist:changed',  onWl       as EventListener);
-    window.addEventListener('storage',           onStorage  as EventListener);
+    // Fires on SAME-tab login/logout (dispatch this from your login/logout handler)
+    const onAuth = () => { syncAuth(); refreshCounts(); };
+
+    window.addEventListener('cart:changed',    onCart    as EventListener);
+    window.addEventListener('wishlist:changed', onWl      as EventListener);
+    window.addEventListener('storage',          onStorage as EventListener);
+    window.addEventListener('auth:changed',     onAuth    as EventListener);
     return () => {
-      window.removeEventListener('cart:changed',     onCart    as EventListener);
-      window.removeEventListener('wishlist:changed',  onWl      as EventListener);
-      window.removeEventListener('storage',           onStorage as EventListener);
+      window.removeEventListener('cart:changed',    onCart    as EventListener);
+      window.removeEventListener('wishlist:changed', onWl      as EventListener);
+      window.removeEventListener('storage',          onStorage as EventListener);
+      window.removeEventListener('auth:changed',     onAuth    as EventListener);
     };
-  }, [refreshCounts]);  // FIX #20: refreshCounts is stable via useCallback
+  }, [refreshCounts, syncAuth]);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
 
   // Scroll handler
   const onScroll = useCallback(() => {
@@ -657,7 +804,26 @@ export default function NavbarOne() {
   const enter = (key: string) => { if (timerRef.current) clearTimeout(timerRef.current); setActiveMenu(key); };
   const leave = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 120); };
   const keep  = () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  const handleSearch = () => { if (searchVal.trim()) { navigate(`/search?q=${encodeURIComponent(searchVal.trim())}`); setSearchVal(''); setSearchFocused(false); } };
+
+  // Search: navigates to /shop-v1?q=... (works even without a dedicated /search route)
+  const handleSearch = useCallback(() => {
+    const q = searchVal.trim();
+    if (!q) return;
+    navigate(`/shop-v1?q=${encodeURIComponent(q)}`);
+    setSearchVal('');
+    setSearchFocused(false);
+  }, [searchVal, navigate]);
+
+  // Logout helper
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('auth_user');
+    setIsAuth(false);
+    setAuthUser(null);
+    setProfileOpen(false);
+    window.dispatchEvent(new Event('auth:changed'));
+    navigate('/');
+  }, [navigate]);
 
   return (
     <>
@@ -708,32 +874,58 @@ export default function NavbarOne() {
             <div style={{ flex: 1, minWidth: 0, maxWidth: 620 }}>
               <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
                 <LuSearch size={15} color="#aaa" style={{ marginLeft: 14, flexShrink: 0 }} />
-                <input type="search" className="hcn-search-input" placeholder="Search printing, signage, products..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
-                {searchVal && <button onClick={() => setSearchVal('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex', alignItems: 'center' }}><LuX size={13} /></button>}
-                <button onClick={handleSearch} style={{ height: '100%', padding: '0 22px', border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, flexShrink: 0 }}>Search</button>
+                <input
+                  type="text"
+                  className="hcn-search-input"
+                  placeholder="Search printing, signage, products..."
+                  value={searchVal}
+                  onChange={e => setSearchVal(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+                  autoComplete="off"
+                />
+                {searchVal && (
+                  <button
+                    onMouseDown={e => { e.preventDefault(); setSearchVal(''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex', alignItems: 'center' }}
+                  >
+                    <LuX size={13} />
+                  </button>
+                )}
+                <button
+                  onMouseDown={e => { e.preventDefault(); handleSearch(); }}
+                  style={{ height: '100%', padding: '0 22px', border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, flexShrink: 0 }}
+                >
+                  Search
+                </button>
               </div>
             </div>
 
             {/* Right actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', flexShrink: 0, }}>
+
+              {/* AUTH: SIGN IN button (not logged in) OR Avatar+Dropdown (logged in) */}
               {isAuth ? (
-                <>
-                  <Link to="/my-profile" style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', cursor: 'pointer', fontFamily: FONT, marginRight: 8, ...gradText(BRAND_GRAD) }}>
-                    My Profile
-                  </Link>
-                  <Link to="/admin" aria-label="Admin" className="hcn-icon-btn" style={{ marginRight: 6 }}>
-                    <LuShieldCheck className="hcn-ico" size={20} color="#444" />
-                    <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Admin</span>
-                  </Link>
-                </>
+                <ProfileDropdown
+                  user={authUser}
+                  isOpen={profileOpen}
+                  onToggle={() => setProfileOpen(p => !p)}
+                  onLogout={handleLogout}
+                  containerRef={profileRef}
+                  
+                />
               ) : (
-                /* FIX #22: non-auth → /login */
-                <Link to="/login" style={{ padding: '8px 16px', borderRadius: 8, background: CTA_GRAD, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', marginRight: 6 }}>
+                <Link
+                  to="/login"
+                  style={{ padding: '9px 18px', borderRadius: 10, background: CTA_GRAD, color: '#fff', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', marginRight: 4, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <LuUser size={14} color="#f5f4f4" />
                   SIGN IN
                 </Link>
               )}
 
-              {/* Wishlist — FIX #15: CountBadge in own relative wrapper */}
+              {/* Wishlist */}
               <Link to="/wishlist" className="hcn-icon-btn">
                 <div style={{ position: 'relative' }}>
                   <LuHeart className="hcn-ico" size={21} color="#444" />
@@ -742,21 +934,13 @@ export default function NavbarOne() {
                 <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Wishlist</span>
               </Link>
 
-              {/* Basket — FIX #15 */}
+              {/* Basket */}
               <Link to="/cart" className="hcn-icon-btn">
                 <div style={{ position: 'relative' }}>
                   <LuShoppingBasket className="hcn-ico" size={21} color="#444" />
                   <CountBadge count={cartCount} />
                 </div>
                 <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Basket</span>
-              </Link>
-
-              {/* Profile — FIX #22 */}
-              <Link to={isAuth ? '/my-profile' : '/login'} aria-label="Account" className="hcn-icon-btn" style={{ marginLeft: 4 }}>
-                <LuUser className="hcn-ico" size={20} color="#444" />
-                <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>
-                  {isAuth ? 'Profile' : 'Account'}
-                </span>
               </Link>
             </div>
           </div>
@@ -813,26 +997,56 @@ export default function NavbarOne() {
                 <CountBadge count={cartCount} />
               </div>
             </Link>
-            {/* FIX #22: non-auth → /login */}
-            <Link to={isAuth ? '/my-profile' : '/login'} className="hcn-mob-icon">
-              <LuUser size={22} color="#2a2a2a" strokeWidth={1.8} />
-            </Link>
+            {/* Mobile auth: avatar or login icon */}
+            {isAuth ? (
+              <Link to="/my-profile" className="hcn-mob-icon" title={authUser?.name ?? 'My Account'}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: BRAND_GRAD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, color: '#fff' }}>
+                  {authUser?.name?.trim()?.[0]?.toUpperCase() ?? '?'}
+                </div>
+              </Link>
+            ) : (
+              <Link to="/login" className="hcn-mob-icon">
+                <LuUser size={22} color="#2a2a2a" strokeWidth={1.8} />
+              </Link>
+            )}
           </div>
 
           {/* Row B: search */}
           <div style={{ padding: '9px 12px', borderBottom: `1px solid ${C.border}` }}>
             <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
               <LuSearch size={15} color={C.light} style={{ marginLeft: 13, flexShrink: 0 }} />
-              <input type="search" className="hcn-search-input" placeholder="Search printing, signage..." value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
-              {searchVal && <button onClick={() => setSearchVal('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex' }}><LuX size={13} /></button>}
-              <button onClick={handleSearch} style={{ height: '100%', width: 48, border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><LuSearch size={16} color="#fff" /></button>
+              <input
+                type="text"
+                className="hcn-search-input"
+                placeholder="Search printing, signage..."
+                value={searchVal}
+                onChange={e => setSearchVal(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+                autoComplete="off"
+              />
+              {searchVal && (
+                <button
+                  onMouseDown={e => { e.preventDefault(); setSearchVal(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex' }}
+                >
+                  <LuX size={13} />
+                </button>
+              )}
+              <button
+                onMouseDown={e => { e.preventDefault(); handleSearch(); }}
+                style={{ height: '100%', width: 48, border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <LuSearch size={16} color="#fff" />
+              </button>
             </div>
           </div>
 
           {/* Row C: chips */}
           <div style={{ padding: '8px 12px', background: C.white }}>
             <div className="hcn-chips">
-              {['Home', 'Shop', 'Contact', ...DEPARTMENTS].map(label => (
+              {[ ...DEPARTMENTS].map(label => (
                 <Link
                   key={label}
                   to={label === 'Home' ? '/' : label === 'Shop' ? '/shop-v1' : label === 'Contact' ? '/contact' : `/category/${toSlug(label)}`}
