@@ -12,6 +12,12 @@ interface PickItem {
   badge?: string;
 }
 
+interface ApiCategory {
+  id: number;
+  name: string;
+  image_url: string | null;
+}
+
 const TOP_PICKS: PickItem[] = [
   { href: '/category/portrait-frames',   src: 'https://imgs.search.brave.com/pO3_geDNJr-PHRVvzlSlXdVEI8SCMrHvO8C_TPKAtpE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9rb3Rh/cnQuaW4vY2RuL3No/b3AvZmlsZXMvZWZm/ZWN0MDFfNS5qcGc_/dj0xNzIxMjU0NDA2/JndpZHRoPTUzMw',    alt: 'Elegant Portrait Frames',    label: 'Portrait Frames',  badge: 'New'  },
   { href: '/category/canvas-paintings',  src: 'https://imgs.search.brave.com/xFTkEltVU-Fcai1S5B6E96-71Q6WDcSLGbEv3mJDxsc/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly81Lmlt/aW1nLmNvbS9kYXRh/NS9TRUxMRVIvRGVm/YXVsdC8yMDIzLzEw/LzM1MTU4NDYwMC9R/US9HTS9WWC8xOTc4/OTQwMDkvcHJpbnRl/ZC1jYW52YXMtNTAw/eDUwMC5qcGc',   alt: 'Handmade Canvas Painting',   label: 'Canvas Painting',  badge: 'Hot'  },
@@ -183,6 +189,8 @@ function ProductCard({ item, index }: { item: PickItem; index: number }) {
 }
 
 export default function TopPicks() {
+  const [items, setItems] = useState<PickItem[]>(TOP_PICKS);
+
   useEffect(() => {
     const ID = 'top-picks-styles';
     if (document.getElementById(ID)) return;
@@ -191,8 +199,53 @@ export default function TopPicks() {
     document.head.appendChild(tag);
   }, []);
 
-  const row1 = TOP_PICKS.slice(0, 4);
-  const row2 = TOP_PICKS.slice(4, 8);
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const CATEGORIES_API_URL = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/categories';
+
+    const fetchFeaturedCategories = async () => {
+      try {
+        const res = await fetch(CATEGORIES_API_URL, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+        const payload = await res.json();
+        const rows: ApiCategory[] = Array.isArray(payload?.data) ? payload.data : [];
+        if (!rows.length || !active) return;
+
+        const badgeCycle = ['New', 'Hot', 'Sale'];
+        const mapped = rows
+          .map((cat, index) => {
+            const name = String(cat?.name ?? '').trim();
+            if (!name || !cat?.image_url) return null;
+            return {
+              href: `/category/${name.toLowerCase().replace(/[\s&/]+/g, '-')}`,
+              src: cat.image_url,
+              alt: name,
+              label: name,
+              badge: badgeCycle[index % badgeCycle.length],
+            } as PickItem;
+          })
+          .filter(Boolean) as PickItem[];
+
+        if (mapped.length > 0) setItems(mapped);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          // eslint-disable-next-line no-console
+          console.warn('Featured categories API failed. Using fallback cards.', err?.message ?? err);
+        }
+      }
+    };
+
+    fetchFeaturedCategories();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  const row1 = items.slice(0, 4);
+  const row2 = items.slice(4, 8);
 
   return (
     <section style={{ width: '100%', background: '#fff', padding: 'clamp(20px,4vw,64px) 0' }}>

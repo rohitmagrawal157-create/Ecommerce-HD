@@ -21,7 +21,7 @@
  * ─────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LuHeart, LuShoppingBasket, LuSearch, LuMapPin,
@@ -69,6 +69,16 @@ const FONT = "'DM Sans', sans-serif";
 type MenuLink = string | { name: string; badge?: string; path?: string };
 interface MenuGroup { heading: string; links: MenuLink[]; }
 interface DeptMenu  { image: string; imageAlt: string; flatLinks?: MenuLink[]; groups: MenuGroup[]; }
+interface NavbarApiCategory {
+  id: number;
+  name: string;
+  image_url: string | null;
+  children?: Array<{
+    id: number;
+    name: string;
+    image_url: string | null;
+  }>;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -448,7 +458,17 @@ function MegaMenuPanel({
 // MOBILE DRAWER
 // ─────────────────────────────────────────────────────────────────────────────
 
-function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function MobileDrawer({
+  open,
+  onClose,
+  departments,
+  megaMenu,
+}: {
+  open: boolean;
+  onClose: () => void;
+  departments: string[];
+  megaMenu: Record<string, DeptMenu>;
+}) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const toggle = (s: string) => setExpanded(p => p === s ? null : s);
 
@@ -502,9 +522,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           </Link>
 
           {/* Departments */}
-          {DEPARTMENTS.map(dept => {
-            const data = MEGA_MENU[dept];
+          {departments.map(dept => {
+            const data = megaMenu[dept];
             const dg = DEPT_GRADS[dept];
+            if (!data) return null;
             return (
               <div key={dept} style={{ borderBottom: `1px solid #f5f5f5` }}>
                 <button onClick={() => toggle(dept)} className="hcn-drawer-btn">
@@ -817,6 +838,8 @@ export default function NavbarOne() {
   const [navbarBottom,  setNavbarBottom]  = useState(0);
   const [activeChip,    setActiveChip]    = useState<string | null>(null);
   const [catBarScroll,  setCatBarScroll]  = useState({ left: false, right: false });
+  const [apiMenu,       setApiMenu]       = useState<Record<string, DeptMenu> | null>(null);
+  const [apiDepartments,setApiDepartments]= useState<string[] | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const navRef    = useRef<HTMLElement>(null);
@@ -828,6 +851,13 @@ export default function NavbarOne() {
   const delta_    = useRef(0);
   const scrolled_ = useRef(false);
   const mobHid_   = useRef(false);
+  const NAVBAR_CATEGORIES_URL = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/navbar-categories';
+
+  const megaMenu = useMemo(() => apiMenu ?? MEGA_MENU, [apiMenu]);
+  const departments = useMemo(() => {
+    if (apiDepartments && apiDepartments.length > 0) return apiDepartments;
+    return DEPARTMENTS;
+  }, [apiDepartments]);
 
   // ── FIX #9: navbarBottom measured every scroll tick via its own rAF ───────
   const measureNavbar = useCallback(() => {
@@ -857,6 +887,62 @@ export default function NavbarOne() {
     window.addEventListener('resize', measureNavbar);
     return () => window.removeEventListener('resize', measureNavbar);
   }, [measureNavbar]);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+
+    const fetchNavbarCategories = async () => {
+      try {
+        const res = await fetch(NAVBAR_CATEGORIES_URL, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Failed with status ${res.status}`);
+        const payload = await res.json();
+        const rows: NavbarApiCategory[] = Array.isArray(payload?.data) ? payload.data : [];
+        if (!rows.length) return;
+
+        const nextMenu: Record<string, DeptMenu> = {};
+        const nextDepartments: string[] = [];
+
+        rows.forEach((cat) => {
+          const name = String(cat?.name ?? '').trim();
+          if (!name) return;
+
+          nextDepartments.push(name);
+
+          const fallback = MEGA_MENU[name];
+          const childNames = Array.isArray(cat.children)
+            ? cat.children.map((c) => String(c?.name ?? '').trim()).filter(Boolean)
+            : [];
+
+          nextMenu[name] = {
+            image:
+              cat.image_url ||
+              fallback?.image ||
+              'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=320&h=400&fit=crop',
+            imageAlt: name,
+            // API-driven menu: show exactly the subcategories returned by `children`.
+            flatLinks: childNames,
+            groups: [],
+          };
+        });
+
+        if (!active || nextDepartments.length === 0) return;
+        setApiMenu(nextMenu);
+        setApiDepartments(nextDepartments);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          // eslint-disable-next-line no-console
+          console.warn('Navbar categories API failed. Using fallback menu.', err?.message ?? err);
+        }
+      }
+    };
+
+    fetchNavbarCategories();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [NAVBAR_CATEGORIES_URL]);
 
   // Category bar scroll masks
   const checkCatBarScroll = useCallback(() => {
@@ -988,7 +1074,12 @@ export default function NavbarOne() {
   return (
     <>
       <style>{STYLES}</style>
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        departments={departments}
+        megaMenu={megaMenu}
+      />
 
       <header ref={navRef} className="hcn" style={{ width: '100%', position: 'sticky', top: 0, zIndex: 1000, fontFamily: FONT, boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,.09)' : '0 1px 0 #ebebeb', transition: 'box-shadow .3s' }}>
 
@@ -1110,7 +1201,7 @@ export default function NavbarOne() {
         <div className={`dsk hcn-catbar-wrap${catBarScroll.left ? ' can-scroll-left' : ''}${catBarScroll.right ? ' can-scroll-right' : ''}`}>
           <div className="hcn-catbar" ref={catBarRef}>
             <div className="hcn-catbar-divider" />
-            {DEPARTMENTS.map(dept => (
+            {departments.map(dept => (
               <div
                 key={dept}
                 style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}
@@ -1206,7 +1297,7 @@ export default function NavbarOne() {
           {/* Row C: chips */}
           <div style={{ padding: '8px 12px', background: C.white }}>
             <div className="hcn-chips">
-              {[ ...DEPARTMENTS].map(label => (
+              {[ ...departments].map(label => (
                 <Link
                   key={label}
                   to={label === 'Home' ? '/' : label === 'Shop' ? '/shop-v1' : label === 'Contact' ? '/contact' : `/category/${toSlug(label)}`}
@@ -1226,11 +1317,11 @@ export default function NavbarOne() {
       </header>
 
       {/* Mega menu panels — outside header, position:fixed */}
-      {DEPARTMENTS.map(dept => (
+      {departments.map(dept => (
         <MegaMenuPanel
           key={dept}
           dept={dept}
-          data={MEGA_MENU[dept]}
+          data={megaMenu[dept]}
           isOpen={activeMenu === dept}
           navbarBottom={navbarBottom}
           tooltipTop={navbarBottom}   // FIX #21: tooltip at same reference point
@@ -1243,7 +1334,7 @@ export default function NavbarOne() {
       <div style={{
         position: 'fixed', inset: 0, top: navbarBottom,
         background: 'rgba(0,0,0,.18)', zIndex: 8998,
-        opacity: DEPARTMENTS.includes(activeMenu ?? '') ? 1 : 0,
+        opacity: departments.includes(activeMenu ?? '') ? 1 : 0,
         pointerEvents: 'none', transition: 'opacity .18s ease',
       }} />
     </>

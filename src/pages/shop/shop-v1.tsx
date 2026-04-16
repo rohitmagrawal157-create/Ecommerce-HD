@@ -24,7 +24,7 @@ import NavbarOne   from "../../components/navbar/navbar-one";
 import LayoutOne   from "../../components/product/layout-one";
 import FooterOne   from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
-import SelectOne   from "../../components/product/select-one";
+// import SelectOne   from "../../components/product/select-one";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
 
