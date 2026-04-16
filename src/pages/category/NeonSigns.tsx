@@ -1,6 +1,6 @@
 // src/pages/category/NeonSigns.tsx
 import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import cardImg from '../../assets/img/thumb/shop-card.jpg'
 import SelectOne from '../../components/product/select-one'
 import NavbarOne from '../../components/navbar/navbar-one'
@@ -11,6 +11,7 @@ import MultiRangeSlider from 'multi-range-slider-react'
 import Aos from 'aos'
 import { FourSquare } from 'react-loading-indicators'
 import { CATEGORIES } from '../../data/categoryData'
+import { useCategoryProductsByCategoryId } from '../../hooks/useCategoryProductsByCategoryId'
 
 const PER_PAGE = 12
 const cfg      = CATEGORIES['neon-signs']
@@ -24,6 +25,9 @@ const Chevron = () => (
 )
 
 export default function NeonSigns() {
+  const [searchParams] = useSearchParams()
+  const categoryId = Number(searchParams.get('categoryId') ?? 0)
+
   const [minValue, setMinValue] = useState(0)
   const [maxValue, setMaxValue] = useState(500)
   const [loading,  setLoading]  = useState(true)
@@ -31,11 +35,22 @@ export default function NeonSigns() {
   const [sort,     setSort]     = useState('default')
   const [gridCols, setGridCols] = useState<2|3>(3)
 
+  const { products, loading: apiLoading, error } = useCategoryProductsByCategoryId(
+    categoryId,
+    cfg.products,
+    {
+      fallbackImage: cardImg,
+      fallbackTag: cfg.name,
+      fallbackCategorySlug: cfg.slug,
+    },
+  )
+
   useEffect(() => {
     Aos.init()
+    setLoading(true)
     const t = setTimeout(() => setLoading(false), 300)
     return () => clearTimeout(t)
-  }, [])
+  }, [categoryId])
 
   const parsePrice = (v: string | number) => {
     if (typeof v === 'number') return v
@@ -44,10 +59,10 @@ export default function NeonSigns() {
   }
 
   const priceBounds = useMemo(() => {
-    const prices = (cfg?.products ?? []).map(p => parsePrice(p.price))
+    const prices = (products ?? []).map(p => parsePrice(p.price))
     if (!prices.length) return { min: 0, max: 500 }
     return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) }
-  }, [])
+  }, [products])
 
   useEffect(() => {
     setMinValue(priceBounds.min)
@@ -55,14 +70,14 @@ export default function NeonSigns() {
   }, [priceBounds.min, priceBounds.max])
 
   const filtered = useMemo(() => {
-    let list = (cfg?.products ?? []).filter(p => {
+    let list = (products ?? []).filter(p => {
       const price = parsePrice(p.price)
       return price >= minValue && (maxValue === 0 || price <= maxValue)
     })
     if (sort === 'price-asc')  list = [...list].sort((a,b) => parsePrice(a.price) - parsePrice(b.price))
     if (sort === 'price-desc') list = [...list].sort((a,b) => parsePrice(b.price) - parsePrice(a.price))
     return list
-  }, [minValue, maxValue, sort])
+  }, [products, minValue, maxValue, sort])
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
@@ -257,8 +272,13 @@ export default function NeonSigns() {
 
             {/* Product Grid */}
             <div className="flex-1 min-w-0" data-aos="fade-up" data-aos-delay="200">
-              {loading ? (
+              {loading || apiLoading ? (
                 <div className="flex items-center justify-center py-24"><FourSquare color={ACCENT} size="medium" /></div>
+              ) : error ? (
+                <div className="text-center py-24">
+                  <p className="text-title dark:text-white text-lg font-medium mb-2">Failed to load products</p>
+                  <p className="text-gray-400 text-sm">Showing fallback data.</p>
+                </div>
               ) : paginated.length === 0 ? (
                 <div className="text-center py-24">
                   <p className="text-title dark:text-white text-lg font-medium mb-2">No products found</p>

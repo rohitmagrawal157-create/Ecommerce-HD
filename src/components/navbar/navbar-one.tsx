@@ -1,25 +1,21 @@
+// src/components/navbar/navbar-one.tsx
 // @ts-nocheck
-/**
- * NavbarOne — Production-Grade, All Bugs Fixed
- * ─────────────────────────────────────────────────────────────────────
- * FIXES applied vs. original:
- *
- *  #4/#5  Removed dead constants CTA_BLUE, CTA_SOLID (unused)
- *  #8     <a href="…"> → <Link to="…"> in mobile (SPA nav, no page reload)
- *  #9     navbarBottom stale on scroll → now measured on EVERY scroll tick
- *         via a separate rAF loop, not just on resize/scrolled-state change
- *  #12    All gradient-text elements: added `color:'transparent'` fallback
- *         alongside WebkitTextFillColor for cross-browser safety
- *  #15    Badge position hack (top:8,right:48) removed — each badge is
- *         wrapped in its own relative container so absolute offsets are correct
- *  #20    refreshCounts stale-closure bug: function extracted with useCallback
- *         so event listeners always call the latest version
- *  #21    MegaMenuPanel tooltip was clipped by overflow:hidden — panel's
- *         overflow changed to 'visible'; tooltip rendered via a portal-like
- *         fixed-position element instead
- *  #22    Profile/Account link: non-auth → /login, auth → /my-profile
- * ─────────────────────────────────────────────────────────────────────
- */
+// ══════════════════════════════════════════════════════════════════════════════
+//  NavbarOne — Live API Categories ONLY (no static fallback)
+// ══════════════════════════════════════════════════════════════════════════════
+//
+//  URL CONTRACT:
+//    Parent dept click   →  /category?id={parentId}
+//    Child link click    →  /category?subId={childId}&parentId={parentId}
+//
+//  API INTEGRATION:
+//  · GET /navbar-categories on mount (native fetch + AbortController)
+//  · Response: { status: true, data: [ { id, name, image_url, children: [{id,name}] } ] }
+//  · children[] → flatLinks in mega menu with correct subId+parentId URLs
+//  · On error → category bar disappears (no fallback)
+//
+//  ALL EXISTING UI LOGIC PRESERVED (scroll, mobile drawer, profile dropdown, etc.)
+// ══════════════════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -27,32 +23,35 @@ import {
   LuHeart, LuShoppingBasket, LuSearch, LuMapPin,
   LuTruck, LuSmartphone, LuCircle, LuX,
   LuChevronDown, LuChevronRight, LuMenu, LuUser, LuShieldCheck,
-  LuClipboardCheck,
-  LuGift,
-  LuFootprints,
-  LuSave,
+  LuClipboardCheck, LuGift, LuLogOut,
 } from 'react-icons/lu';
 import { RiEBike2Line } from 'react-icons/ri';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BRAND TOKENS
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Brand tokens ──────────────────────────────────────────────────────────────
 const BRAND_GRAD  = 'linear-gradient(135deg, #5B4FBE 0%, #E8314A 50%, #F97316 100%)';
-const CTA_GRAD    = 'linear-gradient(135deg, #b7be4f 0%, #36c6ee 50%, #f9e216 100%)';
+const CTA_GRAD    = 'linear-gradient(135deg, #2563EB 0%, #06B6D4 50%, #22C55E 100%)';
 const BRAND_SOLID = '#5B4FBE';
-// FIX #4/#5: removed CTA_BLUE, CTA_SOLID (dead constants)
 
 const DEPT_GRADS: Record<string, { grad: string; from: string; to: string }> = {
-  'Portrait Frames':   { grad: 'linear-gradient(135deg,#5B4FBE,#9333EA)', from: '#5B4FBE', to: '#9333EA' },
-  'Canvas Paintings':  { grad: 'linear-gradient(135deg,#E8314A,#F97316)', from: '#E8314A', to: '#F97316' },
-  'Temple Art Prints': { grad: 'linear-gradient(135deg,#F97316,#EAB308)', from: '#F97316', to: '#EAB308' },
-  'Wall Murals':       { grad: 'linear-gradient(135deg,#22C55E,#84CC16)', from: '#22C55E', to: '#84CC16' },
-  'Modern Wallpapers': { grad: 'linear-gradient(135deg,#06B6D4,#2563EB)', from: '#06B6D4', to: '#2563EB' },
-  'Customize Blinds':  { grad: 'linear-gradient(135deg,#EC4899,#E8314A)', from: '#EC4899', to: '#E8314A' },
-  'Neon Signs':        { grad: 'linear-gradient(135deg,#06B6D4,#22C55E)', from: '#06B6D4', to: '#22C55E' },
-  'Backlit LED':       { grad: 'linear-gradient(135deg,#5B4FBE,#06B6D4)', from: '#5B4FBE', to: '#06B6D4' },
+  'Portrait Frames':   { grad: 'linear-gradient(135deg,#5B4FBE,#9333EA)', from:'#5B4FBE', to:'#9333EA' },
+  'Canvas Paintings':  { grad: 'linear-gradient(135deg,#E8314A,#F97316)', from:'#E8314A', to:'#F97316' },
+  'Temple Art Prints': { grad: 'linear-gradient(135deg,#F97316,#EAB308)', from:'#F97316', to:'#EAB308' },
+  'Wall Murals':       { grad: 'linear-gradient(135deg,#22C55E,#84CC16)', from:'#22C55E', to:'#84CC16' },
+  'Modern Wallpapers': { grad: 'linear-gradient(135deg,#06B6D4,#2563EB)', from:'#06B6D4', to:'#2563EB' },
+  'Customize Blinds':  { grad: 'linear-gradient(135deg,#EC4899,#E8314A)', from:'#EC4899', to:'#E8314A' },
+  'Neon Signs':        { grad: 'linear-gradient(135deg,#06B6D4,#22C55E)', from:'#06B6D4', to:'#22C55E' },
+  'Backlit LED':       { grad: 'linear-gradient(135deg,#5B4FBE,#06B6D4)', from:'#5B4FBE', to:'#06B6D4' },
 };
+const FALLBACK_GRAD = { grad: BRAND_GRAD, from: '#5B4FBE', to: '#F97316' };
+
+function resolveDeptGrad(name: string) {
+  if (DEPT_GRADS[name]) return DEPT_GRADS[name];
+  const key = Object.keys(DEPT_GRADS).find(k =>
+    k.toLowerCase().includes(name.toLowerCase()) ||
+    name.toLowerCase().includes(k.toLowerCase().split(' ')[0])
+  );
+  return key ? DEPT_GRADS[key] : FALLBACK_GRAD;
+}
 
 const C = {
   brand: BRAND_SOLID, brandHover: '#4a3da0', brandBg: '#f0f0fc',
@@ -62,77 +61,84 @@ const C = {
 };
 const FONT = "'DM Sans', sans-serif";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
+// ── API types ─────────────────────────────────────────────────────────────────
+interface ApiChild { id: number; name: string; date: string; image_url: string | null; }
+interface ApiCat   { id: number; name: string; date: string; image_url: string | null; children: ApiChild[]; }
+interface ApiResp  { status: boolean; data: ApiCat[]; }
 
-type MenuLink = string | { name: string; badge?: string; path?: string };
+// ── Internal types ────────────────────────────────────────────────────────────
+type MenuLink = string | { name: string; badge?: string; path?: string; id?: number; parentId?: number };
 interface MenuGroup { heading: string; links: MenuLink[]; }
-interface DeptMenu  { image: string; imageAlt: string; flatLinks?: MenuLink[]; groups: MenuGroup[]; }
-interface NavbarApiCategory {
-  id: number;
-  name: string;
-  image_url: string | null;
-  children?: Array<{
-    id: number;
-    name: string;
-    image_url: string | null;
-  }>;
-}
+interface DeptMenu  { id?: number; image: string; imageAlt: string; flatLinks?: MenuLink[]; groups: MenuGroup[]; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const toSlug = (s: string) => s.toLowerCase().replace(/[\s&\/]+/g, '-');
 
-const toSlug      = (s: string) => s.toLowerCase().replace(/[\s&\/]+/g, '-');
-const getLinkName = (l: MenuLink): string => typeof l === 'string' ? l : l.name;
-const getLinkBadge= (l: MenuLink): string | undefined => typeof l === 'string' ? undefined : l.badge;
-const getLinkPath = (l: MenuLink, dept?: string): string => {
+const getLinkName  = (l: MenuLink): string => typeof l === 'string' ? l : l.name;
+const getLinkBadge = (l: MenuLink): string | undefined => typeof l === 'string' ? undefined : l.badge;
+
+/**
+ * URL builder — THE critical function.
+ *
+ * Parent dept  →  /category?id={parentId}
+ * Child link   →  /category?subId={childId}&parentId={parentId}
+ */
+function getLinkPath(l: MenuLink, dept?: string, deptId?: number): string {
   if (typeof l !== 'string' && l.path) return l.path;
   const name = getLinkName(l);
-  if (dept === 'Customize Blinds' && name === 'Start Customizing')  return '/customize/blind';
-  if (dept === 'Neon Signs'       && name === 'Design Your Neon Sign') return '/customize/neon';
-  if (dept === 'Wall Murals'      && name.toLowerCase().includes('custom photo')) return '/customize/mural';
-  if (dept) return `/category/${toSlug(dept)}?sub=${encodeURIComponent(name)}`;
-  return `/product/${toSlug(name)}`;
-};
 
-// FIX #12: gradient text helper — always includes color:'transparent' fallback
+  // Custom configurator overrides
+  if (dept === 'Customize Blinds' && (name === 'Start Customizing' || name.toLowerCase().includes('start custom')))
+    return '/customize/blind';
+  if (dept === 'Neon Signs' && (name === 'Design Your Neon Sign' || name.toLowerCase().includes('design your')))
+    return '/customize/neon';
+  if (dept === 'Wall Murals' && name.toLowerCase().includes('custom photo'))
+    return '/customize/mural';
+
+  // Treat "All X" links as parent category (use parent endpoint)
+  if (typeof l !== 'string' && name.toLowerCase().startsWith('all ') && deptId) {
+    return `/category?id=${deptId}`;
+  }
+
+  // Child link with known id → /category?subId=X&parentId=Y
+  if (typeof l !== 'string' && l.id && l.id > 0) {
+    const pid = l.parentId ?? deptId;
+    const parentPart = pid && pid > 0 ? `&parentId=${pid}` : '';
+    return `/category?subId=${l.id}${parentPart}`;
+  }
+
+  // Fallback: slug-based (should rarely happen)
+  if (dept) return `/category?sub=${encodeURIComponent(name)}${deptId ? `&id=${deptId}` : ''}`;
+  return `/product/${toSlug(name)}`;
+}
+
 const gradText = (grad: string): React.CSSProperties => ({
-  backgroundImage:        grad,
-  WebkitBackgroundClip:   'text',
-  backgroundClip:         'text',
-  WebkitTextFillColor:    'transparent',
-  color:                  'transparent', // FIX #12 fallback
+  backgroundImage: grad, WebkitBackgroundClip: 'text',
+  backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent',
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MEGA MENU DATA
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Merge API data into DeptMenu (no static groups) ───────────────────────────
+function mergeApiCategories(apiData: ApiCat[]): Record<string, DeptMenu> {
+  const merged: Record<string, DeptMenu> = {};
+  for (const cat of apiData) {
+    const deptName = cat.name;
+    const apiFlatLinks: MenuLink[] = cat.children.map(child => ({
+      name: child.name,
+      id: child.id,
+      parentId: cat.id,
+    }));
+    merged[deptName] = {
+      id:        cat.id,
+      image:     cat.image_url ?? 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=320&h=400&fit=crop',
+      imageAlt:  deptName,
+      flatLinks: apiFlatLinks,
+      groups:    [], // No static groups – only API children
+    };
+  }
+  return merged;
+}
 
-const MEGA_MENU: Record<string, DeptMenu> = {
-  'Portrait Frames':   { image:'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=320&h=400&fit=crop',imageAlt:'Portrait Frames',flatLinks:['All Portrait Frames','Wooden Frames','Metal Frames','Acrylic Frames','Collage Frames',{name:'Custom Size Frames',badge:'NEW'}],groups:[{heading:'By Orientation',links:['Portrait','Landscape','Square','Panoramic']},{heading:'By Color',links:['Black','White','Gold','Silver','Natural Wood','Custom Color']}]},
-  'Canvas Paintings':  { image:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=320&h=400&fit=crop',imageAlt:'Canvas Paintings',flatLinks:['All Canvas Paintings','Abstract Canvas','Landscape Canvas','Portrait Canvas','Custom Canvas Print',{name:'Canvas with Frame',badge:''}],groups:[{heading:'Size',links:['Small (under 24")','Medium (24"-48")','Large (48"+)','Multi-panel']},{heading:'Style',links:['Modern','Traditional','Minimalist','Vintage','Religious','Custom Design']}]},
-  'Temple Art Prints': { image:'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=320&h=400&fit=crop',imageAlt:'Temple Art Prints',flatLinks:['All Temple Art','Ganesha Paintings','Lakshmi Prints','Sai Baba Art','Radha Krishna',{name:'Pichwai Art',badge:'NEW'},'Custom Temple Art'],groups:[{heading:'Medium',links:['Canvas','Paper Print','Metal Print','Wood Panel','Fabric']},{heading:'Frame Style',links:['Ornate Gold','Wood Grain','Floating Frame','Unframed']}]},
-  'Wall Murals':       { image:'https://images.unsplash.com/photo-1579546929662-711aa81148cf?w=320&h=400&fit=crop',imageAlt:'Wall Murals',flatLinks:['All Wall Murals','Nature Murals','Abstract Murals','Cityscape Murals','Kids Room Murals',{name:'Custom Photo Mural',badge:'POPULAR'}],groups:[{heading:'Material',links:['Non-woven','Vinyl','Peel & Stick','Pre-pasted','Textured']},{heading:'Room',links:['Living Room','Bedroom','Office','Restaurant','Kids Room']}]},
-  'Modern Wallpapers': { image:'https://images.unsplash.com/photo-1615529162924-f8605388461d?w=320&h=400&fit=crop',imageAlt:'Modern Wallpapers',flatLinks:['All Wallpapers','Geometric Patterns','Floral Prints','3D Textured','Metallic Finish',{name:'Eco-friendly',badge:'NEW'},'Sample Pack'],groups:[{heading:'Color',links:['Neutral','Bold & Bright','Pastel','Dark & Moody','Custom Color']},{heading:'Application',links:['Living Room','Bedroom','Accent Wall','Ceiling','Bathroom']}]},
-  'Customize Blinds':  { image:'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=320&h=400&fit=crop',imageAlt:'Customize Blinds',flatLinks:[{name:'Start Customizing',path:'/customize/blind',badge:'NEW'},'Roller Blinds','Roman Blinds','Venetian Blinds','Vertical Blinds','Motorized Blinds','Shop All Blinds'],groups:[{heading:'Features',links:['Blackout','Light Filtering','Thermal Insulation','Water Resistant']},{heading:'Colors & Textures',links:['Solid Colors','Patterns','Wood Grain','Metallic','Custom Print']}]},
-  'Neon Signs':        { image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnnDsYuA7SInsAMt2y3r-DG21vVwRYkUWsxQ&s',imageAlt:'Neon Signs',flatLinks:[{name:'Design Your Neon Sign',path:'/customize/neon',badge:'BESTSELLER'},'Pre-designed Quotes','Business Logos','Wedding Signs','Custom Shapes','LED Neon vs Glass Neon','Shop All Neon'],groups:[{heading:'Colors',links:['Red','Blue','Green','Pink','White','Multicolor','RGB']},{heading:'Sizes',links:['Small (12"x12")','Medium (24"x24")','Large (36"x36")','Custom Size']}]},
-  'Backlit LED':       { image:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=320&h=400&fit=crop',imageAlt:'Backlit LED',flatLinks:['LED Panel Lights','Backlit Frames','Edge-lit Signs','Light Boxes','Slim LED Panels',{name:'Tunable White',badge:'NEW'},'Shop All Backlit LED'],groups:[{heading:'Applications',links:['Home Lighting','Office Ceilings','Signage Backlight','Art Illumination','Retail Displays']},{heading:'Technology',links:['CCT Tunable','Dimmable','Smart (WiFi)','Emergency Backup','IP65 Waterproof']}]},
-};
-
-const PAGE_MENU = {
-  Home: { links: [{name:'Home Minimal',path:'/'},{name:'Home Stylish',path:'/index-v2'},{name:'Home Accessories',path:'/index-v3'},{name:'Home Collection',path:'/index-v4'},{name:'Home Luxury',path:'/index-v5'}] },
-  Pages: { groups: [{heading:'Company',links:[{name:'About Us',path:'/about'},{name:'Price Plan',path:'/pricing'},{name:'Team Member',path:'/team'},{name:'FAQs',path:'/faq'},{name:'Terms',path:'/terms-and-conditions'}]},{heading:'Portfolio',links:[{name:'Portfolio 1',path:'/portfolio-v1'},{name:'Portfolio 2',path:'/portfolio-v2'},{name:'404 Error',path:'/error'}]},{heading:'Account',links:[{name:'My Profile',path:'/my-profile'},{name:'Login',path:'/login'},{name:'Register',path:'/register'}]},{heading:'Checkout',links:[{name:'Shipping Method',path:'/shipping-method'},{name:'Payment Method',path:'/payment-method'},{name:'Invoice',path:'/invoice'}]}] },
-  Shop:  { links: [{name:'Shop Layout 01',path:'/shop-v1'},{name:'Shop Layout 02',path:'/shop-v2'},{name:'Product Details',path:'/product-details'},{name:'My Cart',path:'/cart'},{name:'Checkout',path:'/checkout'}] },
-};
-
-const DEPARTMENTS = Object.keys(MEGA_MENU);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SCOPED CSS
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── CSS ───────────────────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
   .hcn*,.hcn *::before,.hcn *::after{box-sizing:border-box}
@@ -143,96 +149,33 @@ const STYLES = `
   @media(max-width:1023px){.hcn .dsk{display:none!important}}
   @media(min-width:1024px){.hcn .mob{display:none!important}}
 
+  /* Skeleton shimmer */
+  @keyframes hcnShim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .hcn-skel{background:linear-gradient(90deg,#f0f0f0 25%,#e4e4e4 50%,#f0f0f0 75%);background-size:200% 100%;animation:hcnShim 1.4s infinite linear;border-radius:4px}
+
   /* Utility bar */
   .hcn-util-bar{background:${C.dark};max-height:36px;overflow:hidden;transition:max-height .3s ease,opacity .22s ease;opacity:1}
   .hcn-util-bar.is-hidden{max-height:0;opacity:0}
   .hcn-util-link{color:#aaa;transition:color .15s;display:flex;align-items:center;gap:5px;padding:0 10px;height:36px;font-family:${FONT};font-size:11.5px}
   .hcn-util-link:hover{color:#fff}
 
-  /* ── CATEGORY BAR ── */
-  .hcn-catbar-wrap{
-    position:relative; overflow:hidden;
-    background:${C.white}; border-bottom:1px solid #e8e8e8;
-  }
-  .hcn-catbar-wrap::before{
-    content:''; position:absolute; left:0; top:0; bottom:0; width:36px;
-    background:linear-gradient(to right,${C.white},transparent);
-    z-index:2; pointer-events:none; opacity:0; transition:opacity .2s;
-  }
-  .hcn-catbar-wrap::after{
-    content:''; position:absolute; right:0; top:0; bottom:0; width:36px;
-    background:linear-gradient(to left,${C.white},transparent);
-    z-index:2; pointer-events:none; transition:opacity .2s;
-  }
+  /* Category bar */
+  .hcn-catbar-wrap{position:relative;overflow:hidden;background:${C.white};border-bottom:1px solid #e8e8e8}
+  .hcn-catbar-wrap::before{content:'';position:absolute;left:0;top:0;bottom:0;width:36px;background:linear-gradient(to right,${C.white},transparent);z-index:2;pointer-events:none;opacity:0;transition:opacity .2s}
+  .hcn-catbar-wrap::after{content:'';position:absolute;right:0;top:0;bottom:0;width:36px;background:linear-gradient(to left,${C.white},transparent);z-index:2;pointer-events:none;transition:opacity .2s}
   .hcn-catbar-wrap.can-scroll-right::after{opacity:1}
   .hcn-catbar-wrap.can-scroll-left::before{opacity:1}
-  .hcn-catbar{
-    display:flex; align-items:stretch; overflow-x:auto; scrollbar-width:none;
-    -webkit-overflow-scrolling:touch; max-width:1720px; margin:0 auto;
-    padding:0 24px; height:48px;
-  }
+  .hcn-catbar{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:1720px;margin:0 auto;padding:0 24px;height:48px}
   .hcn-catbar::-webkit-scrollbar{display:none}
   .hcn-catbar-divider{width:1px;background:${C.border};margin:12px 8px;flex-shrink:0}
 
-  /* ── Dept links ── */
-  .hcn-dept-link{
-    position:relative; display:inline-flex; align-items:center; gap:4px;
-    padding:0 18px; height:100%; font-size:13px; font-weight:600; font-family:${FONT};
-    white-space:nowrap; color:${C.text}; flex-shrink:0;
-    border-bottom:2.5px solid transparent;
-    transition:color .18s,border-color .18s; cursor:pointer; text-decoration:none;
-  }
-  .hcn-dept-link::after{
-    content:''; position:absolute; bottom:-1px; left:50%; right:50%;
-    height:2.5px; border-radius:2px; transition:left .22s ease,right .22s ease,opacity .18s; opacity:0;
-  }
-  .hcn-dept-link:hover::after,.hcn-dept-link.is-active::after{left:12px;right:12px;opacity:1}
+  /* Dept links */
+  .hcn-dept-link{position:relative;display:inline-flex;align-items:center;gap:4px;padding:0 18px;height:100%;font-size:13px;font-weight:600;font-family:${FONT};white-space:nowrap;color:${C.text};flex-shrink:0;border-bottom:2.5px solid transparent;transition:color .18s;cursor:pointer;text-decoration:none}
 
-  /* 8 unique gradient underlines */
-  .hcn-dept-link[data-dept="Portrait Frames"]::after   {background:linear-gradient(90deg,#5B4FBE,#9333EA)}
-  .hcn-dept-link[data-dept="Canvas Paintings"]::after  {background:linear-gradient(90deg,#E8314A,#F97316)}
-  .hcn-dept-link[data-dept="Temple Art Prints"]::after {background:linear-gradient(90deg,#F97316,#EAB308)}
-  .hcn-dept-link[data-dept="Wall Murals"]::after       {background:linear-gradient(90deg,#22C55E,#84CC16)}
-  .hcn-dept-link[data-dept="Modern Wallpapers"]::after {background:linear-gradient(90deg,#06B6D4,#2563EB)}
-  .hcn-dept-link[data-dept="Customize Blinds"]::after  {background:linear-gradient(90deg,#EC4899,#E8314A)}
-  .hcn-dept-link[data-dept="Neon Signs"]::after        {background:linear-gradient(90deg,#06B6D4,#22C55E)}
-  .hcn-dept-link[data-dept="Backlit LED"]::after       {background:linear-gradient(90deg,#5B4FBE,#06B6D4)}
-
-  /* 8 unique gradient text hover states */
-  .hcn-dept-link[data-dept="Portrait Frames"]:hover,
-  .hcn-dept-link[data-dept="Portrait Frames"].is-active   {background-image:linear-gradient(135deg,#5B4FBE,#9333EA);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Canvas Paintings"]:hover,
-  .hcn-dept-link[data-dept="Canvas Paintings"].is-active  {background-image:linear-gradient(135deg,#E8314A,#F97316);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Temple Art Prints"]:hover,
-  .hcn-dept-link[data-dept="Temple Art Prints"].is-active {background-image:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Wall Murals"]:hover,
-  .hcn-dept-link[data-dept="Wall Murals"].is-active       {background-image:linear-gradient(135deg,#22C55E,#84CC16);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Modern Wallpapers"]:hover,
-  .hcn-dept-link[data-dept="Modern Wallpapers"].is-active {background-image:linear-gradient(135deg,#06B6D4,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Customize Blinds"]:hover,
-  .hcn-dept-link[data-dept="Customize Blinds"].is-active  {background-image:linear-gradient(135deg,#EC4899,#E8314A);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Neon Signs"]:hover,
-  .hcn-dept-link[data-dept="Neon Signs"].is-active        {background-image:linear-gradient(135deg,#06B6D4,#22C55E);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-  .hcn-dept-link[data-dept="Backlit LED"]:hover,
-  .hcn-dept-link[data-dept="Backlit LED"].is-active       {background-image:linear-gradient(135deg,#5B4FBE,#06B6D4);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-
-  .hcn-dept-link .dept-chevron{transition:transform .2s;flex-shrink:0;opacity:.5}
-  .hcn-dept-link:hover .dept-chevron{transform:rotate(180deg)}
-
-  /* ── Mega panel ── FIX #21: overflow:visible so tooltip is never clipped */
-  .hcn-mega-fw{
-    position:fixed;left:0;right:0;background:${C.white};
-    border-top:1px solid ${C.border};
-    box-shadow:0 12px 40px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.05);
-    z-index:8999;
-    transition:opacity .18s ease,transform .18s ease;
-    transform-origin:top center;
-    overflow:visible; /* FIX #21 */
-  }
+  /* Mega panel */
+  .hcn-mega-fw{position:fixed;left:0;right:0;background:${C.white};border-top:1px solid ${C.border};box-shadow:0 12px 40px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.05);z-index:8999;transition:opacity .18s ease,transform .18s ease;transform-origin:top center;overflow:visible}
   .hcn-mega-fw.is-open{opacity:1;transform:translateY(0) scaleY(1);pointer-events:auto}
   .hcn-mega-fw.is-shut{opacity:0;transform:translateY(-8px) scaleY(.97);pointer-events:none}
-
-  /* Mega content helpers */
   .hcn-fl-link{display:flex;align-items:center;gap:6px;font-size:14px;font-family:${FONT};color:${C.text};padding:5px 0;transition:color .15s;font-weight:400;white-space:nowrap}
   .hcn-fl-link:hover{color:${BRAND_SOLID}}
   .hcn-fl-link.shop-all{font-weight:600;color:${C.muted};margin-top:4px}
@@ -240,8 +183,6 @@ const STYLES = `
   .hcn-grp-head{font-size:14px;font-weight:700;font-family:${FONT};color:${C.text};margin-bottom:12px;padding-bottom:6px;border-bottom:1.5px solid ${C.border}}
   .hcn-grp-link{display:flex;align-items:center;gap:7px;font-size:13.5px;font-family:${FONT};color:${C.muted};padding:4px 0;transition:color .15s}
   .hcn-grp-link:hover{color:${BRAND_SOLID}}
-  .hcn-grp-link.shop-all{font-weight:600;color:${C.muted};margin-top:6px}
-  .hcn-grp-link.shop-all:hover{color:${BRAND_SOLID}}
   .hcn-badge-new{display:inline-flex;align-items:center;background:${C.newBadge};color:#fff;font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:10px;line-height:1;flex-shrink:0;text-transform:uppercase}
 
   /* Icon buttons */
@@ -270,557 +211,213 @@ const STYLES = `
   .hcn-sub-link{font-size:13px;color:${C.muted};font-family:${FONT};transition:color .14s;text-decoration:none}
   .hcn-sub-link:hover{color:${BRAND_SOLID}}
 
-  /* Simple dropdown */
-  .hcn-simple-drop{position:absolute;top:100%;left:0;background:${C.white};border:1px solid ${C.border};border-top:none;border-radius:0 0 12px 12px;min-width:200px;box-shadow:0 16px 40px rgba(0,0,0,.10);z-index:9001;transition:opacity .15s,transform .15s;transform-origin:top left}
-  .hcn-simple-drop.is-open{opacity:1;transform:scaleY(1);pointer-events:auto}
-  .hcn-simple-drop.is-shut{opacity:0;transform:scaleY(.96);pointer-events:none}
-  .hcn-drop-link{display:block;padding:9px 18px;font-size:13px;font-family:${FONT};color:${C.muted};transition:background .14s,color .14s}
-  .hcn-drop-link:hover{background:${C.brandBg};color:${BRAND_SOLID}}
-
-  /* ── Profile avatar + dropdown ───────────────────────────────────── */
-  .hcn-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 800; font-family: ${FONT};
-    background: ${BRAND_GRAD}; color: #fff;
-    cursor: pointer; border: 2px solid transparent;
-    transition: box-shadow .2s, border-color .2s;
-    flex-shrink: 0; user-select: none;
-  }
-  .hcn-avatar:hover { box-shadow: 0 0 0 3px rgba(91,79,190,.25); border-color: #5B4FBE44; }
-  .hcn-avatar.is-open { box-shadow: 0 0 0 3px rgba(91,79,190,.3); border-color: #5B4FBE; }
-
-  .hcn-profile-drop {
-    position: absolute; top: calc(100% + 10px); right: 0;
-    min-width: 220px; background: ${C.white};
-    border-radius: 14px; border: 1px solid ${C.border};
-    box-shadow: 0 20px 60px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.06);
-    z-index: 9010; overflow: hidden;
-    transform-origin: top right;
-    transition: opacity .18s ease, transform .18s ease;
-  }
-  .hcn-profile-drop.is-open { opacity:1; transform:scale(1); pointer-events:auto; }
-  .hcn-profile-drop.is-shut { opacity:0; transform:scale(.94); pointer-events:none; }
-
-  .hcn-pdrop-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 16px; font-size: 13.5px; font-weight: 500;
-    font-family: ${FONT}; color: ${C.text}; text-decoration: none;
-    transition: background .14s, color .14s; cursor: pointer;
-    border: none; background: none; width: 100%; text-align: left;
-  }
-  .hcn-pdrop-item:hover { background: ${C.brandBg}; color: ${BRAND_SOLID}; }
-  .hcn-pdrop-item.danger:hover { background: #fff5f5; color: #e11d48; }
-  .hcn-pdrop-item .pdrop-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f4f3fa; flex-shrink: 0; }
-  .hcn-pdrop-divider { height: 1px; background: ${C.border}; margin: 4px 0; }
+  /* Profile dropdown */
+  .hcn-profile-drop{position:absolute;top:calc(100% + 10px);right:0;min-width:240px;background:${C.white};border-radius:14px;border:1px solid ${C.borderMd};box-shadow:0 20px 40px rgba(0,0,0,0.12);z-index:9010;overflow:hidden;transform-origin:top right;transition:opacity .18s ease,transform .18s ease}
+  .hcn-profile-drop.is-open{opacity:1;transform:scale(1);pointer-events:auto}
+  .hcn-profile-drop.is-shut{opacity:0;transform:scale(.95);pointer-events:none}
+  .hcn-pdrop-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;font-weight:500;font-family:${FONT};color:${C.text};text-decoration:none;transition:background .14s,color .14s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+  .hcn-pdrop-item:hover{background:${C.brandBg};color:${BRAND_SOLID}}
+  .hcn-pdrop-item.danger:hover{background:#fff5f5;color:#e11d48}
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TOOLTIP
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Components ────────────────────────────────────────────────────────────────
 function Tooltip({ text, visible }: { text: string; visible: boolean }) {
+  return <div style={{ position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',color:'#fff',fontSize:11,fontFamily:FONT,fontWeight:500,padding:'5px 11px',borderRadius:5,whiteSpace:'nowrap',zIndex:9999,boxShadow:'0 4px 14px rgba(0,0,0,.2)',opacity:visible?1:0,pointerEvents:'none',transition:'opacity .18s' }}>
+    <div style={{ position:'absolute',top:-4,left:'50%',transform:'translateX(-50%) rotate(45deg)',width:8,height:8,background:'#1a1a1a' }}/>
+    {text}
+  </div>;
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return <span style={{ position:'absolute',top:-7,right:-7,minWidth:16,height:16,padding:'0 4px',borderRadius:8,background:BRAND_GRAD,color:'#fff',fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center' }}>{count > 99 ? '99+' : count}</span>;
+}
+
+function CatBarSkeleton() {
+  return <div style={{ display:'flex',alignItems:'center',height:48,padding:'0 24px',gap:8 }}>
+    {[100,90,110,80,120,95,85,105].map((w,i) => <div key={i} className="hcn-skel" style={{ width:w,height:14,flexShrink:0 }}/>)}
+  </div>;
+}
+
+// ── Mega Menu Panel ───────────────────────────────────────────────────────────
+function MegaMenuPanel({ dept, data, isOpen, navbarBottom, onEnter, onLeave }: {
+  dept: string; data: DeptMenu; isOpen: boolean;
+  navbarBottom: number; onEnter: () => void; onLeave: () => void;
+}) {
+  const dg = resolveDeptGrad(dept);
+  const deptId = data.id;
+
+  return <>
+    {isOpen && <div style={{ position:'fixed',top:navbarBottom-28,left:'50%',transform:'translateX(-50%)',background:'rgba(26,26,26,.9)',color:'#fff',fontSize:12,fontWeight:600,fontFamily:FONT,padding:'5px 14px',borderRadius:'6px 6px 0 0',whiteSpace:'nowrap',zIndex:9000,pointerEvents:'none' }}>{dept}</div>}
+    <div className={`hcn-mega-fw ${isOpen?'is-open':'is-shut'}`} style={{ top:navbarBottom }} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+      <div style={{ height:3,background:dg.grad }}/>
+      <div style={{ maxWidth:1400,margin:'0 auto',padding:'28px 40px',display:'flex',alignItems:'flex-start',gap:28,justifyContent:'center' }}>
+        <div style={{ width:220,minWidth:220,overflow:'hidden',borderRadius:8,boxShadow:`0 0 0 2px ${dg.from}22,0 6px 18px rgba(0,0,0,.06)`,flexShrink:0 }}>
+          <img src={data.image} alt={data.imageAlt} style={{ width:'100%',height:280,objectFit:'cover',display:'block' }}/>
+        </div>
+        <div style={{ display:'flex',alignItems:'flex-start',gap:12 }}>
+          {data.flatLinks && data.flatLinks.length > 0 && (
+            <div style={{ minWidth:180,padding:'0 24px',borderRight:`1px solid ${C.border}`,flexShrink:0 }}>
+              <div style={{ fontSize:10,fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:12,...gradText(dg.grad) }}>Quick Links</div>
+              {data.flatLinks.map((item, i) => {
+                const name  = getLinkName(item);
+                const badge = getLinkBadge(item);
+                const isShopAll = name.toLowerCase().startsWith('shop all');
+                return (
+                  <Link key={i} to={getLinkPath(item, dept, deptId)} className={`hcn-fl-link ${isShopAll?'shop-all':''}`}>
+                    {name}
+                    {badge === 'NEW'        && <span className="hcn-badge-new">NEW</span>}
+                    {badge === 'POPULAR'    && <span className="hcn-badge-new" style={{background:'#22C55E'}}>HOT</span>}
+                    {badge === 'BESTSELLER' && <span className="hcn-badge-new" style={{background:'#F97316'}}>BEST</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {/* No static groups – only flatLinks from API */}
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+// ── Profile Dropdown ──────────────────────────────────────────────────────────
+function ProfileDropdown({ user, isOpen, onToggle, onLogout, containerRef }: {
+  user: { name: string; email: string } | null;
+  isOpen: boolean; onToggle: () => void; onLogout: () => void;
+  containerRef: React.RefObject<HTMLDivElement>;
+}) {
+  const ITEMS = [
+    { icon: LuUser,          label: 'My Profile',    path: '/my-profile'    },
+    { icon: LuClipboardCheck,label: 'Order History', path: '/order-history' },
+    { icon: LuHeart,         label: 'My Wishlist',   path: '/wishlist'      },
+    { icon: LuGift,          label: 'My Cart',       path: '/cart'          },
+  ];
+  const initial = user?.name?.trim()?.[0]?.toUpperCase() ?? '?';
+
   return (
-    <div style={{
-      position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
-      transform: 'translateX(-50%)',
-      background: '#1a1a1a', color: '#fff', fontSize: 11, fontFamily: FONT,
-      fontWeight: 500, padding: '5px 11px', borderRadius: 5,
-      whiteSpace: 'nowrap', zIndex: 9999,
-      boxShadow: '0 4px 14px rgba(0,0,0,.2)',
-      opacity: visible ? 1 : 0, pointerEvents: 'none',
-      transition: 'opacity .18s',
-    }}>
-      <div style={{ position: 'absolute', top: -4, left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: 8, height: 8, background: '#1a1a1a' }} />
-      {text}
+    <div ref={containerRef} style={{ position:'relative',display:'flex',alignItems:'center' }}>
+      <button onClick={onToggle} className="hcn-icon-btn" aria-label="Account menu" aria-expanded={isOpen} style={{ position:'relative',flexDirection:'column',alignItems:'center',gap:'2px',background:'none',border:'none',padding:'5px 9px',borderRadius:'8px',cursor:'pointer' }}>
+        <div style={{ position:'relative' }}>
+          <LuUser size={21} color="#444"/>
+          {isOpen && <span style={{ position:'absolute',bottom:-2,right:-4,width:8,height:8,background:BRAND_SOLID,borderRadius:'50%',border:'1px solid #fff' }}/>}
+        </div>
+        <span className="hcn-lbl" style={{ fontSize:'10.5px',color:'#555',fontFamily:FONT,fontWeight:500 }}>Account</span>
+      </button>
+
+      <div className={`hcn-profile-drop ${isOpen?'is-open':'is-shut'}`}>
+        <div style={{ padding:'16px 16px 12px',borderBottom:`1px solid ${C.border}`,background:'#FAFAFC',display:'flex',alignItems:'center',gap:12 }}>
+          <div style={{ width:44,height:44,borderRadius:'50%',background:BRAND_GRAD,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:18,color:'#fff',flexShrink:0,boxShadow:'0 2px 8px rgba(91,79,190,0.3)' }}>{initial}</div>
+          <div style={{ minWidth:0,flex:1 }}>
+            <div style={{ fontWeight:700,fontSize:'14px',color:C.text,fontFamily:FONT,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{user?.name ?? 'User'}</div>
+            <div style={{ fontSize:'11px',color:C.light,fontFamily:FONT,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{user?.email ?? ''}</div>
+          </div>
+        </div>
+        <div style={{ padding:'8px 0' }}>
+          {ITEMS.map(({ icon: Icon, label, path }) => (
+            <Link key={label} to={path} onClick={onToggle} className="hcn-pdrop-item">
+              <Icon size={16} strokeWidth={1.8} style={{ flexShrink:0 }}/>{label}
+            </Link>
+          ))}
+        </div>
+        <div style={{ height:1,background:C.border,margin:'4px 0' }}/>
+        <div style={{ padding:'8px 0 12px' }}>
+          <button onClick={()=>{ onToggle(); onLogout(); }} className="hcn-pdrop-item danger" style={{ color:'#E11D48',fontFamily:FONT }}>
+            <LuLogOut size={16} strokeWidth={1.8} style={{ flexShrink:0 }}/>Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CART BADGE  FIX #15: own relative wrapper → absolute offsets are always correct
-// ─────────────────────────────────────────────────────────────────────────────
-
-function CountBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span style={{
-      position: 'absolute', top: -7, right: -7,
-      minWidth: 16, height: 16, padding: '0 4px',
-      borderRadius: 8, background: BRAND_GRAD,
-      color: '#fff', fontSize: 9, fontWeight: 700,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      {count > 99 ? '99+' : count}
-    </span>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MEGA MENU PANEL
-// FIX #21: tooltip moved outside overflow:hidden container → rendered via fixed pos
-// ─────────────────────────────────────────────────────────────────────────────
-
-function MegaMenuPanel({
-  dept, data, isOpen, navbarBottom, tooltipTop, onEnter, onLeave,
-}: {
-  dept: string; data: DeptMenu; isOpen: boolean;
-  navbarBottom: number; tooltipTop: number;
-  onEnter: () => void; onLeave: () => void;
-}) {
-  const dg = DEPT_GRADS[dept];
-
-  return (
-    <>
-      {/* FIX #21: category label tooltip is a SEPARATE fixed element, never clipped */}
-      {isOpen && (
-        <div style={{
-          position: 'fixed',
-          top: tooltipTop - 28,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(26,26,26,.9)',
-          color: '#fff', fontSize: 12, fontWeight: 600, fontFamily: FONT,
-          padding: '5px 14px', borderRadius: '6px 6px 0 0',
-          whiteSpace: 'nowrap', zIndex: 9000, pointerEvents: 'none',
-        }}>
-          {dept}
-        </div>
-      )}
-
-      <div
-        className={`hcn-mega-fw ${isOpen ? 'is-open' : 'is-shut'}`}
-        style={{ top: navbarBottom }}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-      >
-        {/* Dept-specific gradient accent bar */}
-        <div style={{ height: 3, background: dg?.grad ?? BRAND_GRAD }} />
-
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 40px', display: 'flex', alignItems: 'flex-start', gap: 28, justifyContent: 'center' }}>
-
-          {/* Category image */}
-          <div style={{ width: 220, minWidth: 220, overflow: 'hidden', borderRadius: 8, boxShadow: `0 0 0 2px ${dg?.from ?? BRAND_SOLID}22, 0 6px 18px rgba(0,0,0,.06)`, flexShrink: 0 }}>
-            <img src={data.image} alt={data.imageAlt} style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }} />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            {/* Flat links column */}
-            {data.flatLinks && data.flatLinks.length > 0 && (
-              <div style={{ minWidth: 180, padding: '0 24px', borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12, ...gradText(dg?.grad ?? BRAND_GRAD) }}>
-                  Quick Links
-                </div>
-                {data.flatLinks.map((item, i) => {
-                  const name = getLinkName(item);
-                  const badge = getLinkBadge(item);
-                  const isShopAll = name.toLowerCase().startsWith('shop all');
-                  return (
-                    <Link key={i} to={getLinkPath(item, dept)} className={`hcn-fl-link ${isShopAll ? 'shop-all' : ''}`}>
-                      {name}
-                      {badge === 'NEW' && <span className="hcn-badge-new">NEW</span>}
-                      {badge === 'POPULAR'    && <span className="hcn-badge-new" style={{ background: '#22C55E' }}>HOT</span>}
-                      {badge === 'BESTSELLER' && <span className="hcn-badge-new" style={{ background: '#F97316' }}>BEST</span>}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Group columns */}
-            {data.groups.map((group, gi) => (
-              <div key={gi} style={{ minWidth: 180, padding: '0 24px', borderRight: gi < data.groups.length - 1 ? `1px solid ${C.border}` : 'none', flexShrink: 0 }}>
-                {/* Group heading in dept gradient — FIX #12 */}
-                <div className="hcn-grp-head" style={{ ...gradText(dg?.grad ?? BRAND_GRAD) }}>
-                  {group.heading}
-                </div>
-                {group.links.map((item, li) => {
-                  const name = getLinkName(item);
-                  const badge = getLinkBadge(item);
-                  const isShopAll = name.toLowerCase().startsWith('shop all');
-                  return (
-                    <Link key={li} to={getLinkPath(item, dept)} className={`hcn-grp-link ${isShopAll ? 'shop-all' : ''}`}>
-                      {name}
-                      {badge === 'NEW' && <span className="hcn-badge-new">NEW</span>}
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MOBILE DRAWER
-// ─────────────────────────────────────────────────────────────────────────────
-
-function MobileDrawer({
-  open,
-  onClose,
-  departments,
-  megaMenu,
-}: {
-  open: boolean;
-  onClose: () => void;
-  departments: string[];
-  megaMenu: Record<string, DeptMenu>;
+// ── Mobile Drawer (no static groups) ─────────────────────────────────────────
+function MobileDrawer({ open, onClose, departments, megaMenu }: {
+  open: boolean; onClose: () => void;
+  departments: string[]; megaMenu: Record<string, DeptMenu>;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const toggle = (s: string) => setExpanded(p => p === s ? null : s);
 
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1100, opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition: 'opacity .27s ease' }} />
-      <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 'min(84vw,350px)', background: C.white, zIndex: 1200, display: 'flex', flexDirection: 'column', transform: open ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform .3s cubic-bezier(.4,0,.2,1)', boxShadow: '5px 0 30px rgba(0,0,0,.16)' }}>
-        <div style={{ height: 3, background: BRAND_GRAD, flexShrink: 0 }} />
-
-        {/* Header */}
-        <div style={{ padding: '15px 16px', borderBottom: `1px solid ${C.border}`, background: C.brandBg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: -.5, lineHeight: 1, fontFamily: FONT, ...gradText(BRAND_GRAD) }}>Infinity</div>
-            <div style={{ fontSize: 9, color: C.light, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 3 }}>printing &amp; signage</div>
-          </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${C.borderMd}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <LuX size={15} color="#555" />
-          </button>
+  return <>
+    <div onClick={onClose} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1100,opacity:open?1:0,pointerEvents:open?'auto':'none',transition:'opacity .27s ease' }}/>
+    <div style={{ position:'fixed',top:0,left:0,bottom:0,width:'min(84vw,350px)',background:C.white,zIndex:1200,display:'flex',flexDirection:'column',transform:open?'translateX(0)':'translateX(-100%)',transition:'transform .3s cubic-bezier(.4,0,.2,1)',boxShadow:'5px 0 30px rgba(0,0,0,.16)' }}>
+      <div style={{ height:3,background:BRAND_GRAD,flexShrink:0 }}/>
+      <div style={{ padding:'15px 16px',borderBottom:`1px solid ${C.border}`,background:C.brandBg,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
+        <div>
+          <div style={{ fontWeight:800,fontSize:20,letterSpacing:-.5,lineHeight:1,fontFamily:FONT,...gradText(BRAND_GRAD) }}>Infinity</div>
+          <div style={{ fontSize:9,color:C.light,letterSpacing:'0.15em',textTransform:'uppercase',marginTop:3 }}>printing &amp; signage</div>
         </div>
-
-        {/* Sign in */}
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-          <Link
-            to="/login"
-            onClick={onClose}
-            style={{ display: 'block', textAlign: 'center', padding: '11px 0', borderRadius: 10, background: CTA_GRAD, color: '#fff', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', fontFamily: FONT }}
-          >
-            SIGN UP / SIGN IN
-          </Link>
-        </div>
-
-        {/* Nav list */}
-        <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          {[{ label: 'Home', links: PAGE_MENU.Home.links }, { label: 'Shop', links: PAGE_MENU.Shop.links }].map(sec => (
-            <div key={sec.label} style={{ borderBottom: `1px solid #f5f5f5` }}>
-              <button onClick={() => toggle(sec.label)} className="hcn-drawer-btn">
-                {sec.label}
-                <LuChevronDown size={14} color="#999" style={{ transition: 'transform .2s', transform: expanded === sec.label ? 'rotate(180deg)' : 'rotate(0)' }} />
-              </button>
-              <div style={{ maxHeight: expanded === sec.label ? 400 : 0, overflow: 'hidden', transition: 'max-height .3s ease' }}>
-                <div style={{ background: '#fafaf9', padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {sec.links.map((l: any, i: number) => <Link key={i} to={l.path} onClick={onClose} className="hcn-sub-link">{l.name}</Link>)}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* FIX #8: was <a href="/contact"> */}
-          <Link to="/contact" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderBottom: `1px solid #f5f5f5`, fontSize: 14, fontWeight: 600, color: C.text, fontFamily: FONT }}>
-            Contact <LuChevronRight size={14} color="#aaa" />
-          </Link>
-
-          {/* Departments */}
-          {departments.map(dept => {
-            const data = megaMenu[dept];
-            const dg = DEPT_GRADS[dept];
-            if (!data) return null;
-            return (
-              <div key={dept} style={{ borderBottom: `1px solid #f5f5f5` }}>
-                <button onClick={() => toggle(dept)} className="hcn-drawer-btn">
-                  <span style={expanded === dept ? gradText(dg?.grad ?? BRAND_GRAD) : {}}>{dept}</span>
-                  <LuChevronDown size={14} color="#999" style={{ transition: 'transform .2s', transform: expanded === dept ? 'rotate(180deg)' : 'rotate(0)' }} />
-                </button>
-                <div style={{ maxHeight: expanded === dept ? 700 : 0, overflow: 'hidden', transition: 'max-height .32s ease' }}>
-                  <div style={{ background: '#fafaf9', padding: '10px 16px 14px' }}>
-                    <div style={{ height: 2, background: dg?.grad, borderRadius: 1, marginBottom: 10 }} />
-                    <div style={{ borderRadius: 8, overflow: 'hidden', marginBottom: 12, height: 100 }}>
-                      <img src={data.image} alt={dept} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    {(data.flatLinks || []).map((item, i) => {
-                      const name = getLinkName(item); const badge = getLinkBadge(item);
-                      return <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}><Link to={getLinkPath(item, dept)} onClick={onClose} className="hcn-sub-link">{name}</Link>{badge === 'NEW' && <span className="hcn-badge-new">NEW</span>}</div>;
-                    })}
-                    {data.groups.map((group, gi) => (
-                      <div key={gi} style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 6, fontFamily: FONT }}>{group.heading}</div>
-                        {group.links.map((item, li) => {
-                          const name = getLinkName(item); const badge = getLinkBadge(item);
-                          return <div key={li} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0' }}><Link to={getLinkPath(item, dept)} onClick={onClose} className="hcn-sub-link">{name}</Link>{badge === 'NEW' && <span className="hcn-badge-new">NEW</span>}</div>;
-                        })}
-                      </div>
-                    ))}
-                    <Link to={`/category/${toSlug(dept)}`} onClick={onClose} style={{ display: 'inline-block', marginTop: 10, fontSize: 12, fontWeight: 700, fontFamily: FONT, ...gradText(dg?.grad ?? BRAND_GRAD) }}>
-                      View All {dept} →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer utilities */}
-        <div style={{ borderTop: `1px solid ${C.border}`, background: '#fafaf9', padding: '11px 16px', flexShrink: 0 }}>
-          {[
-            { icon: <RiEBike2Line size={14} />, label: 'Fast Delivery Available' },
-            { icon: <LuMapPin size={13} />,     label: 'Delivering To Your City' },
-            { icon: <LuTruck size={13} />,      label: 'Track Your Order' },
-            { icon: <LuSmartphone size={13} />, label: 'Download Our App' },
-          ].map(({ icon, label }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', fontSize: 12.5, color: '#555', fontFamily: FONT }}>
-              <span style={{ color: BRAND_SOLID, display: 'flex' }}>{icon}</span>{label}
-            </div>
-          ))}
-        </div>
+        <button onClick={onClose} style={{ width:32,height:32,borderRadius:'50%',border:`1px solid ${C.borderMd}`,background:C.white,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}><LuX size={15} color="#555"/></button>
       </div>
-    </>
-  );
-}
-
-// ── ProfileDropdown ────────────────────────────────────────────────────────
-/// ── ProfileDropdown (professional, polished) ─────────────────────────────────
-function ProfileDropdown({
-  user,
-  isOpen,
-  onToggle,
-  onLogout,
-  containerRef,
-}: {
-  user: { name: string; email: string } | null;
-  isOpen: boolean;
-  onToggle: () => void;
-  onLogout: () => void;
-  containerRef: React.RefObject<HTMLDivElement>;
-}) {
-  // Menu items with Lucide icons (replaces emojis)
-  const ITEMS = [
-    { icon: LuUser,       label: 'My Profile',       path: '/my-profile'    },
-    { icon: LuClipboardCheck,    label: 'Order History',    path: '/order-history' },
-    { icon: LuHeart,      label: 'My Wishlist',      path: '/wishlist'      },
-    { icon: LuGift,label: 'My Cart',          path: '/cart'          },
-    { icon: LuFootprints,   label: 'Account Settings', path: '/my-profile'    },
-  ];
-
-  const initial = user?.name?.trim()?.[0]?.toUpperCase() ?? '?';
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      {/* Trigger button – person icon + label */}
-      <button
-        onClick={onToggle}
-        className="hcn-icon-btn"
-        aria-label="Account menu"
-        aria-expanded={isOpen}
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '2px',
-          background: 'none',
-          border: 'none',
-          padding: '5px 9px',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          transition: 'background 0.14s ease',
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          <LuUser size={21} color="#444" />
-          {/* Small open indicator dot */}
-          {isOpen && (
-            <span
-              style={{
-                position: 'absolute',
-                bottom: -2,
-                right: -4,
-                width: 8,
-                height: 8,
-                background: BRAND_SOLID,
-                borderRadius: '50%',
-                border: '1px solid #fff',
-              }}
-            />
-          )}
-        </div>
-        <span
-          className="hcn-lbl"
-          style={{
-            fontSize: '10.5px',
-            color: '#555',
-            fontFamily: FONT,
-            fontWeight: 500,
-          }}
-        >
-          Account
-        </span>
-      </button>
-
-      {/* Dropdown panel */}
-      <div
-        className={`hcn-profile-drop ${isOpen ? 'is-open' : 'is-shut'}`}
-        style={{
-          position: 'absolute',
-          top: 'calc(100% + 10px)',
-          right: 0,
-          minWidth: '260px',
-          background: C.white,
-          borderRadius: '16px',
-          border: `1px solid ${C.borderMd}`,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)',
-          zIndex: 9010,
-          overflow: 'hidden',
-          transformOrigin: 'top right',
-          transition: 'opacity 0.18s ease, transform 0.18s ease',
-          opacity: isOpen ? 1 : 0,
-          transform: isOpen ? 'scale(1)' : 'scale(0.96)',
-          pointerEvents: isOpen ? 'auto' : 'none',
-        }}
-      >
-        {/* Header: user avatar + name/email */}
-        <div
-          style={{
-            padding: '16px 16px 12px',
-            borderBottom: `1px solid ${C.border}`,
-            background: '#FAFAFC',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Avatar circle */}
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: BRAND_GRAD,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: 18,
-                color: '#fff',
-                flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(91,79,190,0.3)',
-              }}
-            >
-              {initial}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  color: C.text,
-                  fontFamily: FONT,
-                  lineHeight: 1.3,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {user?.name ?? 'User'}
-              </div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: C.light,
-                  fontFamily: FONT,
-                  marginTop: 2,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {user?.email ?? ''}
+      <div style={{ padding:'12px 16px',borderBottom:`1px solid ${C.border}`,flexShrink:0 }}>
+        <Link to="/login" onClick={onClose} style={{ display:'block',textAlign:'center',padding:'11px 0',borderRadius:10,background:CTA_GRAD,color:'#fff',fontWeight:700,fontSize:13,letterSpacing:'0.06em',fontFamily:FONT }}>SIGN UP / SIGN IN</Link>
+      </div>
+      <div style={{ flex:1,overflowY:'auto',overscrollBehavior:'contain' }}>
+        {[{label:'Home',links:[{name:'Home',path:'/'},{name:'Contact',path:'/contact'}]},{label:'Shop',links:[{name:'Shop',path:'/shop-v1'},{name:'Cart',path:'/cart'}]}].map(sec => (
+          <div key={sec.label} style={{ borderBottom:`1px solid #f5f5f5` }}>
+            <button onClick={()=>toggle(sec.label)} className="hcn-drawer-btn">{sec.label}<LuChevronDown size={14} color="#999" style={{ transition:'transform .2s',transform:expanded===sec.label?'rotate(180deg)':'rotate(0)' }}/></button>
+            <div style={{ maxHeight:expanded===sec.label?300:0,overflow:'hidden',transition:'max-height .3s ease' }}>
+              <div style={{ background:'#fafaf9',padding:'8px 16px 14px',display:'flex',flexDirection:'column',gap:9 }}>
+                {sec.links.map((l,i)=><Link key={i} to={l.path} onClick={onClose} className="hcn-sub-link">{l.name}</Link>)}
               </div>
             </div>
           </div>
-        </div>
+        ))}
+        <Link to="/contact" onClick={onClose} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'13px 16px',borderBottom:`1px solid #f5f5f5`,fontSize:14,fontWeight:600,color:C.text,fontFamily:FONT }}>Contact<LuChevronRight size={14} color="#aaa"/></Link>
 
-        {/* Menu items */}
-        <div style={{ padding: '8px 0' }}>
-          {ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.label}
-                to={item.path}
-                onClick={onToggle}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '10px 16px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  fontFamily: FONT,
-                  color: C.text,
-                  textDecoration: 'none',
-                  transition: 'background 0.14s ease, color 0.14s ease',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = C.brandBg;
-                  e.currentTarget.style.color = BRAND_SOLID;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = C.text;
-                }}
-              >
-                <Icon size={16} strokeWidth={1.8} style={{ color: 'inherit', flexShrink: 0 }} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
-
-        {/* Sign out button */}
-        <div style={{ padding: '8px 0 12px' }}>
-          <button
-            onClick={() => {
-              onToggle();
-              onLogout();
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '10px 16px',
-              background: 'none',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 500,
-              fontFamily: FONT,
-              color: '#E11D48',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'background 0.14s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F3')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <LuSave size={16} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-            Sign Out
-          </button>
-        </div>
+        {departments.map(dept => {
+          const data = megaMenu[dept]; if(!data) return null;
+          const dg = resolveDeptGrad(dept);
+          const deptId = data.id;
+          return (
+            <div key={dept} style={{ borderBottom:`1px solid #f5f5f5` }}>
+              <button onClick={()=>toggle(dept)} className="hcn-drawer-btn">
+                <span style={expanded===dept?gradText(dg.grad):{}}>{dept}</span>
+                <LuChevronDown size={14} color="#999" style={{ transition:'transform .2s',transform:expanded===dept?'rotate(180deg)':'rotate(0)' }}/>
+              </button>
+              <div style={{ maxHeight:expanded===dept?700:0,overflow:'hidden',transition:'max-height .32s ease' }}>
+                <div style={{ background:'#fafaf9',padding:'10px 16px 14px' }}>
+                  <div style={{ height:2,background:dg.grad,borderRadius:1,marginBottom:10 }}/>
+                  <div style={{ borderRadius:8,overflow:'hidden',marginBottom:12,height:100 }}>
+                    <img src={data.image} alt={dept} style={{ width:'100%',height:'100%',objectFit:'cover' }}/>
+                  </div>
+                  {deptId && (
+                    <Link to={`/category?id=${deptId}`} onClick={onClose} style={{ display:'inline-block',marginBottom:8,fontSize:12,fontWeight:700,fontFamily:FONT,...gradText(dg.grad) }}>
+                      All {dept} →
+                    </Link>
+                  )}
+                  {(data.flatLinks||[]).map((item,i)=>{
+                    const name=getLinkName(item);const badge=getLinkBadge(item);
+                    return <div key={i} style={{ display:'flex',alignItems:'center',gap:6,padding:'4px 0' }}>
+                      <Link to={getLinkPath(item,dept,deptId)} onClick={onClose} className="hcn-sub-link">{name}</Link>
+                      {badge==='NEW'&&<span className="hcn-badge-new">NEW</span>}
+                    </div>;
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ borderTop:`1px solid ${C.border}`,background:'#fafaf9',padding:'11px 16px',flexShrink:0 }}>
+        {[{icon:<RiEBike2Line size={14}/>,label:'Fast Delivery Available'},{icon:<LuMapPin size={13}/>,label:'Delivering To Your City'},{icon:<LuTruck size={13}/>,label:'Track Your Order'},{icon:<LuSmartphone size={13}/>,label:'Download Our App'}].map(({icon,label})=>(
+          <div key={label} style={{ display:'flex',alignItems:'center',gap:10,padding:'5px 0',fontSize:12.5,color:'#555',fontFamily:FONT }}>
+            <span style={{ color:BRAND_SOLID,display:'flex' }}>{icon}</span>{label}
+          </div>
+        ))}
       </div>
     </div>
-  );
+  </>;
 }
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
+
+// ── MAIN COMPONENT ────────────────────────────────────────────────────────────
+const NAVBAR_CATEGORIES_URL = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/navbar-categories';
 
 export default function NavbarOne() {
-  const location  = useLocation();
+  const location = useLocation();
   const navigate  = useNavigate();
-  const curr      = location.pathname;
+  const curr      = location.pathname + location.search;
 
   const [activeMenu,    setActiveMenu]    = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -836,174 +433,109 @@ export default function NavbarOne() {
   const [scrolled,      setScrolled]      = useState(false);
   const [mobHidden,     setMobHidden]     = useState(false);
   const [navbarBottom,  setNavbarBottom]  = useState(0);
-  const [activeChip,    setActiveChip]    = useState<string | null>(null);
-  const [catBarScroll,  setCatBarScroll]  = useState({ left: false, right: false });
-  const [apiMenu,       setApiMenu]       = useState<Record<string, DeptMenu> | null>(null);
-  const [apiDepartments,setApiDepartments]= useState<string[] | null>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
+  const [activeChip,    setActiveChip]    = useState<string|null>(null);
+  const [catBarScroll,  setCatBarScroll]  = useState({ left:false, right:false });
+  const [apiLoading,    setApiLoading]    = useState(true);
+  const [apiMenu,       setApiMenu]       = useState<Record<string,DeptMenu>|null>(null);
+  const [apiDepts,      setApiDepts]      = useState<string[]|null>(null);
 
   const navRef    = useRef<HTMLElement>(null);
   const catBarRef = useRef<HTMLDivElement>(null);
-  const timerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rafRef    = useRef<number | null>(null);
-  const nbRafRef  = useRef<number | null>(null);  // FIX #9: dedicated rAF for navbarBottom
-  const lastY     = useRef(0);
-  const delta_    = useRef(0);
-  const scrolled_ = useRef(false);
-  const mobHid_   = useRef(false);
-  const NAVBAR_CATEGORIES_URL = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/navbar-categories';
+  const profileRef= useRef<HTMLDivElement>(null);
+  const timerRef  = useRef<ReturnType<typeof setTimeout>|null>(null);
+  const rafRef    = useRef<number|null>(null);
+  const nbRafRef  = useRef<number|null>(null);
+  const lastY     = useRef(0); const delta_ = useRef(0);
+  const scrolled_ = useRef(false); const mobHid_ = useRef(false);
 
-  const megaMenu = useMemo(() => apiMenu ?? MEGA_MENU, [apiMenu]);
-  const departments = useMemo(() => {
-    if (apiDepartments && apiDepartments.length > 0) return apiDepartments;
-    return DEPARTMENTS;
-  }, [apiDepartments]);
+  // Active computed values – defaults to empty (no fallback)
+  const megaMenu    = useMemo(()=>apiMenu ?? {}, [apiMenu]);
+  const departments = useMemo(()=>apiDepts ?? [], [apiDepts]);
 
-  // ── FIX #9: navbarBottom measured every scroll tick via its own rAF ───────
-  const measureNavbar = useCallback(() => {
-    if (navRef.current) {
-      setNavbarBottom(navRef.current.getBoundingClientRect().bottom);
-    }
+  // ── API fetch (no fallback) ────────────────────────────────────────────────
+  useEffect(() => {
+    let alive = true;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(NAVBAR_CATEGORIES_URL, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload: ApiResp = await res.json();
+        if (!alive) return;
+        if (payload?.status && Array.isArray(payload.data) && payload.data.length > 0) {
+          const merged = mergeApiCategories(payload.data);
+          setApiMenu(merged);
+          setApiDepts(payload.data.map(c => c.name));
+        } else {
+          // API returned success but empty data – still treat as empty (no categories)
+          setApiMenu({});
+          setApiDepts([]);
+        }
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.warn('[NavbarOne] Category API failed, showing empty navbar.', err?.message);
+          setApiMenu({});
+          setApiDepts([]);
+        }
+      } finally {
+        if (alive) setApiLoading(false);
+      }
+    })();
+    return () => { alive = false; ctrl.abort(); };
   }, []);
 
-  // Called every frame while active menu is open to keep panel pinned to navbar
+  // ── navbar measurement ─────────────────────────────────────────────────────
+  const measureNavbar = useCallback(() => {
+    if (navRef.current) setNavbarBottom(navRef.current.getBoundingClientRect().bottom);
+  }, []);
   useEffect(() => {
     if (!activeMenu) return;
     let alive = true;
-    function tick() {
-      if (!alive) return;
-      measureNavbar();
-      nbRafRef.current = requestAnimationFrame(tick);
-    }
+    function tick() { if(!alive) return; measureNavbar(); nbRafRef.current = requestAnimationFrame(tick); }
     nbRafRef.current = requestAnimationFrame(tick);
-    return () => {
-      alive = false;
-      if (nbRafRef.current) cancelAnimationFrame(nbRafRef.current);
-    };
+    return () => { alive=false; if(nbRafRef.current) cancelAnimationFrame(nbRafRef.current); };
   }, [activeMenu, measureNavbar]);
+  useEffect(() => { measureNavbar(); window.addEventListener('resize',measureNavbar); return ()=>window.removeEventListener('resize',measureNavbar); }, [measureNavbar]);
 
-  useEffect(() => {
-    measureNavbar();
-    window.addEventListener('resize', measureNavbar);
-    return () => window.removeEventListener('resize', measureNavbar);
-  }, [measureNavbar]);
-
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-
-    const fetchNavbarCategories = async () => {
-      try {
-        const res = await fetch(NAVBAR_CATEGORIES_URL, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Failed with status ${res.status}`);
-        const payload = await res.json();
-        const rows: NavbarApiCategory[] = Array.isArray(payload?.data) ? payload.data : [];
-        if (!rows.length) return;
-
-        const nextMenu: Record<string, DeptMenu> = {};
-        const nextDepartments: string[] = [];
-
-        rows.forEach((cat) => {
-          const name = String(cat?.name ?? '').trim();
-          if (!name) return;
-
-          nextDepartments.push(name);
-
-          const fallback = MEGA_MENU[name];
-          const childNames = Array.isArray(cat.children)
-            ? cat.children.map((c) => String(c?.name ?? '').trim()).filter(Boolean)
-            : [];
-
-          nextMenu[name] = {
-            image:
-              cat.image_url ||
-              fallback?.image ||
-              'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=320&h=400&fit=crop',
-            imageAlt: name,
-            // API-driven menu: show exactly the subcategories returned by `children`.
-            flatLinks: childNames,
-            groups: [],
-          };
-        });
-
-        if (!active || nextDepartments.length === 0) return;
-        setApiMenu(nextMenu);
-        setApiDepartments(nextDepartments);
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') {
-          // eslint-disable-next-line no-console
-          console.warn('Navbar categories API failed. Using fallback menu.', err?.message ?? err);
-        }
-      }
-    };
-
-    fetchNavbarCategories();
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [NAVBAR_CATEGORIES_URL]);
-
-  // Category bar scroll masks
-  const checkCatBarScroll = useCallback(() => {
-    const el = catBarRef.current;
-    if (!el) return;
-    setCatBarScroll({ left: el.scrollLeft > 8, right: el.scrollLeft < el.scrollWidth - el.clientWidth - 8 });
+  // ── catbar scroll masks ────────────────────────────────────────────────────
+  const checkCatBar = useCallback(() => {
+    const el=catBarRef.current; if(!el) return;
+    setCatBarScroll({ left:el.scrollLeft>8, right:el.scrollLeft<el.scrollWidth-el.clientWidth-8 });
   }, []);
   useEffect(() => {
-    const el = catBarRef.current;
-    if (!el) return;
-    checkCatBarScroll();
-    el.addEventListener('scroll', checkCatBarScroll, { passive: true });
-    window.addEventListener('resize', checkCatBarScroll);
-    return () => { el.removeEventListener('scroll', checkCatBarScroll); window.removeEventListener('resize', checkCatBarScroll); };
-  }, [checkCatBarScroll]);
+    const el=catBarRef.current; if(!el) return;
+    checkCatBar();
+    el.addEventListener('scroll',checkCatBar,{passive:true});
+    window.addEventListener('resize',checkCatBar);
+    return ()=>{ el.removeEventListener('scroll',checkCatBar); window.removeEventListener('resize',checkCatBar); };
+  }, [checkCatBar, departments]);
 
-  // ── FIX #20: refreshCounts with useCallback — no stale closure ───────────
-  const refreshCounts = useCallback(async () => {
-    try {
-      const { getCart } = await import('../../api/cart.api');
-      const cart = await getCart();
-      setCartCount(cart.lines.reduce((s: number, l: any) => s + (l.quantity ?? 0), 0));
-    } catch {}
-    try {
-      const { getWishlist } = await import('../../api/wishlist.api');
-      const wl = await getWishlist();
-      setWishlistCount(wl.productIds.length);
-    } catch {}
-  }, []);
-
-  // Reads auth state from localStorage — called on mount + any auth change event
+  // ── auth ───────────────────────────────────────────────────────────────────
   const syncAuth = useCallback(() => {
     const token = window.localStorage.getItem('access_token');
     const raw   = window.localStorage.getItem('auth_user');
     setIsAuth(Boolean(token));
-    if (token && raw) {
-      try { setAuthUser(JSON.parse(raw)); } catch { setAuthUser(null); }
-    } else {
-      setAuthUser(null);
-    }
+    if (token && raw) { try { setAuthUser(JSON.parse(raw)); } catch { setAuthUser(null); } }
+    else setAuthUser(null);
+  }, []);
+
+  // ── counts ─────────────────────────────────────────────────────────────────
+  const refreshCounts = useCallback(async () => {
+    try { const {getCart}=await import('../../api/cart.api'); const cart=await getCart(); setCartCount(cart.lines.reduce((s:number,l:any)=>s+(l.quantity??0),0)); } catch {}
+    try { const {getWishlist}=await import('../../api/wishlist.api'); const wl=await getWishlist(); setWishlistCount(wl.productIds.length); } catch {}
   }, []);
 
   useEffect(() => {
-    syncAuth();
-    refreshCounts();
-
-    const onCart    = () => refreshCounts();
-    const onWl      = () => refreshCounts();
-    // Fires on cross-tab changes
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'access_token' || e.key === 'auth_user') syncAuth();
-      if (e.key?.startsWith('cart') || e.key?.startsWith('wishlist')) refreshCounts();
-    };
-    // Fires on SAME-tab login/logout (dispatch this from your login/logout handler)
-    const onAuth = () => { syncAuth(); refreshCounts(); };
-
+    syncAuth(); refreshCounts();
+    const onCart=()=>refreshCounts();
+    const onWl=()=>refreshCounts();
+    const onStorage=(e:StorageEvent)=>{ if(e.key==='access_token'||e.key==='auth_user') syncAuth(); if(e.key?.startsWith('cart')||e.key?.startsWith('wishlist')) refreshCounts(); };
+    const onAuth=()=>{ syncAuth(); refreshCounts(); };
     window.addEventListener('cart:changed',    onCart    as EventListener);
     window.addEventListener('wishlist:changed', onWl      as EventListener);
     window.addEventListener('storage',          onStorage as EventListener);
     window.addEventListener('auth:changed',     onAuth    as EventListener);
-    return () => {
+    return ()=>{
       window.removeEventListener('cart:changed',    onCart    as EventListener);
       window.removeEventListener('wishlist:changed', onWl      as EventListener);
       window.removeEventListener('storage',          onStorage as EventListener);
@@ -1011,332 +543,217 @@ export default function NavbarOne() {
     };
   }, [refreshCounts, syncAuth]);
 
-  // Close profile dropdown on outside click
+  // Close profile on outside click
   useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
+    const h=(e:MouseEvent)=>{ if(profileRef.current&&!profileRef.current.contains(e.target as Node)) setProfileOpen(false); };
+    document.addEventListener('mousedown',h); return ()=>document.removeEventListener('mousedown',h);
   }, []);
 
-  // Scroll handler
+  // ── scroll ─────────────────────────────────────────────────────────────────
   const onScroll = useCallback(() => {
-    const y = window.scrollY;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      const isMobile = window.innerWidth < 1024;
-      if (y > 2 !== scrolled_.current) { scrolled_.current = y > 2; setScrolled(y > 2); }
-      if (!isMobile) { if (mobHid_.current) { mobHid_.current = false; setMobHidden(false); } lastY.current = y; delta_.current = 0; return; }
-      if (y <= 10) { if (mobHid_.current) { mobHid_.current = false; setMobHidden(false); } lastY.current = y; delta_.current = 0; return; }
-      const diff = y - lastY.current;
-      if (diff > 0) { if (delta_.current < 0) delta_.current = 0; delta_.current += diff; if (delta_.current > 60) { mobHid_.current = true; setMobHidden(true); } }
-      else if (diff < 0) { if (delta_.current > 0) delta_.current = 0; delta_.current += diff; if (delta_.current < -30) { mobHid_.current = false; setMobHidden(false); } }
-      lastY.current = y;
+    const y=window.scrollY;
+    if(rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current=requestAnimationFrame(()=>{
+      rafRef.current=null;
+      const isMobile=window.innerWidth<1024;
+      if(y>2!==scrolled_.current){scrolled_.current=y>2;setScrolled(y>2);}
+      if(!isMobile){if(mobHid_.current){mobHid_.current=false;setMobHidden(false);}lastY.current=y;delta_.current=0;return;}
+      if(y<=10){if(mobHid_.current){mobHid_.current=false;setMobHidden(false);}lastY.current=y;delta_.current=0;return;}
+      const diff=y-lastY.current;
+      if(diff>0){if(delta_.current<0)delta_.current=0;delta_.current+=diff;if(delta_.current>60){mobHid_.current=true;setMobHidden(true);}}
+      else if(diff<0){if(delta_.current>0)delta_.current=0;delta_.current+=diff;if(delta_.current<-30){mobHid_.current=false;setMobHidden(false);}}
+      lastY.current=y;
     });
   }, []);
+  useEffect(()=>{window.addEventListener('scroll',onScroll,{passive:true});return()=>{window.removeEventListener('scroll',onScroll);if(rafRef.current)cancelAnimationFrame(rafRef.current);};},[onScroll]);
+  useEffect(()=>{document.body.style.overflow=drawerOpen?'hidden':'';return()=>{document.body.style.overflow='';};},[drawerOpen]);
+  useEffect(()=>{const h=(e:MouseEvent)=>{if(navRef.current&&!navRef.current.contains(e.target as Node))setActiveMenu(null);};document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);},[]);
 
-  useEffect(() => {
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [onScroll]);
+  const enter=(key:string)=>{if(timerRef.current)clearTimeout(timerRef.current);setActiveMenu(key);};
+  const leave=()=>{timerRef.current=setTimeout(()=>setActiveMenu(null),120);};
+  const keep=()=>{if(timerRef.current)clearTimeout(timerRef.current);};
 
-  useEffect(() => { document.body.style.overflow = drawerOpen ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [drawerOpen]);
-  useEffect(() => { const h = (e: MouseEvent) => { if (navRef.current && !navRef.current.contains(e.target as Node)) setActiveMenu(null); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
-
-  const enter = (key: string) => { if (timerRef.current) clearTimeout(timerRef.current); setActiveMenu(key); };
-  const leave = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 120); };
-  const keep  = () => { if (timerRef.current) clearTimeout(timerRef.current); };
-
-  // Search: navigates to /shop-v1?q=... (works even without a dedicated /search route)
   const handleSearch = useCallback(() => {
-    const q = searchVal.trim();
-    if (!q) return;
+    const q=searchVal.trim(); if(!q) return;
     navigate(`/shop-v1?q=${encodeURIComponent(q)}`);
-    setSearchVal('');
-    setSearchFocused(false);
+    setSearchVal(''); setSearchFocused(false);
   }, [searchVal, navigate]);
 
-  // Logout helper
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('auth_user');
-    setIsAuth(false);
-    setAuthUser(null);
-    setProfileOpen(false);
+    localStorage.removeItem('access_token'); localStorage.removeItem('auth_user');
+    setIsAuth(false); setAuthUser(null); setProfileOpen(false);
     window.dispatchEvent(new Event('auth:changed'));
     navigate('/');
   }, [navigate]);
 
-  return (
-    <>
-      <style>{STYLES}</style>
-      <MobileDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        departments={departments}
-        megaMenu={megaMenu}
-      />
+  // If no departments from API, hide the entire category bar (don't show skeleton)
+  const showCategoryBar = !apiLoading && departments.length > 0;
 
-      <header ref={navRef} className="hcn" style={{ width: '100%', position: 'sticky', top: 0, zIndex: 1000, fontFamily: FONT, boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,.09)' : '0 1px 0 #ebebeb', transition: 'box-shadow .3s' }}>
+  return <>
+    <style>{STYLES}</style>
+    <MobileDrawer open={drawerOpen} onClose={()=>setDrawerOpen(false)} departments={departments} megaMenu={megaMenu}/>
 
-        {/* ── Utility bar ── */}
-        <div className={`dsk hcn-util-bar${scrolled ? ' is-hidden' : ''}`}>
-          <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <div style={{ position: 'relative' }}><button onMouseEnter={() => setShowFreeShip(true)} onMouseLeave={() => setShowFreeShip(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}><RiEBike2Line size={14} color={BRAND_SOLID} /> Fast Delivery</button><Tooltip text="Fast delivery on all print orders" visible={showFreeShip} /></div>
-              <span style={{ color: '#3a3a3a', fontSize: 10 }}>|</span>
-              <div style={{ position: 'relative' }}><button onMouseEnter={() => setShowEmi(true)} onMouseLeave={() => setShowEmi(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 36, background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 11.5, fontFamily: FONT }}><svg width="13" height="13" fill="none" stroke={BRAND_SOLID} strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/></svg>EMI Options</button><Tooltip text="Easy EMI on bulk orders" visible={showEmi} /></div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {[
-                { icon: <LuMapPin size={13} color={BRAND_SOLID}/>,     label: 'Delivering To', href: '#' },
-                { icon: <LuSmartphone size={13} color={BRAND_SOLID}/>, label: 'Download Apps', href: '/apps' },
-                { icon: <LuTruck size={13} color={BRAND_SOLID}/>,      label: 'Track Order',   href: '/track' },
-                { icon: <LuCircle size={13} color={BRAND_SOLID}/>,     label: 'Help',          href: '/help' },
-              ].map(({ icon, label, href }, i, arr) => (
-                <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
-                  <Link to={href} className="hcn-util-link">{icon}{label}</Link>
-                  {i < arr.length - 1 && <span style={{ color: '#3a3a3a', fontSize: 10 }}>|</span>}
-                </span>
-              ))}
-            </div>
+    <header ref={navRef} className="hcn" style={{ width:'100%',position:'sticky',top:0,zIndex:1000,fontFamily:FONT,boxShadow:scrolled?'0 2px 20px rgba(0,0,0,.09)':'0 1px 0 #ebebeb',transition:'box-shadow .3s' }}>
+
+      {/* Utility bar (unchanged) */}
+      <div className={`dsk hcn-util-bar${scrolled?' is-hidden':''}`}>
+        <div style={{ maxWidth:1720,margin:'0 auto',padding:'0 24px',height:36,display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+          <div style={{ display:'flex',alignItems:'center',gap:2 }}>
+            <div style={{ position:'relative' }}><button onMouseEnter={()=>setShowFreeShip(true)} onMouseLeave={()=>setShowFreeShip(false)} style={{ display:'flex',alignItems:'center',gap:6,padding:'0 10px',height:36,background:'none',border:'none',cursor:'pointer',color:'#ccc',fontSize:11.5,fontFamily:FONT }}><RiEBike2Line size={14} color={BRAND_SOLID}/>Fast Delivery</button><Tooltip text="Fast delivery on all print orders" visible={showFreeShip}/></div>
+            <span style={{ color:'#3a3a3a',fontSize:10 }}>|</span>
+            <div style={{ position:'relative' }}><button onMouseEnter={()=>setShowEmi(true)} onMouseLeave={()=>setShowEmi(false)} style={{ display:'flex',alignItems:'center',gap:6,padding:'0 10px',height:36,background:'none',border:'none',cursor:'pointer',color:'#ccc',fontSize:11.5,fontFamily:FONT }}><svg width="13" height="13" fill="none" stroke={BRAND_SOLID} strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/></svg>EMI Options</button><Tooltip text="Easy EMI on bulk orders" visible={showEmi}/></div>
           </div>
-        </div>
-
-        {/* ── Logo / Search / Actions ── */}
-        <div className="dsk" style={{ background: C.white, borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ maxWidth: 1720, margin: '0 auto', padding: '0 24px', height: 66, display: 'flex', alignItems: 'center', gap: 18 }}>
-            {/* Logo */}
-            <Link to="/" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: -.5, lineHeight: 1, fontFamily: FONT, ...gradText(BRAND_GRAD) }}>Infinity</div>
-                <div style={{ fontSize: 8, color: '#bbb', letterSpacing: '0.17em', textTransform: 'uppercase', marginTop: 3, fontFamily: FONT }}>printing &amp; signage</div>
-              </div>
-              <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', paddingBottom: 2 }}>
-                {[{h:6,c:'#5B4FBE'},{h:9,c:'#E8314A'},{h:7,c:'#F97316'},{h:5,c:'#2563EB'},{h:8,c:'#22C55E'}].map(({h,c},i) => <div key={i} style={{ width: 3, height: h, borderRadius: 2, background: c }}/>)}
-              </div>
-            </Link>
-
-            {/* Search */}
-            <div style={{ flex: 1, minWidth: 0, maxWidth: 620 }}>
-              <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
-                <LuSearch size={15} color="#aaa" style={{ marginLeft: 14, flexShrink: 0 }} />
-                <input
-                  type="text"
-                  className="hcn-search-input"
-                  placeholder="Search printing, signage, products..."
-                  value={searchVal}
-                  onChange={e => setSearchVal(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
-                  autoComplete="off"
-                />
-                {searchVal && (
-                  <button
-                    onMouseDown={e => { e.preventDefault(); setSearchVal(''); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex', alignItems: 'center' }}
-                  >
-                    <LuX size={13} />
-                  </button>
-                )}
-                <button
-                  onMouseDown={e => { e.preventDefault(); handleSearch(); }}
-                  style={{ height: '100%', padding: '0 22px', border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, flexShrink: 0 }}
-                >
-                  Search
-                </button>
-              </div>
-            </div>
-
-            {/* Right actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', flexShrink: 0, }}>
-
-              {/* AUTH: SIGN IN button (not logged in) OR Avatar+Dropdown (logged in) */}
-              {isAuth ? (
-                <ProfileDropdown
-                  user={authUser}
-                  isOpen={profileOpen}
-                  onToggle={() => setProfileOpen(p => !p)}
-                  onLogout={handleLogout}
-                  containerRef={profileRef}
-                  
-                />
-              ) : (
-                <Link
-                  to="/login"
-                  style={{ padding: '9px 18px', borderRadius: 10, background: CTA_GRAD, color: '#fff', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap', marginRight: 4, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  <LuUser size={14} color="#f5f4f4" />
-                  SIGN IN
-                </Link>
-              )}
-
-              {/* Wishlist */}
-              <Link to="/wishlist" className="hcn-icon-btn">
-                <div style={{ position: 'relative' }}>
-                  <LuHeart className="hcn-ico" size={21} color="#444" />
-                  <CountBadge count={wishlistCount} />
-                </div>
-                <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Wishlist</span>
-              </Link>
-
-              {/* Basket */}
-              <Link to="/cart" className="hcn-icon-btn">
-                <div style={{ position: 'relative' }}>
-                  <LuShoppingBasket className="hcn-ico" size={21} color="#444" />
-                  <CountBadge count={cartCount} />
-                </div>
-                <span className="hcn-lbl" style={{ fontSize: 10.5, color: C.muted, fontFamily: FONT, fontWeight: 500 }}>Basket</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Category bar with 8 gradient dept links ── */}
-        <div className={`dsk hcn-catbar-wrap${catBarScroll.left ? ' can-scroll-left' : ''}${catBarScroll.right ? ' can-scroll-right' : ''}`}>
-          <div className="hcn-catbar" ref={catBarRef}>
-            <div className="hcn-catbar-divider" />
-            {departments.map(dept => (
-              <div
-                key={dept}
-                style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0 }}
-                onMouseEnter={() => enter(dept)}
-                onMouseLeave={leave}
-              >
-                <Link
-                  to={`/category/${toSlug(dept)}`}
-                  data-dept={dept}
-                  className={`hcn-dept-link ${activeMenu === dept || curr === `/category/${toSlug(dept)}` ? 'is-active' : ''}`}
-                >
-                  {dept}
-                  <svg className="dept-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Link>
-              </div>
+          <div style={{ display:'flex',alignItems:'center' }}>
+            {[{icon:<LuMapPin size={13} color={BRAND_SOLID}/>,label:'Delivering To',href:'#'},{icon:<LuSmartphone size={13} color={BRAND_SOLID}/>,label:'Download Apps',href:'/apps'},{icon:<LuTruck size={13} color={BRAND_SOLID}/>,label:'Track Order',href:'/track'},{icon:<LuCircle size={13} color={BRAND_SOLID}/>,label:'Help',href:'/help'}].map(({icon,label,href},i,arr)=>(
+              <span key={label} style={{ display:'flex',alignItems:'center' }}>
+                <Link to={href} className="hcn-util-link">{icon}{label}</Link>
+                {i<arr.length-1&&<span style={{ color:'#3a3a3a',fontSize:10 }}>|</span>}
+              </span>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* ── Mobile header ── */}
-        <div className={`mob hcn-mob-header${mobHidden ? ' is-hidden' : ''}`} style={{ background: C.white, boxShadow: scrolled ? '0 3px 14px rgba(0,0,0,.07)' : 'none' }}>
-          {/* Row A: menu + logo + icons */}
-          <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 8px', borderBottom: `1px solid ${C.border}`, gap: 0 }}>
-            <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="hcn-mob-icon" style={{ marginRight: 4 }}>
-              <LuMenu size={22} color={C.text} strokeWidth={2} />
-            </button>
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}>
-              <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: -.3, fontFamily: FONT, ...gradText(BRAND_GRAD) }}>Infinity</span>
-            </Link>
-            <div style={{ flex: 1 }} />
+      {/* Logo + Search + Actions (unchanged) */}
+      <div className="dsk" style={{ background:C.white,borderBottom:`1px solid ${C.border}` }}>
+        <div style={{ maxWidth:1720,margin:'0 auto',padding:'0 24px',height:66,display:'flex',alignItems:'center',gap:18 }}>
+          <Link to="/" style={{ flexShrink:0,display:'flex',alignItems:'center',gap:8,marginRight:8 }}>
+            <div>
+              <div style={{ fontWeight:800,fontSize:22,letterSpacing:-.5,lineHeight:1,fontFamily:FONT,...gradText(BRAND_GRAD) }}>Infinity</div>
+              <div style={{ fontSize:8,color:'#bbb',letterSpacing:'0.17em',textTransform:'uppercase',marginTop:3,fontFamily:FONT }}>printing &amp; signage</div>
+            </div>
+            <div style={{ display:'flex',gap:2,alignItems:'flex-end',paddingBottom:2 }}>
+              {[{h:6,c:'#5B4FBE'},{h:9,c:'#E8314A'},{h:7,c:'#F97316'},{h:5,c:'#2563EB'},{h:8,c:'#22C55E'}].map(({h,c},i)=><div key={i} style={{ width:3,height:h,borderRadius:2,background:c }}/>)}
+            </div>
+          </Link>
 
-            {/* FIX #8: was <a href="…">, FIX #15: CountBadge in relative wrapper */}
-            <Link to="/wishlist" className="hcn-mob-icon">
-              <div style={{ position: 'relative' }}>
-                <LuHeart size={22} color="#2a2a2a" strokeWidth={1.8} />
-                <CountBadge count={wishlistCount} />
-              </div>
-            </Link>
-            <Link to="/cart" className="hcn-mob-icon">
-              <div style={{ position: 'relative' }}>
-                <LuShoppingBasket size={22} color="#2a2a2a" strokeWidth={1.8} />
-                <CountBadge count={cartCount} />
-              </div>
-            </Link>
-            {/* Mobile auth: avatar or login icon */}
+          <div style={{ flex:1,minWidth:0,maxWidth:620 }}>
+            <div className={`hcn-search-wrap${searchFocused?' focused':''}`}>
+              <LuSearch size={15} color="#aaa" style={{ marginLeft:14,flexShrink:0 }}/>
+              <input type="text" className="hcn-search-input" placeholder="Search printing, signage, products..." value={searchVal} onChange={e=>setSearchVal(e.target.value)} onFocus={()=>setSearchFocused(true)} onBlur={()=>setSearchFocused(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleSearch();}}} autoComplete="off"/>
+              {searchVal&&<button onMouseDown={e=>{e.preventDefault();setSearchVal('');}} style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex',alignItems:'center' }}><LuX size={13}/></button>}
+              <button onMouseDown={e=>{e.preventDefault();handleSearch();}} style={{ height:'100%',padding:'0 22px',border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT,flexShrink:0 }}>Search</button>
+            </div>
+          </div>
+
+          <div style={{ display:'flex',alignItems:'center',gap:4,marginLeft:'auto',flexShrink:0 }}>
             {isAuth ? (
-              <Link to="/my-profile" className="hcn-mob-icon" title={authUser?.name ?? 'My Account'}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: BRAND_GRAD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, color: '#fff' }}>
-                  {authUser?.name?.trim()?.[0]?.toUpperCase() ?? '?'}
-                </div>
-              </Link>
+              <ProfileDropdown user={authUser} isOpen={profileOpen} onToggle={()=>setProfileOpen(p=>!p)} onLogout={handleLogout} containerRef={profileRef}/>
             ) : (
-              <Link to="/login" className="hcn-mob-icon">
-                <LuUser size={22} color="#2a2a2a" strokeWidth={1.8} />
+              <Link to="/login" style={{ padding:'9px 18px',borderRadius:10,background:CTA_GRAD,color:'#fff',fontSize:12.5,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',fontFamily:FONT,whiteSpace:'nowrap',marginRight:4,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                <LuUser size={14} color="#fff"/>SIGN IN
               </Link>
             )}
-          </div>
-
-          {/* Row B: search */}
-          <div style={{ padding: '9px 12px', borderBottom: `1px solid ${C.border}` }}>
-            <div className={`hcn-search-wrap${searchFocused ? ' focused' : ''}`}>
-              <LuSearch size={15} color={C.light} style={{ marginLeft: 13, flexShrink: 0 }} />
-              <input
-                type="text"
-                className="hcn-search-input"
-                placeholder="Search printing, signage..."
-                value={searchVal}
-                onChange={e => setSearchVal(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
-                autoComplete="off"
-              />
-              {searchVal && (
-                <button
-                  onMouseDown={e => { e.preventDefault(); setSearchVal(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', color: C.light, display: 'flex' }}
-                >
-                  <LuX size={13} />
-                </button>
-              )}
-              <button
-                onMouseDown={e => { e.preventDefault(); handleSearch(); }}
-                style={{ height: '100%', width: 48, border: 'none', borderRadius: '0 100px 100px 0', background: BRAND_GRAD, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-              >
-                <LuSearch size={16} color="#fff" />
-              </button>
-            </div>
-          </div>
-
-          {/* Row C: chips */}
-          <div style={{ padding: '8px 12px', background: C.white }}>
-            <div className="hcn-chips">
-              {[ ...departments].map(label => (
-                <Link
-                  key={label}
-                  to={label === 'Home' ? '/' : label === 'Shop' ? '/shop-v1' : label === 'Contact' ? '/contact' : `/category/${toSlug(label)}`}
-                  onClick={() => setActiveChip(label)}
-                  className={`hcn-chip ${activeChip === label ? 'is-active' : ''}`}
-                  style={activeChip === label && DEPT_GRADS[label]
-                    ? { background: DEPT_GRADS[label].grad, borderColor: 'transparent', color: '#fff' }
-                    : {}
-                  }
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
+            <Link to="/wishlist" className="hcn-icon-btn"><div style={{ position:'relative' }}><LuHeart className="hcn-ico" size={21} color="#444"/><CountBadge count={wishlistCount}/></div><span className="hcn-lbl" style={{ fontSize:10.5,color:C.muted,fontFamily:FONT,fontWeight:500 }}>Wishlist</span></Link>
+            <Link to="/cart" className="hcn-icon-btn"><div style={{ position:'relative' }}><LuShoppingBasket className="hcn-ico" size={21} color="#444"/><CountBadge count={cartCount}/></div><span className="hcn-lbl" style={{ fontSize:10.5,color:C.muted,fontFamily:FONT,fontWeight:500 }}>Basket</span></Link>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Mega menu panels — outside header, position:fixed */}
-      {departments.map(dept => (
+      {/* ══ CATEGORY BAR (only if API succeeded) ══ */}
+      {apiLoading ? (
+        <CatBarSkeleton />
+      ) : showCategoryBar ? (
+        <div className={`dsk hcn-catbar-wrap${catBarScroll.left?' can-scroll-left':''}${catBarScroll.right?' can-scroll-right':''}`}>
+          <div className="hcn-catbar" ref={catBarRef}>
+            <div className="hcn-catbar-divider"/>
+            {departments.map(dept => {
+              const data   = megaMenu[dept];
+              const dg     = resolveDeptGrad(dept);
+              const deptId = data?.id;
+              const isActive = activeMenu === dept ||
+                curr.includes(`/category?id=${deptId}`) ||
+                curr.includes(`parentId=${deptId}`);
+
+              return (
+                <div key={dept} style={{ position:'relative',height:'100%',display:'flex',alignItems:'center',flexShrink:0 }}
+                  onMouseEnter={()=>enter(dept)} onMouseLeave={leave}>
+                  <Link
+                    to={deptId ? `/category?id=${deptId}` : `/category?sub=${encodeURIComponent(dept)}`}
+                    className="hcn-dept-link"
+                    style={isActive ? { ...gradText(dg.grad) } : {}}
+                    onMouseEnter={e=>{ (e.currentTarget as HTMLAnchorElement).style.backgroundImage=dg.grad; (e.currentTarget as HTMLAnchorElement).style.webkitTextFillColor='transparent'; (e.currentTarget as HTMLAnchorElement).style.color='transparent'; }}
+                    onMouseLeave={e=>{ if(!isActive){ (e.currentTarget as HTMLAnchorElement).style.backgroundImage='none'; (e.currentTarget as HTMLAnchorElement).style.webkitTextFillColor=''; (e.currentTarget as HTMLAnchorElement).style.color=''; } }}
+                  >
+                    {dept}
+                    <svg className="dept-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity:.5,transition:'transform .2s',flexShrink:0 }}>
+                      <path d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </Link>
+                  {isActive && <div style={{ position:'absolute',bottom:0,left:12,right:12,height:2.5,borderRadius:2,background:dg.grad,pointerEvents:'none' }}/>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Mobile header (unchanged) */}
+      <div className={`mob hcn-mob-header${mobHidden?' is-hidden':''}`} style={{ background:C.white,boxShadow:scrolled?'0 3px 14px rgba(0,0,0,.07)':'none' }}>
+        <div style={{ height:56,display:'flex',alignItems:'center',padding:'0 8px',borderBottom:`1px solid ${C.border}`,gap:0 }}>
+          <button onClick={()=>setDrawerOpen(true)} aria-label="Open menu" className="hcn-mob-icon" style={{ marginRight:4 }}><LuMenu size={22} color={C.text} strokeWidth={2}/></button>
+          <Link to="/" style={{ display:'flex',alignItems:'center',marginLeft:2 }}>
+            <span style={{ fontWeight:800,fontSize:20,letterSpacing:-.3,fontFamily:FONT,...gradText(BRAND_GRAD) }}>Infinity</span>
+          </Link>
+          <div style={{ flex:1 }}/>
+          <Link to="/wishlist" className="hcn-mob-icon"><div style={{ position:'relative' }}><LuHeart size={22} color="#2a2a2a" strokeWidth={1.8}/><CountBadge count={wishlistCount}/></div></Link>
+          <Link to="/cart" className="hcn-mob-icon"><div style={{ position:'relative' }}><LuShoppingBasket size={22} color="#2a2a2a" strokeWidth={1.8}/><CountBadge count={cartCount}/></div></Link>
+          {isAuth ? (
+            <Link to="/my-profile" className="hcn-mob-icon" title={authUser?.name??'My Account'}>
+              <div style={{ width:30,height:30,borderRadius:'50%',background:BRAND_GRAD,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:12,color:'#fff' }}>
+                {authUser?.name?.trim()?.[0]?.toUpperCase()??'?'}
+              </div>
+            </Link>
+          ) : (
+            <Link to="/login" className="hcn-mob-icon"><LuUser size={22} color="#2a2a2a" strokeWidth={1.8}/></Link>
+          )}
+        </div>
+        <div style={{ padding:'9px 12px',borderBottom:`1px solid ${C.border}` }}>
+          <div className={`hcn-search-wrap${searchFocused?' focused':''}`}>
+            <LuSearch size={15} color={C.light} style={{ marginLeft:13,flexShrink:0 }}/>
+            <input type="text" className="hcn-search-input" placeholder="Search printing, signage..." value={searchVal} onChange={e=>setSearchVal(e.target.value)} onFocus={()=>setSearchFocused(true)} onBlur={()=>setSearchFocused(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleSearch();}}} autoComplete="off"/>
+            {searchVal&&<button onMouseDown={e=>{e.preventDefault();setSearchVal('');}} style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex' }}><LuX size={13}/></button>}
+            <button onMouseDown={e=>{e.preventDefault();handleSearch();}} style={{ height:'100%',width:48,border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0 }}><LuSearch size={16} color="#fff"/></button>
+          </div>
+        </div>
+        <div style={{ padding:'8px 12px',background:C.white }}>
+          <div className="hcn-chips">
+            {departments.map(label => {
+              const data=megaMenu[label]; const dg=resolveDeptGrad(label);
+              const isChipActive=activeChip===label;
+              return (
+                <Link key={label}
+                  to={data?.id ? `/category?id=${data.id}` : `/category?sub=${encodeURIComponent(label)}`}
+                  onClick={()=>setActiveChip(label)}
+                  className={`hcn-chip ${isChipActive?'is-active':''}`}
+                  style={isChipActive?{background:dg.grad,borderColor:'transparent',color:'#fff'}:{}}>
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </header>
+
+    {/* Mega menu panels – only if API succeeded and departments exist */}
+    {!apiLoading && departments.map(dept => {
+      const data = megaMenu[dept];
+      if (!data) return null;
+      return (
         <MegaMenuPanel
           key={dept}
           dept={dept}
-          data={megaMenu[dept]}
+          data={data}
           isOpen={activeMenu === dept}
           navbarBottom={navbarBottom}
-          tooltipTop={navbarBottom}   // FIX #21: tooltip at same reference point
           onEnter={keep}
           onLeave={leave}
         />
-      ))}
+      );
+    })}
 
-      {/* Backdrop */}
-      <div style={{
-        position: 'fixed', inset: 0, top: navbarBottom,
-        background: 'rgba(0,0,0,.18)', zIndex: 8998,
-        opacity: departments.includes(activeMenu ?? '') ? 1 : 0,
-        pointerEvents: 'none', transition: 'opacity .18s ease',
-      }} />
-    </>
-  );
+    {/* Backdrop */}
+    <div style={{ position:'fixed',inset:0,top:navbarBottom,background:'rgba(0,0,0,.18)',zIndex:8998,opacity:departments.includes(activeMenu??'')?1:0,pointerEvents:'none',transition:'opacity .18s ease' }}/>
+  </>;
 }

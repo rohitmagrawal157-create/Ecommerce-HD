@@ -60,6 +60,7 @@ import ModernWallpapers from './pages/category/ModernWallpapers'
 import CustomizeBlinds from './pages/category/CustomizeBlinds'
 import NeonSigns from './pages/category/NeonSigns'
 import BacklitLed from './pages/category/BacklitLed'
+import CategoryPage from './pages/category/CategoryPage'
 function App() {
 
   return (
@@ -130,6 +131,7 @@ function App() {
           <Route path="/category/customize-blinds" element={<CustomizeBlinds />} />
           <Route path="/category/neon-signs" element={<NeonSigns />} />
           <Route path="/category/backlit-led" element={<BacklitLed />} />
+          <Route path="/category" element={<CategoryPage />} />
 
           
      </Routes>
