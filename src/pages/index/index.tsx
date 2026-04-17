@@ -35,7 +35,7 @@ import newImg from '../../assets/img/png/new.png'
 import AOS from 'aos';
 import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
 import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
-import ProductCollection from '../../components/allproduct/productcollection.tsx';
+import ProductCollection from '../../components/allproduct/ProductCollection.tsx';
 
 // ── Brand color tokens ────────────────────────────────────────────
 const BRAND_GRAD   = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';

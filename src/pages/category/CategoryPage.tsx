@@ -31,7 +31,6 @@ import { CATEGORIES } from '../../data/categoryData';
 import {
   getParentProducts,
   getChildProducts,
-  type CategoryProduct,
   type FetchResult,
 } from '../../api/categoryProducts.api';
 

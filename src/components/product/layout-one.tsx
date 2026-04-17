@@ -34,6 +34,7 @@ import { BsCheckLg }                     from 'react-icons/bs'
 import { Link }                          from 'react-router-dom'
 import { addToCart }                     from '../../api/cart.api'
 import { isWishlisted, toggleWishlist }  from '../../api/wishlist.api'
+import placeholderImg from '../../assets/img/thumb/shop-card.jpg'
 
 // ── Item interface ────────────────────────────────────────────────────────────
 interface Item {
@@ -267,7 +268,9 @@ function QV({ item, wished, busy, cartAdded, onClose, onCart, onWish }: {
           borderRadius: '16px 0 0 16px', position: 'relative',
         }}>
           <img
-            src={item.image} alt={item.name}
+            src={item.image || placeholderImg}
+            alt={item.name}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderImg }}
             style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: '1/1', display: 'block' }}
           />
           <span style={{
@@ -502,7 +505,9 @@ export default function LayoutOne({ item }: { item: Item }) {
         <div className="relative overflow-hidden" style={{ aspectRatio: '1/1', borderRadius: '8px 8px 0 0' }}>
 
           <Link to={`/product-details/${item.id}`} className="absolute inset-0 block" style={{ background: B.bgSoft }}>
-            <img src={item.image} alt={item.name} loading="lazy"
+            <img src={item.image || placeholderImg} alt={item.name}
+              loading="lazy"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderImg }}
               className="inf-pi w-full h-full object-cover" />
           </Link>
 

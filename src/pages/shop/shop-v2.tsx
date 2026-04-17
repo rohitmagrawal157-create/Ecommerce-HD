@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
 import cardImg from '../../assets/img/thumb/shop-card.jpg'
 
-import { productList } from '../../data/data'
+import { getProducts, type Product as ApiProduct } from '../../api/products'
 
 import SelectOne from '../../components/product/select-one'
 import NavbarOne from '../../components/navbar/navbar-one'
@@ -19,26 +19,46 @@ import Aos from 'aos'
 
 import { FourSquare } from 'react-loading-indicators'
 
-interface Product{
-    id: number;
-    image: string;
-    tag: string;
-    price: string;
-    name: string;
-}
-
 export default function ShopV2() {
 
     const [minValue, setMinValue] = useState(0);
     const [maxValue, setMaxValue] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [products, setProducts] = useState<ApiProduct[]>([]);
+    const [productsError, setProductsError] = useState<string | null>(null);
 
     useEffect(()=>{
         Aos.init()
-        // brief loading state for page content
-        const t = setTimeout(() => setLoading(false), 250)
-        return () => clearTimeout(t)
-    })
+
+        let cancelled = false
+
+        const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+        ;(async () => {
+            setLoading(true)
+            setProductsError(null)
+            try {
+                const [items] = await Promise.all([
+                    getProducts(),
+                    sleep(250), // preserve a short skeleton/loading experience
+                ])
+                if (cancelled) return
+                setProducts(Array.isArray(items) ? items : [])
+            } catch (err) {
+                console.error('[shop-v2] Failed to load products', err)
+                if (cancelled) return
+                setProductsError('Failed to load products. Please try again.')
+                setProducts([])
+            } finally {
+                if (cancelled) return
+                setLoading(false)
+            }
+        })()
+
+        return () => {
+            cancelled = true
+        }
+    },[])
 
   return (
     <>
@@ -195,13 +215,15 @@ export default function ShopV2() {
                             <div className="flex items-center justify-center py-20">
                                 <FourSquare color="#BB976D" size="medium" />
                             </div>
+                        ) : productsError ? (
+                            <div className="py-20 text-center text-sm text-red-700">
+                                {productsError}
+                            </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-8">
-                                {productList.map((item:Product,index:number)=>{
-                                    return(
-                                        <LayoutOne item={item} key={index} />
-                                    )
-                                })}
+                                {products.map((item:ApiProduct,index:number)=> (
+                                    <LayoutOne item={item} key={item.id ?? index} />
+                                ))}
                             </div>
                         )}
                         <div className="mt-10 md:mt-12 flex items-center justify-center gap-[10px]">

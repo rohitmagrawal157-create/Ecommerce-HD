@@ -9,13 +9,15 @@
  *  #6  Event listener properly removed in cleanup
  */
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from '../../hooks/useAuth';
 import Aos from "aos";
 import NavbarOne from "../../components/navbar/navbar-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
+import placeholderImg from '../../assets/img/thumb/shop-card.jpg';
 import type { CartState } from "../../api/cart.api";
 import { getCart, removeFromCartItem, updateCartItem } from "../../api/cart.api";
 import { toggleWishlist } from "../../api/wishlist.api";
@@ -101,9 +103,9 @@ function EmptyCart() {
 // ── Cart Item Row ──────────────────────────────────────────────────────────
 interface CartLineRowProps {
   line: CartState['lines'][0];
-  onQtyChange: (id: number, qty: number) => void;
-  onRemove:    (id: number) => void;
-  onFavourite: (id: number) => void;
+  onQtyChange: (lineId: number, qty: number) => void;
+  onRemove:    (lineId: number) => void;
+  onFavourite: (productId: number, lineId: number) => void;
   isLoading:   boolean;
 }
 
@@ -126,7 +128,7 @@ function CartLineRow({ line, onQtyChange, onRemove, onFavourite, isLoading }: Ca
         className="sm:w-[120px] md:w-[140px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 block"
       >
         <img
-          src={line.product.image}
+          src={line.product.image || placeholderImg}
           alt={line.product.name}
           className="w-full h-[120px] md:h-[140px] object-cover hover:scale-105 transition-transform duration-300"
         />
@@ -170,7 +172,7 @@ function CartLineRow({ line, onQtyChange, onRemove, onFavourite, isLoading }: Ca
           {/* Qty stepper */}
           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => onQtyChange(line.product.id, line.quantity - 1)}
+              onClick={() => onQtyChange(line.id, line.quantity - 1)}
               disabled={line.quantity <= 1}
               className="w-9 h-9 flex items-center justify-center text-[16px] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition"
             >−</button>
@@ -178,7 +180,7 @@ function CartLineRow({ line, onQtyChange, onRemove, onFavourite, isLoading }: Ca
               {line.quantity}
             </span>
             <button
-              onClick={() => onQtyChange(line.product.id, line.quantity + 1)}
+              onClick={() => onQtyChange(line.id, line.quantity + 1)}
               className="w-9 h-9 flex items-center justify-center text-[16px] font-bold text-gray-600 hover:bg-gray-50 transition"
             >+</button>
           </div>
@@ -186,7 +188,7 @@ function CartLineRow({ line, onQtyChange, onRemove, onFavourite, isLoading }: Ca
           <span className="text-gray-300 select-none">|</span>
 
           <button
-            onClick={() => onRemove(line.product.id)}
+            onClick={() => onRemove(line.id)}
             className="text-[13px] font-semibold text-gray-500 hover:text-red-500 transition"
           >
             Remove
@@ -195,7 +197,7 @@ function CartLineRow({ line, onQtyChange, onRemove, onFavourite, isLoading }: Ca
           <span className="text-gray-300 select-none">|</span>
 
           <button
-            onClick={() => onFavourite(line.product.id)}
+            onClick={() => onFavourite(line.product.id, line.id)}
             className="text-[13px] font-semibold transition"
             style={{ background: BRAND, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent' }}
           >
@@ -292,11 +294,13 @@ interface SummaryProps {
   deliveryMsg:    string | null;
   onPincodeCheck: () => void;
   currencySymbol: string;
+  onProceed?: () => void;
 }
 
 function OrderSummary({
   lines, subtotal, appliedOffer, onApplyOffer, onRemoveOffer,
   pincode, setPincode, deliveryMsg, onPincodeCheck, currencySymbol,
+  onProceed,
 }: SummaryProps) {
   // FIX #2: MRP is 40% above selling price (realistic)
   const MRP_MULTIPLIER = 1.4;
@@ -396,13 +400,13 @@ function OrderSummary({
             currencySymbol={currencySymbol}
           />
 
-          <Link
-            to="/checkout"
+          <button
+            onClick={() => onProceed && onProceed()}
             className="w-full block text-center mt-5 py-3.5 rounded-xl text-white text-[15px] font-bold tracking-wide transition hover:opacity-90"
             style={{ background: BRAND }}
           >
             Proceed to Checkout →
-          </Link>
+          </button>
           <p className="text-[11px] text-gray-400 text-center mt-2">🔒 Secure &amp; Encrypted Payment</p>
         </div>
 
@@ -481,13 +485,26 @@ export default function Cart() {
     [cart.lines],
   );
 
+  const navigate = useNavigate();
+  const { isAuth } = useAuth();
+
+  const handleProceedToCheckout = useCallback(() => {
+    if (isAuth) {
+      navigate('/checkout');
+    } else {
+      // Redirect user to login first; after successful login they'll be redirected
+      // back to the checkout page (Login reads location.state.from).
+      navigate('/login', { state: { from: '/checkout' } });
+    }
+  }, [isAuth, navigate]);
+
   // ── Action handlers ──────────────────────────────────────────────────────
 
-  const handleQtyChange = useCallback(async (productId: number, newQty: number) => {
+  const handleQtyChange = useCallback(async (lineId: number, newQty: number) => {
     const qty = Math.max(1, Math.floor(newQty));
-    setActionLoadId(productId);
+    setActionLoadId(lineId);
     try {
-      const next = await updateCartItem(productId, qty);
+      const next = await updateCartItem(lineId, qty);
       setCart(next);
       dispatchCartChange();
     } catch (err) {
@@ -497,10 +514,10 @@ export default function Cart() {
     }
   }, []);
 
-  const handleRemove = useCallback(async (productId: number) => {
-    setActionLoadId(productId);
+  const handleRemove = useCallback(async (lineId: number) => {
+    setActionLoadId(lineId);
     try {
-      const next = await removeFromCartItem(productId);
+      const next = await removeFromCartItem(lineId);
       setCart(next);
       dispatchCartChange();
     } catch (err) {
@@ -510,11 +527,11 @@ export default function Cart() {
     }
   }, []);
 
-  const handleMoveToFavourites = useCallback(async (productId: number) => {
-    setActionLoadId(productId);
+  const handleMoveToFavourites = useCallback(async (productId: number, lineId: number) => {
+    setActionLoadId(lineId);
     try {
       await toggleWishlist(productId);
-      const next = await removeFromCartItem(productId);
+      const next = await removeFromCartItem(lineId);
       setCart(next);
       dispatchCartChange();
       window.dispatchEvent(new Event('wishlist:changed'));
@@ -632,6 +649,7 @@ export default function Cart() {
                 deliveryMsg={deliveryMsg}
                 onPincodeCheck={handlePincodeCheck}
                 currencySymbol={currencySymbol}
+                onProceed={handleProceedToCheckout}
               />
 
             </div>

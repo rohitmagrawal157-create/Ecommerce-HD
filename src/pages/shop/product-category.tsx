@@ -1,21 +1,12 @@
 import NavbarOne from "../../components/navbar/navbar-one";
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
 import { Link, useSearchParams } from "react-router-dom";
-import { productList } from "../../data/data";
 import LayoutOne from "../../components/product/layout-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
 import { useEffect, useState } from "react";
 import Aos from "aos";
-import { searchProducts } from "../../api/products";
-
-interface Product{
-    id: number;
-    image: string;
-    tag: string;
-    price: string;
-    name: string;
-}
+import { searchProducts, type Product as ApiProduct } from "../../api/products";
 
 export default function ProductCategory() {
   useEffect(()=>{
@@ -25,20 +16,24 @@ export default function ProductCategory() {
   const [searchParams] = useSearchParams();
   const q = (searchParams.get('q') ?? '').trim().toLowerCase();
 
-  const [products, setProducts] = useState<Product[]>(productList as unknown as Product[]);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setError(null);
     searchProducts(q)
       .then((res) => {
         if (!alive) return;
         setProducts(res);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!alive) return;
-        setProducts(productList as unknown as Product[]);
+        console.error('[product-category] search failed', err)
+        setError('Failed to load products. Please try again.')
+        setProducts([]);
       })
       .finally(() => {
         if (!alive) return;
@@ -70,14 +65,13 @@ export default function ProductCategory() {
         <div className="container-fluid">
             <div data-aos="fade-up" data-aos-delay="200">
                 <div className="max-w-[1720px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-8 aos-init aos-animate" data-aos="fade-up" data-aos-delay="200">
-                  {products.map((item:Product,index:number)=>{
-                    return(
-                      <LayoutOne item={item} key={index}/>
-                    )
-                  })}
+                  {products.map((item:ApiProduct,index:number)=> (
+                    <LayoutOne item={item} key={item.id ?? index}/>
+                  ))}
                 </div>
 
                 {loading && <div className="mt-6 text-center text-sm text-gray-600">Loading...</div>}
+                {!loading && error && <div className="mt-6 text-center text-sm text-red-700">{error}</div>}
                 {!loading && q && (
                   <div className="mt-6 text-center text-sm text-gray-600">
                     Showing {products.length} result{products.length === 1 ? '' : 's'} for &quot;{q}&quot;

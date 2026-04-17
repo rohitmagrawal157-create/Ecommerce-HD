@@ -1,15 +1,20 @@
 // src/pages/Checkout.tsx
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from '../../hooks/useAuth';
 import Aos from "aos";
 
 import NavbarOne from "../../components/navbar/navbar-one";
 import FooterOne from "../../components/footer/footer-one";
 import ScrollToTop from "../../components/scroll-to-top";
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
+import placeholderImg from '../../assets/img/thumb/shop-card.jpg';
 
 import type { CartState } from "../../api/cart.api";
-import { getCart } from "../../api/cart.api";
+import { getCheckout } from "../../api/cart.api";
+
+// NOTE: Razorpay `api_secret` must NEVER be embedded in client-side code.
+// Keep secrets on the server and expose only `key_id` (e.g. VITE_RAZORPAY_KEY) to frontend.
 
 // Brand gradient tokens
 const BRAND_GRADIENT = 'linear-gradient(135deg, #5B4FBE 0%, #E8314A 50%, #F97316 100%)';
@@ -61,7 +66,7 @@ export default function Checkout() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"free" | "fast" | "pickup">("free");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("card");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -125,14 +130,16 @@ export default function Checkout() {
 
     let alive = true;
     setLoading(true);
-    getCart()
-      .then((c) => {
+    // Use checkout endpoint which is session + auth aware and may merge carts server-side
+    getCheckout()
+      .then((res) => {
         if (!alive) return;
-        setCart(c);
+        setCart({ lines: res.lines });
+        // we can use apiCartTotal if needed later
       })
       .catch((e: any) => {
         if (!alive) return;
-        setError(e?.message ?? 'Failed to load cart.');
+        setError(e?.message ?? 'Failed to load checkout.');
       })
       .finally(() => {
         if (!alive) return;
@@ -141,6 +148,14 @@ export default function Checkout() {
 
     return () => { alive = false; };
   }, []);
+
+  // Protect route: redirect unauthenticated users to login, preserving the intended path
+  const { isAuth, loading: authLoading } = useAuth();
+  useEffect(() => {
+    if (!authLoading && !isAuth) {
+      navigate('/login', { state: { from: '/checkout' } });
+    }
+  }, [authLoading, isAuth, navigate]);
 
   // Currency symbol
   const currencySymbol = useMemo(() => {
@@ -207,12 +222,92 @@ export default function Checkout() {
     }
     setIsPlacingOrder(true);
     setOrderError(null);
+
+    // Load Razorpay checkout script
+    const loadRazorpayScript = () => new Promise<boolean>((resolve) => {
+      if (typeof window === 'undefined') return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.body.appendChild(s);
+    });
+
+    // Create order on backend (server should use api_secret)
+    const createRazorpayOrder = async (amountInPaise: number) => {
+      try {
+        const res = await fetch('/api/razorpay/create-order', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: amountInPaise })
+        });
+        if (!res.ok) throw new Error('Order creation failed');
+        return await res.json(); // { id, amount, currency }
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Verify payment on backend (server validates signature using api_secret)
+    const verifyPayment = async (payload: any) => {
+      try {
+        const res = await fetch('/api/razorpay/verify-payment', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Verification failed');
+        return await res.json(); // { verified: true }
+      } catch (e) { return { verified: false }; }
+    };
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setOrderSuccess(true);
-      setTimeout(() => navigate("/payment-success"), 500);
+      if (paymentMethod === 'card') {
+        const ok = await loadRazorpayScript();
+        if (!ok) throw new Error('Failed to load payment gateway');
+
+        const amountInPaise = Math.round(total * 100);
+        const order = await createRazorpayOrder(amountInPaise);
+
+        // Use env key; fallback to known test key only if env missing (avoid shipping secrets in code)
+        const key = import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_SBdvJaJvWcsKUc';
+
+        const options: any = {
+          key,
+          amount: amountInPaise,
+          currency: 'INR',
+          name: 'Furnixar',
+          description: 'Order Payment',
+          handler: async function (response: any) {
+            // response: { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+            const verification = await verifyPayment(response);
+            if (verification.verified) {
+              setOrderSuccess(true);
+              setTimeout(() => navigate('/payment-success'), 500);
+            } else {
+              setOrderError('Payment verification failed.');
+            }
+          },
+          prefill: {
+            name: billing.fullName,
+            email: billing.email,
+            contact: billing.phone,
+          },
+          theme: { color: '#5B4FBE' }
+        };
+
+        if (order && order.id) options.order_id = order.id;
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        // COD – preserve optimistic behavior
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setOrderSuccess(true);
+        setTimeout(() => navigate('/payment-success'), 500);
+      }
     } catch (err) {
-      setOrderError("Failed to place order. Please try again.");
+      console.error(err);
+      setOrderError((err as any)?.message || 'Failed to place order. Please try again.');
     } finally {
       setIsPlacingOrder(false);
     }
@@ -443,10 +538,10 @@ export default function Checkout() {
                         <div key={line.product.id} className="flex justify-between items-start gap-4">
                           <div className="flex gap-3">
                             <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                              <img src={line.product.image} alt={line.product.name} className="w-full h-full object-cover" />
+                              <img src={line.product.image || placeholderImg} alt={line.product.name || 'Product'} className="w-full h-full object-cover" />
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{line.product.name}</p>
+                              <p className="font-medium text-gray-900">{line.product.name || (line.product as any).name || 'Product'}</p>
                               <p className="text-xs text-gray-500">Qty: {line.quantity}</p>
                             </div>
                           </div>

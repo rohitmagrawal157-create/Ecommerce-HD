@@ -5,7 +5,8 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { getCheckout } from '../../api/cart.api';
 import Aos from "aos";
 
 import NavbarOne from "../../components/navbar/navbar-one";
@@ -129,6 +130,8 @@ export default function Login() {
   }, []);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = (location.state as any)?.from || '/';
   const [email,      setEmail]      = useState("")
   const [password,   setPassword]   = useState("")
   const [rememberMe, setRememberMe] = useState(false)
@@ -175,11 +178,23 @@ export default function Login() {
       // Store token
       localStorage.setItem('access_token', token)
 
+      // Attempt to store user info so `useAuth()` can detect logged-in state.
+      // API may return user object as `user` or `data.user` — fall back to a minimal object.
+      const userObj = data?.user || data?.data?.user || { email };
+      try { localStorage.setItem('auth_user', JSON.stringify(userObj)); } catch {}
       // If "remember me" is checked, you could also store a refresh token or extend expiry
       // (optional – not required for basic functionality)
 
-      // Navigate to account page
-      navigate('/')
+      // Trigger server-side merge by calling checkout endpoint while authenticated.
+      try {
+        await getCheckout();
+      } catch (e) {
+        // ignore failure — we'll still navigate and the app will refresh cart on mount
+      }
+
+      // Signal UI to refresh cart state and navigate to original destination.
+      try { window.dispatchEvent(new Event('cart:changed')); } catch {}
+      navigate(redirectTo);
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
     } finally {

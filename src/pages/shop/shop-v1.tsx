@@ -17,8 +17,8 @@
 //    - NavbarOne / FooterOne / ScrollToTop
 // ══════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import NavbarOne   from "../../components/navbar/navbar-one";
 import LayoutOne   from "../../components/product/layout-one";
@@ -28,7 +28,7 @@ import ScrollToTop from "../../components/scroll-to-top";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg';
 
-import { productList } from "../../data/data";
+import { getProducts, type Product as ApiProduct } from "../../api/products";
 
 import Aos from "aos";
 
@@ -63,12 +63,30 @@ const CATEGORIES = [
   'Backlit LED',
 ]
 
-interface Product {
-  id:    number
-  image: string
-  tag:   string
-  price: string
-  name:  string
+// Map UI category names to expected tag substrings returned by the API.
+// Add synonyms so API tag_name or category names map correctly to the UI pills.
+const CATEGORY_TAG_MATCHERS: Record<string, string[]> = {
+  'All': [''],
+  'Portrait Frames': ['portrait', 'portrait frames', 'frame', 'frames'],
+  'Canvas Paintings': ['canvas', 'canvas painting', 'painting'],
+  'Temple Art Prints': ['temple', 'temple art', 'spiritual', 'tanjore'],
+  'Wall Murals': ['mural', 'wall mural', 'wall'],
+  'Modern Wallpapers': ['wallpaper', 'wall paper', 'modern wallpaper'],
+  'Customize Blinds': ['blind', 'blinds', 'customize', 'custom'],
+  'Neon Signs': ['neon', 'neon sign', 'led sign'],
+  'Backlit LED': ['backlit', 'backlit led', 'led', 'back light'],
+}
+
+function toNumber(value: unknown): number {
+  const num = typeof value === 'number'
+    ? value
+    : parseFloat(String(value ?? '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(num) ? num : 0;
+}
+
+function priceToNumber(price: unknown): number {
+  // Accepts API formatted "₹12,345" as well as raw numbers/strings.
+  return toNumber(String(price ?? '').replace(/,/g, ''));
 }
 
 // ── Category pill component ───────────────────────────────────────────────────
@@ -158,9 +176,112 @@ export default function ShopV1() {
   const [sortBy,         setSortBy]         = useState('default')
   const [hovLoad,        setHovLoad]        = useState(false)
 
+  const [allProducts, setAllProducts] = useState<ApiProduct[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [productsError, setProductsError] = useState<string | null>(null)
+
   useEffect(() => {
     Aos.init()
   })                                  // original — no dependency array
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Initialise filters from URL query params (deep-link support)
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('category') || params.get('cat') || '';
+    if (cat) setActiveCategory(decodeURIComponent(cat));
+    const min = params.get('min'); if (min) setMinPrice(min);
+    const max = params.get('max'); if (max) setMaxPrice(max);
+    const s = params.get('sort'); if (s) setSortBy(s);
+  }, [location.search]);
+
+  const handleCategorySelect = (cat: string) => {
+    setActiveCategory(cat);
+    try {
+      const params = new URLSearchParams(location.search);
+      if (cat === 'All') params.delete('category'); else params.set('category', cat);
+      const dest = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      navigate(dest);
+    } catch {
+      // ignore navigation errors
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      setLoadingProducts(true)
+      setProductsError(null)
+      try {
+        const items = await getProducts()
+        if (cancelled) return
+        setAllProducts(Array.isArray(items) ? items : [])
+      } catch (err) {
+        console.error('[shop-v1] Failed to load products', err)
+        if (cancelled) return
+        setProductsError('Failed to load products. Please try again.')
+        setAllProducts([])
+      } finally {
+        if (cancelled) return
+        setLoadingProducts(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Robust category matcher that checks tag + name together
+  const matchesCategory = (p: ApiProduct, label: string) => {
+    if (!label || label.toLowerCase() === 'all') return true;
+    const matchers = CATEGORY_TAG_MATCHERS[label] ?? [label.toLowerCase()];
+    const hay = ((p.tag ?? '') + ' ' + (p.name ?? '')).toLowerCase();
+    return matchers.some(m => m && hay.includes(m));
+  };
+
+  const filteredProducts = useMemo(() => {
+    const min = Math.max(0, toNumber(minPrice))
+    const max = Math.max(0, toNumber(maxPrice))
+    const cat = String(activeCategory ?? 'All').trim().toLowerCase()
+
+    let list = allProducts
+
+    if (cat && cat !== 'all') {
+      list = list.filter((p) => matchesCategory(p, activeCategory));
+    }
+
+    list = list.filter((p) => {
+      const price = priceToNumber(p.price)
+      if (min > 0 && price < min) return false
+      if (max > 0 && price > max) return false
+      return true
+    })
+
+    const sorted = [...list]
+    switch (sortBy) {
+      case 'price-asc':
+        sorted.sort((a, b) => priceToNumber(a.price) - priceToNumber(b.price))
+        break
+      case 'price-desc':
+        sorted.sort((a, b) => priceToNumber(b.price) - priceToNumber(a.price))
+        break
+      case 'newest':
+        // No createdAt is available in the base list; use id as a stable proxy.
+        sorted.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+        break
+      case 'popular':
+        sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+        break
+      default:
+        break
+    }
+
+    return sorted
+  }, [activeCategory, allProducts, maxPrice, minPrice, sortBy])
 
   return (
     <>
@@ -251,7 +372,7 @@ export default function ShopV1() {
                       key={cat}
                       label={cat}
                       active={activeCategory === cat}
-                      onClick={() => setActiveCategory(cat)}
+                      onClick={() => handleCategorySelect(cat)}
                     />
                   ))}
                 </div>
@@ -335,7 +456,7 @@ export default function ShopV1() {
                 backgroundClip: 'text',
                 fontWeight: 700,
               }}>
-                {productList.length}
+                {filteredProducts.length}
               </strong>
               {' '}products
               {activeCategory !== 'All' && (
@@ -375,9 +496,23 @@ export default function ShopV1() {
             data-aos="fade-up"
             data-aos-delay="300"
           >
-            {productList.map((item: Product, index: number) => (
-              <LayoutOne item={item} key={index} />
-            ))}
+            {loadingProducts ? (
+              <div className="col-span-full text-center" style={{ fontFamily: FONT, color: '#6B7280' }}>
+                Loading products...
+              </div>
+            ) : productsError ? (
+              <div className="col-span-full text-center" style={{ fontFamily: FONT, color: '#B91C1C' }}>
+                {productsError}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full text-center" style={{ fontFamily: FONT, color: '#6B7280' }}>
+                No products found for the selected filters.
+              </div>
+            ) : (
+              filteredProducts.map((item: ApiProduct, index: number) => (
+                <LayoutOne item={item} key={item.id ?? index} />
+              ))
+            )}
           </div>
           {/* ══ END GRID ════════════════════════════════════════════════════ */}
 
@@ -423,7 +558,7 @@ export default function ShopV1() {
 
             {/* Subtle count below button */}
             <p style={{ fontFamily: FONT, fontSize: 11, color: '#9CA3AF', marginTop: 10 }}>
-              Showing {productList.length} of {productList.length} products
+              Showing {filteredProducts.length} of {allProducts.length} products
             </p>
           </div>
           {/* ══ END LOAD MORE ═══════════════════════════════════════════════ */}

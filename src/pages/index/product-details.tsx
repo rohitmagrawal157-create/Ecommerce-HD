@@ -17,17 +17,20 @@ import {
 
 import NavbarOne from '../../components/navbar/navbar-one';
 import FooterOne from '../../components/footer/footer-one';
-import DetailTab from '../../components/product/detail-tab';
 import LayoutOne from '../../components/product/layout-one';
 import ScrollToTop from '../../components/scroll-to-top';
 import { productList, productTag } from '../../data/data';
-import { getProductById } from '../../api/products';
+import { getProductById, getProductDetailsById } from '../../api/products';
 import { addToCart } from '../../api/cart.api';
 import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
 
-// ----- Helper to replace $ with ₹ -----
-function toRupeeSymbol(priceStr: string): string {
-  return priceStr.replace('$', '₹');
+function formatINR(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '₹0';
+  const num = typeof value === 'number'
+    ? value
+    : parseFloat(String(value).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(num) || num <= 0) return '₹0';
+  return '₹' + num.toLocaleString('en-IN');
 }
 
 // ----- Brand Tokens -----
@@ -40,7 +43,7 @@ const OFFERS: { info: string; code: string }[] = [
   { info: 'Get 5% off sitewide — No minimum spend', code: 'MAKEHOMESPECIAL' },
   { info: 'Get Rs.150 off on your first order — Min. purchase of Rs.1500', code: 'NESTTRY' }, // already in Rs.
 ];
-const STOCK_QTY: number = 7;
+const STOCK_QTY_FALLBACK: number = 7;
 const REVIEWS = [
   { id: 1, name: 'Priya M.', avatar: 'PM', rating: 5, date: 'March 12, 2026', title: 'Absolutely love it!', body: 'The quality is exceptional. The finish is gorgeous and it fits perfectly in my living room. Very sturdy and worth every rupee.', verified: true },
   { id: 2, name: 'Rohan S.', avatar: 'RS', rating: 5, date: 'February 28, 2026', title: 'Great product, fast delivery', body: 'Ordered this for our new home. Packaging was excellent — no damage at all. Assembly was straightforward. Highly recommend!', verified: true },
@@ -608,7 +611,7 @@ function AccordionItem({ title, content, defaultOpen = false }: { title: string;
   );
 }
 
-function DescriptionAccordion() {
+function DescriptionAccordion({ text }: { text?: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [expanded, setExpanded] = useState(false);
   return (
@@ -619,12 +622,12 @@ function DescriptionAccordion() {
       </button>
       {isOpen && (
         <div className="mt-3">
-          <div className="overflow-hidden text-sm text-gray-600 leading-relaxed transition-all" style={{ maxHeight: expanded ? 'none' : 120 }}>
-            <p className="mb-2">From morning eggs to gourmet stir-fries, this tri-ply hammered stainless steel frying pan is your go-to for effortless cooking.</p>
-            <p className="mb-2"><strong>Design:</strong> With a 2.5mm tri-ply stainless steel construction, this frying pan offers durability and even heat distribution.</p>
-            <p className="mb-2"><strong>Benefits:</strong> Extra-thick tri-ply design enhances heat retention. Its food-safe, non-reactive surface keeps flavours pure.</p>
-            <p className="mb-2"><strong>Nestip:</strong> Always season with a light oil coat after washing.</p>
-            <p>Style: VM107NSI19</p>
+          <div
+            className="overflow-hidden text-sm text-gray-600 leading-relaxed transition-all"
+            style={{ maxHeight: expanded ? 'none' : 120, whiteSpace: 'pre-line' }}
+          >
+            {text ||
+              'From morning eggs to gourmet stir-fries, this tri-ply hammered stainless steel frying pan is your go-to for effortless cooking.'}
           </div>
           <button onClick={() => setExpanded(!expanded)} className="text-sm font-semibold underline mt-2 text-[#5B4FBE]">{expanded ? 'Read Less' : 'Read More'}</button>
         </div>
@@ -633,27 +636,67 @@ function DescriptionAccordion() {
   );
 }
 
-function ProductAccordions() {
+function ProductAccordions({ descriptionText, detailsText, featuresText }: { descriptionText?: string; detailsText?: string; featuresText?: string }) {
   const bullets = (items: string[]) => (
     <ul className="list-disc pl-5 space-y-1 text-sm">
       {items.map(f => <li key={f}>{f}</li>)}
     </ul>
   );
+
+  const parseDetailPairs = (blob?: string): [string, string][] => {
+    const text = String(blob ?? '').trim();
+    if (!text) return [];
+    const matches = [...text.matchAll(/([A-Za-z ]+):/g)];
+    if (matches.length === 0) return [];
+    const pairs: [string, string][] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const key = (matches[i][1] ?? '').trim();
+      const start = (matches[i].index ?? 0) + matches[i][0].length;
+      const end = i + 1 < matches.length ? (matches[i + 1].index ?? text.length) : text.length;
+      const value = text.slice(start, end).trim();
+      if (key) pairs.push([key, value]);
+    }
+    return pairs;
+  };
+
+  const detailPairs = parseDetailPairs(detailsText);
+  const featureLines = typeof featuresText === 'string'
+    ? featuresText.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+    : [];
   // Shipping table – only symbol changed (numbers unchanged)
   const SHIP_ROWS: [string, string, string][] = [
     ['Prepaid', 'Rs. 50', 'Free'],
     ['Cash on Delivery', 'Rs. 90', 'Rs. 40']
   ];
-  const INFO_ROWS: [string, string][] = [
-    ['Size', '20cm D × 40cm L × 8cm H | 1000ml'],
-    ['Colour', 'Silver'],
-    ['Material', 'Stainless steel, aluminium core']
-  ];
+  const INFO_ROWS: [string, string][] = detailPairs.length
+    ? detailPairs
+    : [
+        ['Size', '20cm D × 40cm L × 8cm H | 1000ml'],
+        ['Colour', 'Silver'],
+        ['Material', 'Stainless steel, aluminium core'],
+      ];
 
   return (
     <div className="mt-2">
-      <DescriptionAccordion />
-      <AccordionItem title="Features" content={bullets(['Extra-thick 2.5mm tri-ply construction', '100% food-safe and non-reactive', 'Stovetop and induction-safe', 'Scratch and rust-resistant', 'Dishwasher-safe', 'Sturdy riveted stainless steel handle', 'Inner 304-grade stainless steel'])} />
+      <DescriptionAccordion text={descriptionText} />
+      <AccordionItem
+        title="Features"
+        content={
+          featuresText
+            ? (featureLines.length > 1
+                ? bullets(featureLines)
+                : <p className="text-sm" style={{ whiteSpace: 'pre-line' }}>{String(featuresText)}</p>)
+            : bullets([
+                'Extra-thick 2.5mm tri-ply construction',
+                '100% food-safe and non-reactive',
+                'Stovetop and induction-safe',
+                'Scratch and rust-resistant',
+                'Dishwasher-safe',
+                'Sturdy riveted stainless steel handle',
+                'Inner 304-grade stainless steel',
+              ])
+        }
+      />
       <AccordionItem title="Size & Detail" content={<div className="flex flex-col gap-1.5 text-sm">{INFO_ROWS.map(([k, v]) => <div key={k} className="flex gap-2"><span className="font-bold w-16">{k}:</span><span>{v}</span></div>)}</div>} />
       <AccordionItem title="Returns" content={<p className="text-sm">Free 7-day returns. Visit our <a href="/return-policy" className="underline text-[#5B4FBE]">Return Policy</a> page.</p>} />
       <AccordionItem title="Care Instructions" content={bullets(['Wash with mild dish soap and a soft sponge.', 'Do not use steel wool.', 'Wipe dry after washing.'])} />
@@ -735,8 +778,11 @@ export default function ProductDetails() {
   const parsedId = parseInt(id ?? '0', 10);
   const fallbackProduct = productList.find((item: any) => item.id === parsedId);
   const [product, setProduct] = useState<any>(fallbackProduct);
-  const OUT_OF_STOCK = STOCK_QTY === 0;
-  const MAX_QTY = OUT_OF_STOCK ? 0 : STOCK_QTY;
+
+  const stockQty: number =
+    Number(product?.variants?.[0]?.stock ?? product?.stock ?? STOCK_QTY_FALLBACK) || 0;
+  const OUT_OF_STOCK = stockQty === 0;
+  const MAX_QTY = OUT_OF_STOCK ? 0 : stockQty;
   const countdown = useCountdown(SALE_TARGET);
 
   useEffect(() => {
@@ -744,38 +790,66 @@ export default function ProductDetails() {
     let alive = true;
     if (!Number.isFinite(parsedId)) return;
     setLoading(true);
-    getProductById(parsedId)
-      .then((p) => { if (alive) setProduct(p ?? fallbackProduct); })
-      .catch(() => { if (alive) setProduct(fallbackProduct); })
+    getProductDetailsById(parsedId)
+      .then(async (details) => {
+        if (!alive) return;
+        if (details) {
+          setProduct(details);
+          return;
+        }
+        const p = await getProductById(parsedId);
+        if (alive) setProduct(p ?? fallbackProduct);
+      })
+      .catch(async () => {
+        if (!alive) return;
+        try {
+          const p = await getProductById(parsedId);
+          if (alive) setProduct(p ?? fallbackProduct);
+        } catch {
+          if (alive) setProduct(fallbackProduct);
+        }
+      })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [parsedId]);
 
   const productName = product?.name ?? 'Classic Relaxable Chair';
-  const originalPriceUSD = product?.price ?? '$85.00';
-  const comparePriceUSD = '$140.99'; // fallback compare price
 
-  // Only replace $ with ₹, numbers unchanged
-  const productPriceINR = toRupeeSymbol(originalPriceUSD);
-  const comparePriceINR = toRupeeSymbol(comparePriceUSD);
+  const apiPrice = product?.price ?? product?.product_price ?? product?.productPrice ?? '$85.00';
+  const apiOriginal = product?.originalPrice ?? product?.original_price ?? product?.compare_price;
 
-  // Calculate discount percentage (based on numeric values, same as before)
-  const extractNumber = (str: string) => {
-    const match = str.match(/\$?([\d,.]+)/);
-    return match ? parseFloat(match[1].replace(/,/g, '')) : 0;
-  };
-  const originalNum = extractNumber(originalPriceUSD);
-  const compareNum = extractNumber(comparePriceUSD);
-  const discountPercent = compareNum > 0 ? Math.round(((compareNum - originalNum) / compareNum) * 100) : 0;
+  const productPriceINR = formatINR(apiPrice);
+  const comparePriceINR = apiOriginal ? formatINR(apiOriginal) : '';
 
-  const productImage = product?.image ?? productImages.p1;
+  const priceNum = typeof apiPrice === 'number'
+    ? apiPrice
+    : parseFloat(String(apiPrice ?? '').replace(/[^0-9.]/g, ''));
+  const compareNum = apiOriginal === undefined || apiOriginal === null
+    ? 0
+    : (typeof apiOriginal === 'number' ? apiOriginal : parseFloat(String(apiOriginal).replace(/[^0-9.]/g, '')));
 
-  const mediaItems: MediaItem[] = [
-    { type: 'image', url: productImage, thumbnail: productImage, alt: `${productName} main` },
-    { type: 'image', url: productImages.p2, thumbnail: productImages.p2, alt: `${productName} view 2` },
-    { type: 'image', url: productImages.p3, thumbnail: productImages.p3, alt: `${productName} view 3` },
-    { type: 'image', url: productImages.p4, thumbnail: productImages.p4, alt: `${productName} view 4` },
-  ];
+  const discountPercent =
+    Number(product?.discountPercentage ?? product?.discount_percentage ?? product?.discount) ||
+    (compareNum > 0 && priceNum > 0 ? Math.round(((compareNum - priceNum) / compareNum) * 100) : 0);
+
+  const imagesFromApi: string[] = Array.isArray(product?.images)
+    ? product.images.filter(Boolean)
+    : [];
+  const productImage = imagesFromApi[0] ?? product?.image ?? productImages.p1;
+
+  const mediaItems: MediaItem[] = imagesFromApi.length
+    ? imagesFromApi.map((url, idx) => ({
+        type: 'image',
+        url,
+        thumbnail: url,
+        alt: `${productName} view ${idx + 1}`,
+      }))
+    : [
+        { type: 'image', url: productImage, thumbnail: productImage, alt: `${productName} main` },
+        { type: 'image', url: productImages.p2, thumbnail: productImages.p2, alt: `${productName} view 2` },
+        { type: 'image', url: productImages.p3, thumbnail: productImages.p3, alt: `${productName} view 3` },
+        { type: 'image', url: productImages.p4, thumbnail: productImages.p4, alt: `${productName} view 4` },
+      ];
 
   const handleDecrement = () => setQuantity(q => Math.max(1, q - 1));
   const handleIncrement = () => setQuantity(q => Math.min(MAX_QTY, q + 1));
@@ -783,10 +857,11 @@ export default function ProductDetails() {
   const handleAddToCart = async () => {
     if (OUT_OF_STOCK) return;
     if (!Number.isFinite(parsedId) || parsedId <= 0) return;
+    const variantId = Number(product?.variants?.[0]?.variantId ?? product?.variants?.[0]?.variant_id) || 0;
     setCartError(null);
     setIsAdding(true);
     try {
-      await addToCart(parsedId, quantity);
+      await addToCart(parsedId, quantity, variantId || undefined);
     } catch (e: any) {
       setCartError(e?.message ?? 'Failed to add to cart.');
     } finally {
@@ -794,13 +869,24 @@ export default function ProductDetails() {
     }
   };
 
-  const sizes = ['S', 'M', 'L', 'XL'];
-  const colors = [
-    { hex: '#D68553', defaultChecked: false },
-    { hex: '#61646E', defaultChecked: true },
-    { hex: '#E9E3DC', defaultChecked: false },
-    { hex: '#9A9088', defaultChecked: false },
-  ];
+  const sizes: string[] =
+    Array.isArray(product?.variants?.[0]?.sizes) && product.variants[0].sizes.length
+      ? product.variants[0].sizes
+      : (typeof product?.variants?.[0]?.size === 'string'
+          ? product.variants[0].size.split(',').map((s: string) => s.trim()).filter(Boolean)
+          : ['S', 'M', 'L', 'XL']);
+
+  const apiColors: string[] =
+    Array.isArray(product?.variants?.[0]?.colors) && product.variants[0].colors.length
+      ? product.variants[0].colors
+      : (typeof product?.variants?.[0]?.color === 'string'
+          ? product.variants[0].color.split(',').map((c: string) => c.trim()).filter(Boolean)
+          : []);
+
+  const colors = (apiColors.length ? apiColors : ['BLACK', 'YELLOW', 'GREEN', 'ORANGE']).map((label, idx) => ({
+    label,
+    defaultChecked: idx === 0,
+  }));
   const CLOCK_UNITS: [string, keyof ReturnType<typeof useCountdown>][] = [['D', 'days'], ['H', 'hours'], ['M', 'minutes'], ['S', 'seconds']];
 
   if (loading) {
@@ -853,9 +939,9 @@ export default function ProductDetails() {
                 {OUT_OF_STOCK && <div className="inline-block text-sm font-bold px-3 py-1 rounded border mb-2 bg-red-50 border-red-200 text-red-600">Out of Stock</div>}
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">{productName}</h2>
                 <RatingSummary rating={RATING_SUMMARY.average} total={RATING_SUMMARY.total} />
-                <StockIndicator qty={STOCK_QTY} />
+                <StockIndicator qty={stockQty} />
                 <div className="flex items-center gap-3 mt-3 flex-wrap">
-                  <span className="text-lg line-through text-gray-400">{comparePriceINR}</span>
+                  {comparePriceINR && <span className="text-lg line-through text-gray-400">{comparePriceINR}</span>}
                   <span className="text-3xl md:text-4xl font-extrabold" style={{ background: BRAND_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{productPriceINR}</span>
                   <span className="text-sm font-bold px-2 py-1 rounded bg-red-100 text-red-600 border border-red-200">Save {discountPercent}%</span>
                 </div>
@@ -874,8 +960,8 @@ export default function ProductDetails() {
                   </div>
                 </div>
 
-                <p className="text-base text-gray-600 mt-5 leading-relaxed">
-                  Experience the epitome of relaxation with our {productName}. Crafted with plush cushioning and ergonomic design, it offers unparalleled comfort for lounging or reading.
+                <p className="text-base text-gray-600 mt-5 leading-relaxed" style={{ whiteSpace: 'pre-line' }}>
+                  {product?.description ?? `Experience the epitome of relaxation with our ${productName}. Crafted with plush cushioning and ergonomic design, it offers unparalleled comfort for lounging or reading.`}
                 </p>
               </div>
 
@@ -899,8 +985,8 @@ export default function ProductDetails() {
 
               <div className="py-5 border-b border-gray-200">
                 <div className="flex gap-x-8 gap-y-2 flex-wrap mb-2">
-                  <h6 className="text-sm font-medium text-gray-500">SKU: CH_0015</h6>
-                  <h6 className="text-sm font-medium text-gray-500">Category: Chair</h6>
+                  <h6 className="text-sm font-medium text-gray-500">SKU: {String(product?.id ?? parsedId ?? '—')}</h6>
+                  <h6 className="text-sm font-medium text-gray-500">Category: {String(product?.category?.name ?? '—')}</h6>
                 </div>
                 <div className="flex flex-wrap gap-6 mt-4">
                   <div className="flex items-center gap-3">
@@ -918,10 +1004,10 @@ export default function ProductDetails() {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold">Color:</span>
                     <div className="flex gap-2">
-                      {colors.map(({ hex, defaultChecked }) => (
-                        <label key={hex} className="cursor-pointer">
+                      {colors.map(({ label, defaultChecked }) => (
+                        <label key={label} className="cursor-pointer">
                           <input type="radio" name="color" defaultChecked={defaultChecked} className="hidden peer" />
-                          <span className="w-6 h-6 rounded-full block border-2 border-transparent peer-checked:border-[#5B4FBE]" style={{ backgroundColor: hex }} />
+                          <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200 peer-checked:bg-[#5B4FBE] peer-checked:text-white peer-checked:border-transparent transition">{label}</span>
                         </label>
                       ))}
                     </div>
@@ -932,6 +1018,9 @@ export default function ProductDetails() {
               <div className="py-5 border-b border-gray-200">
                 <h4 className="text-base font-semibold mb-3">Tags:</h4>
                 <div className="flex flex-wrap gap-2">
+                  {product?.tag && (
+                    <Link key={String(product.tag)} to="#" className="text-sm bg-gray-100 hover:bg-[#5B4FBE] hover:text-white px-3 py-1 rounded-full transition">{String(product.tag)}</Link>
+                  )}
                   {productTag.map(tag => (
                     <Link key={tag} to="#" className="text-sm bg-gray-100 hover:bg-[#5B4FBE] hover:text-white px-3 py-1 rounded-full transition">{tag}</Link>
                   ))}
@@ -939,7 +1028,7 @@ export default function ProductDetails() {
               </div>
 
               <div className="pt-5"><SocialShare productName={productName} /></div>
-              <div className="mt-6"><ProductAccordions /></div>
+              <div className="mt-6"><ProductAccordions descriptionText={product?.description} detailsText={product?.details} featuresText={product?.features} /></div>
             </div>
           </div>
         </div>
@@ -951,7 +1040,7 @@ export default function ProductDetails() {
       </div>
 
       {/* Detail Tab */}
-      <div className="s-py-50"><DetailTab /></div>
+      {/* <div className="s-py-50"><DetailTab /></div> */}
 
       {/* Related Products */}
       <div className="s-py-50-100">
