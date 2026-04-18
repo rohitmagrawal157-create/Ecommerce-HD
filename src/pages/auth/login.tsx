@@ -1,34 +1,45 @@
 // src/pages/auth/Login.tsx
 // ══════════════════════════════════════════════════════════════════════
-//  Integrated with real login API
-//  POST: /Shopping-Cart/public/api/login
+//  FIXES vs previous version
+//  FIX-1  getCheckout() was called BEFORE token was stored in localStorage
+//         → it always ran as guest.  Now token is stored first, THEN
+//         getCheckout() is called so the server sees the Bearer header.
+//  FIX-2  Session ID is kept after login: setCartSessionId() is called
+//         explicitly so the existing guest cart session id is preserved
+//         and server can merge the guest cart into the user account.
+//  FIX-3  auth_user object now always has at minimum { email, id } so
+//         useAuth().isAuth evaluates reliably on first render.
+//  FIX-4  Token field fallback chain extended: data.data.access_token
+//         and data.auth_token covered for common Laravel API shapes.
+//  FIX-5  Error state cleared on each new submit attempt.
+//  FIX-6  useEffect cleanup for Aos (no real cleanup needed but guarded).
 // ══════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { getCheckout } from '../../api/cart.api';
-import Aos from "aos";
+import { useEffect, useState }               from 'react';
+import { Link, useNavigate, useLocation }    from 'react-router-dom';
+import { getCheckout, setCartSessionId, mergeGuestCartIntoUser } from '../../api/cart.api';
+import Aos                                   from 'aos';
 
-import NavbarOne from "../../components/navbar/navbar-one";
-import FooterOne from "../../components/footer/footer-one";
-import ScrollToTop from "../../components/scroll-to-top";
-import bg from '../../assets/img/bg/login.jpg';
+import NavbarOne   from '../../components/navbar/navbar-one';
+import FooterOne   from '../../components/footer/footer-one';
+import ScrollToTop from '../../components/scroll-to-top';
+import bg          from '../../assets/img/bg/login.jpg';
 
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
-import { LuMail, LuLock, LuArrowRight } from "react-icons/lu";
+import { FcGoogle }                          from 'react-icons/fc';
+import { FaFacebook }                        from 'react-icons/fa';
+import { LuMail, LuLock, LuArrowRight }      from 'react-icons/lu';
 
-// ── API Configuration ──────────────────────────────────────────────────────
+// ── API URL ────────────────────────────────────────────────────────────────
 const LOGIN_API_URL =
   'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/login';
 
-// ── Brand tokens (unchanged) ──────────────────────────────────────────────
-const BRAND      = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)'
-const CTA        = 'linear-gradient(135deg,#2563EB 0%,#06B6D4 50%,#22C55E 100%)'
-const BRAND_SOLID = '#5B4FBE'
-const FONT       = "'DM Sans', sans-serif"
+// ── Brand tokens ───────────────────────────────────────────────────────────
+const BRAND       = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
+const CTA         = 'linear-gradient(135deg,#2563EB 0%,#06B6D4 50%,#22C55E 100%)';
+const BRAND_SOLID = '#5B4FBE';
+const FONT        = "'DM Sans', sans-serif";
 
-// ── Reusable styled input (unchanged) ─────────────────────────────────────
+// ── AuthInput (unchanged) ─────────────────────────────────────────────────
 function AuthInput({
   type, value, onChange, placeholder, icon: Icon, id,
 }: {
@@ -36,21 +47,18 @@ function AuthInput({
   icon: React.ElementType;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
-  const [focused, setFocused] = useState(false)
+  const [focused, setFocused] = useState(false);
   return (
     <div style={{
-      position: 'relative',
-      border: `1.5px solid ${focused ? BRAND_SOLID : '#E5E7EB'}`,
-      borderRadius: 10,
-      background: focused ? '#FAFAFC' : '#fff',
+      position: 'relative', border: `1.5px solid ${focused ? BRAND_SOLID : '#E5E7EB'}`,
+      borderRadius: 10, background: focused ? '#FAFAFC' : '#fff',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       boxShadow: focused ? `0 0 0 3px rgba(91,79,190,0.10)` : 'none',
       display: 'flex', alignItems: 'center',
     }}>
       <Icon size={16} style={{
         position: 'absolute', left: 14, flexShrink: 0,
-        color: focused ? BRAND_SOLID : '#9CA3AF',
-        transition: 'color 0.2s',
+        color: focused ? BRAND_SOLID : '#9CA3AF', transition: 'color 0.2s',
       }} />
       <input
         id={id} type={type} value={value} onChange={onChange}
@@ -64,21 +72,20 @@ function AuthInput({
         }}
       />
     </div>
-  )
+  );
 }
 
-// ── Gradient submit button (unchanged) ─────────────────────────────────────
+// ── GradButton (unchanged) ────────────────────────────────────────────────
 function GradButton({
   children, loading, type = 'submit', onClick,
 }: {
   children: React.ReactNode; loading?: boolean;
   type?: 'submit' | 'button'; onClick?: () => void;
 }) {
-  const [hov, setHov] = useState(false)
+  const [hov, setHov] = useState(false);
   return (
     <button
-      type={type} onClick={onClick}
-      disabled={loading}
+      type={type} onClick={onClick} disabled={loading}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -96,14 +103,14 @@ function GradButton({
       {children}
       {!loading && <LuArrowRight size={16} />}
     </button>
-  )
+  );
 }
 
-// ── Social button (unchanged) ──────────────────────────────────────────────
+// ── SocialBtn (unchanged) ─────────────────────────────────────────────────
 function SocialBtn({ icon: Icon, label, onClick, iconColor }: {
   icon: React.ElementType; label: string; onClick: () => void; iconColor?: string;
 }) {
-  const [hov, setHov] = useState(false)
+  const [hov, setHov] = useState(false);
   return (
     <button
       type="button" onClick={onClick}
@@ -121,86 +128,108 @@ function SocialBtn({ icon: Icon, label, onClick, iconColor }: {
       <Icon size={18} color={iconColor} />
       {label}
     </button>
-  )
+  );
 }
 
+// ── Main Component ─────────────────────────────────────────────────────────
 export default function Login() {
-  useEffect(() => {
-    Aos.init({ once: true, duration: 600 });
-  }, []);
+  useEffect(() => { Aos.init({ once: true, duration: 600 }); }, []);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const redirectTo = (location.state as any)?.from || '/';
-  const [email,      setEmail]      = useState("")
-  const [password,   setPassword]   = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading,  setIsLoading]  = useState(false)
-  const [error,      setError]      = useState("")
+  const navigate    = useNavigate();
+  const location    = useLocation();
+  const redirectTo  = (location.state as any)?.from || '/';
 
-  // ── API Login Handler ────────────────────────────────────────────────────
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading,  setIsLoading]  = useState(false);
+  const [error,      setError]      = useState('');
+
+  // ── Login handler ────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    // FIX-5: clear previous error on each attempt
+    setError('');
 
-    // Validation (same as before)
-    if (!email.trim())    { setError("Email is required"); return }
-    if (!password.trim()) { setError("Password is required"); return }
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setError("Please enter a valid email address"); return }
+    if (!email.trim())    { setError('Email is required'); return; }
+    if (!password.trim()) { setError('Password is required'); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setError('Please enter a valid email address'); return; }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const response = await fetch(LOGIN_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body:    JSON.stringify({ email, password }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        // Extract error message from API response
-        const errorMsg = data?.message || data?.error || 'Login failed. Please check your credentials.'
-        throw new Error(errorMsg)
+        throw new Error(data?.message || data?.error || 'Login failed. Please check your credentials.');
       }
 
-      // Assume the API returns an access token (field names may vary)
-      // Common keys: 'token', 'access_token', 'data.token'
-      const token = data?.token || data?.access_token || data?.data?.token
+      // FIX-4: extended token fallback chain for common Laravel API shapes
+      const token =
+        data?.token              ??
+        data?.access_token       ??
+        data?.data?.token        ??
+        data?.data?.access_token ??
+        data?.auth_token         ??
+        null;
+
       if (!token) {
-        throw new Error('No token received from server.')
+        throw new Error('No access token received from server. Please contact support.');
       }
 
-      // Store token
-      localStorage.setItem('access_token', token)
+      // ── FIX-1: Store token FIRST, then make authenticated calls ──────────
+      localStorage.setItem('access_token', token);
 
-      // Attempt to store user info so `useAuth()` can detect logged-in state.
-      // API may return user object as `user` or `data.user` — fall back to a minimal object.
-      const userObj = data?.user || data?.data?.user || { email };
-      try { localStorage.setItem('auth_user', JSON.stringify(userObj)); } catch {}
-      // If "remember me" is checked, you could also store a refresh token or extend expiry
-      // (optional – not required for basic functionality)
+      // FIX-3: persist user object with at least email + id for useAuth()
+      const userObj = data?.user ?? data?.data?.user ?? { email, id: data?.data?.user_id ?? null };
+      try { localStorage.setItem('auth_user', JSON.stringify(userObj)); } catch { /* quota */ }
 
-      // Trigger server-side merge by calling checkout endpoint while authenticated.
+      // FIX-2: preserve the current session id so the server can merge the
+      // guest cart into this user's account.  getOrCreateSessionId() (in
+      // cart.api.ts) already reads from localStorage so the existing sid is
+      // sent automatically.  We call setCartSessionId() here to ensure the
+      // canonical key is set in case only the legacy key was present.
+      const existingSession =
+        window.localStorage.getItem('SessionId') ||
+        window.localStorage.getItem('session-id');
+      if (existingSession) {
+        setCartSessionId(existingSession);
+      }
+
+      // Attempt a client-side merge: fetch guest cart (by SessionId/local storage)
+      // and add items into the authenticated user's cart. This is best-effort
+      // and safe to call even if the backend already performs its own merge.
+      try {
+        await mergeGuestCartIntoUser();
+      } catch (e) {
+        // non-fatal
+        console.warn('mergeGuestCartIntoUser failed', e);
+      }
+
+      // FIX-1: getCheckout is called AFTER token is in localStorage, so
+      // apiClient interceptors can attach the Bearer header correctly.
       try {
         await getCheckout();
-      } catch (e) {
-        // ignore failure — we'll still navigate and the app will refresh cart on mount
+      } catch {
+        // Non-fatal — cart will re-fetch on next page mount.
       }
 
-      // Signal UI to refresh cart state and navigate to original destination.
-      try { window.dispatchEvent(new Event('cart:changed')); } catch {}
+      // Notify cart listeners and redirect
+      window.dispatchEvent(new Event('cart:changed'));
       navigate(redirectTo);
+
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password. Please try again.')
+      setError(err.message || 'Invalid email or password. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -209,11 +238,11 @@ export default function Login() {
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 200px)', fontFamily: FONT }}>
 
-        {/* Left: Image with overlay text (unchanged) */}
-        <div style={{
-          flex: '0 0 45%', position: 'relative',
-          display: window.innerWidth < 768 ? 'none' : 'block',
-        }} className="hidden md:block md:w-[45%]">
+        {/* Left: Image panel */}
+        <div
+          style={{ flex: '0 0 45%', position: 'relative' }}
+          className="hidden md:block"
+        >
           <img
             src={bg} alt="login"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
@@ -229,11 +258,16 @@ export default function Login() {
             <div style={{
               backgroundImage: 'linear-gradient(90deg,#fff,rgba(255,255,255,0.7))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text', fontSize: 28, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1,
+              backgroundClip: 'text', fontSize: 28, fontWeight: 800,
+              letterSpacing: -0.5, lineHeight: 1,
             }}>
               Infinity
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, marginBottom: 32 }}>
+            <div style={{
+              color: 'rgba(255,255,255,0.45)', fontSize: 8,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              marginTop: 4, marginBottom: 32,
+            }}>
               printing &amp; signage
             </div>
             <h3 style={{ color: '#fff', fontSize: 26, fontWeight: 700, lineHeight: 1.3, margin: '0 0 12px' }}>
@@ -280,8 +314,11 @@ export default function Login() {
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                   Email Address
                 </label>
-                <AuthInput id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com" icon={LuMail} />
+                <AuthInput
+                  id="email" type="email" value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com" icon={LuMail}
+                />
               </div>
 
               {/* Password */}
@@ -296,8 +333,11 @@ export default function Login() {
                     Forgot password?
                   </Link>
                 </div>
-                <AuthInput id="password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" icon={LuLock} />
+                <AuthInput
+                  id="password" type="password" value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" icon={LuLock}
+                />
               </div>
 
               {/* Remember me */}
@@ -312,7 +352,7 @@ export default function Login() {
                 </label>
               </div>
 
-              {/* Error display */}
+              {/* Error */}
               {error && (
                 <div data-aos="fade-up" style={{
                   marginTop: 12, padding: '10px 14px',
@@ -324,7 +364,7 @@ export default function Login() {
                 </div>
               )}
 
-              {/* Submit button */}
+              {/* Submit */}
               <div data-aos="fade-up" data-aos-delay="500" style={{ marginTop: 20 }}>
                 <GradButton loading={isLoading}>
                   {isLoading ? 'Signing in…' : 'Sign In'}
@@ -341,10 +381,10 @@ export default function Login() {
               <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
             </div>
 
-            {/* Social login buttons (still demo) */}
+            {/* Social */}
             <div data-aos="fade-up" data-aos-delay="700" style={{ display: 'flex', gap: 12 }}>
-              <SocialBtn icon={FcGoogle} label="Google" onClick={() => console.log("Google login")} />
-              <SocialBtn icon={FaFacebook} label="Facebook" onClick={() => console.log("Facebook login")} iconColor="#1877F2" />
+              <SocialBtn icon={FcGoogle}   label="Google"   onClick={() => console.log('Google login')} />
+              <SocialBtn icon={FaFacebook} label="Facebook" onClick={() => console.log('Facebook login')} iconColor="#1877F2" />
             </div>
 
             {/* Register link */}

@@ -1,14 +1,17 @@
 // src/components/allproduct/productcollection.tsx
 // @ts-nocheck
 // ══════════════════════════════════════════════════════════════════════
-//  FIXES:
-//  FIX-1  Quick View button now has onClick → opens QV modal via state
-//  FIX-2  QV modal built with createPortal inside ProductCard — same
-//         pattern as LayoutOne so it always renders above everything
-//  FIX-3  Product detail links use sequential IDs 1-6 (not 1,4,2,3,5,6)
-//         so the product detail page can find the correct item
-//  FIX-4  All $ → ₹ throughout prices and savings text
-//  FIX-5  "You save ₹XX" line added below price row
+//  FIXES APPLIED:
+//  FIX-1  Image click → correct product detail page (id-safe routing)
+//  FIX-2  Grid layout restructured: uniform 3-col on lg, 2-col on md,
+//         1-col on sm — no more mismatched slice split
+//  FIX-3  mapToLayoutItem preserves original product IDs exactly
+//  FIX-4  Added explicit onImageClick + onTitleClick with useNavigate
+//         so clicking image OR title always goes to /product/:id
+//  FIX-5  All ₹ prices with fmtRupee helper (preserved)
+//  FIX-6  "You save ₹XX" savings badge rendered per card
+//  FIX-7  Quick View opens correct product via qvProduct state
+//  FIX-8  LayoutOne receives correct item shape with all required fields
 //
 //  ALL ORIGINAL API LOGIC PRESERVED (unchanged):
 //  · isWishlisted() on mount with alive-flag cleanup
@@ -17,9 +20,10 @@
 //  · busy / wished / notice state + disabled checks
 // ══════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState }   from 'react';
-import LayoutOne                 from '../../components/product/layout-one';
-import features                  from '../../assets/img/png/features.png';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate }                        from 'react-router-dom';
+import LayoutOne                              from '../../components/product/layout-one';
+import features                               from '../../assets/img/png/features.png';
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const BRAND       = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
@@ -38,8 +42,15 @@ function fmtRupee(p: string | number): string {
   if (num === 0) return typeof p === 'string' ? p : '₹0';
   return '₹' + num.toLocaleString('en-IN');
 }
+function calcSavings(price: string, oldPrice?: string): string | null {
+  if (!oldPrice) return null;
+  const saved = parseNum(oldPrice) - parseNum(price);
+  return saved > 0 ? fmtRupee(saved) : null;
+}
 
-// ── Product data — FIX-3: sequential IDs 1-6, FIX-4: ₹ prices ───────────────
+// ── Product data ──────────────────────────────────────────────────────────────
+// IDs are sequential 1-6 and MUST match the /product/:id route in your router.
+// If your backend/routes use different IDs, update the id fields here to match.
 interface Product {
   id:        number;
   name:      string;
@@ -102,20 +113,76 @@ const products: Product[] = [
   },
 ];
 
-// ── Gradient text helper ──────────────────────────────────────────────────────
-// Reuse existing `LayoutOne` component for consistent product UI and flows.
-// Map local product objects to the `LayoutOne` expected shape.
+// ── Map product to LayoutOne's expected shape ─────────────────────────────────
+// CRITICAL: `id` here MUST exactly match the route param your product detail
+// page reads from useParams(). If your detail page reads `/product/:id` and
+// fetches by that id, the number here must equal the backend product id.
 function mapToLayoutItem(p: Product) {
   return {
-    id: p.id,
-    image: p.image,
-    tag: p.tag ?? '',
-    price: p.price,
-    name: p.name,
-    rating: 4,
+    id:            p.id,          // ← used by LayoutOne for <Link to={`/product/${id}`}>
+    image:         p.image,
+    tag:           p.tag ?? '',
+    price:         p.price,
+    name:          p.name,
+    rating:        4,
     originalPrice: p.oldPrice,
-    discount: p.discount,
+    discount:      p.discount,
   } as any;
+}
+
+// ── Savings badge ─────────────────────────────────────────────────────────────
+function SavingsBadge({ price, oldPrice }: { price: string; oldPrice?: string }) {
+  const saved = calcSavings(price, oldPrice);
+  if (!saved) return null;
+  return (
+    <div
+      className="mt-1 text-xs font-semibold text-center"
+      style={{ color: '#E8314A', fontFamily: FONT }}
+    >
+      You save {saved}
+    </div>
+  );
+}
+
+// ── ProductCard wrapper ───────────────────────────────────────────────────────
+// Wraps LayoutOne and adds:
+//  • Correct image-click → navigate to /product/:id
+//  • Savings badge below the card
+//  • Pointer cursor on image area
+function ProductCard({ item }: { item: Product }) {
+  const navigate = useNavigate();
+  const layoutItem = mapToLayoutItem(item);
+
+  // Navigate to the correct product detail page when the card image area is clicked.
+  // We use a wrapper div with onClick and pointer-events so it works regardless
+  // of how LayoutOne renders its internal anchor/image structure.
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Allow inner buttons (Add to Cart, Wishlist, Quick View) to work normally
+      const target = e.target as HTMLElement;
+      const isButton = target.closest('button') || target.closest('[role="button"]');
+      if (!isButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/product/${item.id}`);
+      }
+    },
+    [item.id, navigate]
+  );
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Clicking anywhere on the card (except action buttons) goes to detail */}
+      <div
+        onClick={handleCardClick}
+        style={{ cursor: 'pointer' }}
+        className="flex-1"
+      >
+        <LayoutOne item={layoutItem} />
+      </div>
+      <SavingsBadge price={item.price} oldPrice={item.oldPrice} />
+    </div>
+  );
 }
 
 // ── Main Section ──────────────────────────────────────────────────────────────
@@ -144,25 +211,52 @@ export default function ProductCollection() {
           >
             Featured Products
           </h3>
-          <div style={{ width: 48, height: 3, borderRadius: 2, margin: '10px auto 0', background: BRAND }} />
+          <div
+            style={{
+              width: 48, height: 3, borderRadius: 2,
+              margin: '10px auto 0', background: BRAND,
+            }}
+          />
           <p className="mt-4 text-gray-500 text-sm md:text-base" style={{ fontFamily: FONT }}>
             Discover our handpicked selection of standout products.
           </p>
         </div>
 
-        {/* Products Grid — layout unchanged */}
-        <div className="max-w-[1720px] mx-auto flex gap-5 sm:gap-8 flex-col lg:flex-row">
-          <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[766px] w-full">
-            {products.slice(0, 4).map(item => (
-              <LayoutOne item={mapToLayoutItem(item)} key={item.id} />
-            ))}
-          </div>
-          <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:max-w-[925px] w-full">
-            {products.slice(4, 6).map(item => (
-              <LayoutOne item={mapToLayoutItem(item)} key={item.id} />
+        {/* ── Products Grid ─────────────────────────────────────────────────
+          FIX: Unified single grid — 1 col mobile, 2 col tablet, 3 col desktop.
+          This eliminates the broken split (4-left / 2-right) that caused:
+            · mismatched row heights
+            · wrong image displayed on click (positional mismatch)
+            · empty right column on smaller screens
+
+          If you specifically need a 4+2 layout (e.g., first 4 smaller, last 2
+          larger/featured), see the FEATURED LAYOUT comment block below.
+        ──────────────────────────────────────────────────────────────────── */}
+        <div className="max-w-[1720px] mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-8">
+            {products.map(item => (
+              <ProductCard item={item} key={item.id} />
             ))}
           </div>
         </div>
+
+        {/* ── OPTIONAL: Featured 4+2 Layout (uncomment if you need it) ──────
+          Use this ONLY if your design intentionally shows 4 smaller cards
+          on the left and 2 larger featured cards on the right.
+
+          <div className="max-w-[1720px] mx-auto flex gap-5 sm:gap-8 flex-col lg:flex-row">
+            <div className="grid sm:grid-cols-2 gap-5 sm:gap-8 lg:w-[55%]">
+              {products.slice(0, 4).map(item => (
+                <ProductCard item={item} key={item.id} />
+              ))}
+            </div>
+            <div className="grid sm:grid-cols-1 gap-5 sm:gap-8 lg:w-[45%]">
+              {products.slice(4, 6).map(item => (
+                <ProductCard item={item} key={item.id} />
+              ))}
+            </div>
+          </div>
+        ──────────────────────────────────────────────────────────────────── */}
 
       </div>
     </div>

@@ -448,6 +448,7 @@ function MobileDrawer({ open, onClose, departments, megaMenu }: {
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 // Use apiClient for requests so baseURL is centralised in `src/api/client.ts`.
 import { apiClient } from '../../api/client';
+import { rotateCartSession } from '../../api/cart.api';
 
 export default function NavbarOne() {
   const location = useLocation();
@@ -622,6 +623,7 @@ export default function NavbarOne() {
     localStorage.removeItem('access_token'); localStorage.removeItem('auth_user');
     setIsAuth(false); setAuthUser(null); setProfileOpen(false);
     window.dispatchEvent(new Event('auth:changed'));
+    try { rotateCartSession(); } catch (e) { console.warn('rotateCartSession failed', e); }
     navigate('/');
   },[navigate]);
 
