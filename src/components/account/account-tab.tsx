@@ -17,6 +17,7 @@ import {
   LuUser, LuSettings, LuClipboardList, LuHeart,
   LuLogOut, LuLayoutDashboard,
 } from 'react-icons/lu'
+import { apiClient } from '../../api/client'
 
 // ── Brand token ───────────────────────────────────────────────────
 const BRAND_GRADIENT = 'linear-gradient(135deg, #5B4FBE 0%, #E8314A 50%, #F97316 100%)'
@@ -33,8 +34,17 @@ export default function AccountTab() {
   }, [location.pathname])
 
   // ── Logout handler ────────────────────────────────────────────
-  const handleLogout = (e: React.MouseEvent) => {
+  const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault()
+
+    // Attempt server-side logout first (keep token in localStorage so interceptor can attach it)
+    try {
+      await apiClient.post('/api/logout', {}, { headers: { Accept: 'application/json' } } as any)
+    } catch (err) {
+      // Ignore network/server errors — proceed with local logout so UX is consistent
+      // eslint-disable-next-line no-console
+      console.warn('[account-tab] server logout failed, proceeding with local logout', err)
+    }
 
     // 1. Clear all auth + session keys from localStorage
     const keysToRemove: string[] = []

@@ -219,12 +219,57 @@ export async function getProductById(id: number): Promise<Product | null> {
 
 // Search products by name or tag
 export async function searchProducts(query: string): Promise<Product[]> {
-  const q = query.trim().toLowerCase();
+  const q = String(query ?? '').trim();
   if (!q) return getProducts();
 
-  const products = await getProducts();
-  return products.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    (p.tag && p.tag.toLowerCase().includes(q))
-  );
+  // Prefer backend search endpoint when available
+  try {
+    const res = await apiClient.get<unknown>('/api/products/search', { params: { q } } as any)
+    const payload: unknown = res.data
+
+    let products: any[] = []
+    if (Array.isArray(payload)) products = payload as any[]
+    else if (payload && typeof payload === 'object') {
+      const p = payload as any
+      if (Array.isArray(p.data)) products = p.data
+      else if (p.data && typeof p.data === 'object' && Array.isArray(p.data.data)) products = p.data.data
+    }
+
+    if (products.length === 0) return []
+
+    // Map API product objects using same mapping logic as fetchApiProducts
+    return products.map((p: any) => {
+      const id = Number(p.id ?? p.product_id)
+      const priceRaw = p.product_price ?? p.price
+      const originalRaw = p.original_price ?? p.compare_price ?? p.originalPrice
+
+      let rawImage: unknown = p.image ?? p.image_url ?? p.product_image ?? p.imageUrl ?? p.thumbnail ?? p.thumb
+      if ((!rawImage || String(rawImage).trim() === '') && Array.isArray(p.images) && p.images.length > 0) rawImage = p.images[0]
+      if ((!rawImage || String(rawImage).trim() === '') && Array.isArray(p.media) && p.media.length > 0) rawImage = p.media[0]?.url ?? p.media[0]
+
+      const img = normalizeImageUrl(rawImage ?? '')
+
+      return {
+        id,
+        name: String(p.name ?? p.title ?? p.product_name ?? ''),
+        price: formatINR(priceRaw),
+        image: img,
+        tag: String(p.tag_name ?? p.tag ?? p.category?.name ?? ''),
+        rating: p.rating ?? 4,
+        originalPrice: originalRaw !== undefined && originalRaw !== null ? formatINR(originalRaw) : undefined,
+        discount: p.discount ?? undefined,
+        color: p.color ?? undefined,
+      } as Product
+    })
+  } catch (err) {
+    // If backend search fails, fall back to client-side filtering of full product list
+    try {
+      const all = await getProducts()
+      const qq = q.toLowerCase()
+      return all.filter(p => p.name.toLowerCase().includes(qq) || (p.tag && p.tag.toLowerCase().includes(qq)))
+    } catch (e) {
+      console.error('[product.api] searchProducts failed', err, e)
+      return []
+    }
+  }
 }

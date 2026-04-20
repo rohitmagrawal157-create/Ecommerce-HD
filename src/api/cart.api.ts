@@ -362,28 +362,33 @@ function normaliseApiCartItem(item: ApiCartItem): CartLine | null {
   // FIX-H + FIX-N: cart row ID
   const cartId = Number(item?.cart_id ?? item?.id ?? 0)
 
-  // FIX-N: product ID — try all variants
+  // FIX-N: product ID — try all variants (nested product object OR top-level fields)
   const productId = Number(
     item?.product?.product_id ??
     item?.product?.productId  ??
     item?.product?.id         ??
     item?.product_id          ??
+    (item as any)?.product_id ??  // top-level product_id
     0
   )
 
   const quantity = Math.max(1, Math.floor(toNumber(item?.quantity)))
 
-  if (!Number.isFinite(cartId)    || cartId    <= 0) return null
-  if (!Number.isFinite(productId) || productId <= 0) return null
+  if (!Number.isFinite(cartId) || cartId <= 0) return null
+  // Allow missing productId only if we have enough data to construct a product
+  // (this handles APIs that return flat items without product_id)
 
   const apiProd = item?.product ?? null
 
-  // FIX-N: selling price — try cart row price first, then product variants
+  // FIX-N: selling price — try cart row price, nested product, or top-level fields
   const sellingPrice = toNumber(
     item?.price ??
     apiProd?.selling_price ??
     apiProd?.product_price ??   // FIX-N: prefixed name
     apiProd?.price ??
+    (item as any)?.selling_price ??  // top-level selling_price
+    (item as any)?.product_price ??
+    (item as any)?.price ??
     0
   )
 
@@ -391,15 +396,19 @@ function normaliseApiCartItem(item: ApiCartItem): CartLine | null {
   const originalPrice = toNumber(
     apiProd?.original_price ??
     apiProd?.mrp ??
+    (item as any)?.original_price ??
+    (item as any)?.mrp ??
     sellingPrice
   )
 
   // Build product — prefer live API data, fall back to local lookup + cache
-  const localProduct = productById(productId)
+  // Use productId if available, otherwise use cartId as a unique identifier
+  const effectiveProductId = productId > 0 ? productId : cartId
+  const localProduct = productById(effectiveProductId)
   const product: Product = localProduct
-    ? { ...localProduct, id: productId }
+    ? { ...localProduct, id: effectiveProductId }
     : {
-        id:     productId,
+        id:     effectiveProductId,
         name:   '…',
         price:  '₹0',
         image:  '',
@@ -407,18 +416,18 @@ function normaliseApiCartItem(item: ApiCartItem): CartLine | null {
         rating: 4,
       } as Product
 
-  // FIX-N: overwrite with API data using all field name variants
-  const apiName = apiProd?.product_name ?? apiProd?.name   // FIX-N
+  // FIX-N: overwrite with API data using all field name variants (nested OR top-level)
+  const apiName = apiProd?.product_name ?? apiProd?.name ?? (item as any)?.product_name ?? (item as any)?.name  // FIX-N + support top-level
   if (apiName)          product.name  = String(apiName)
   if (sellingPrice > 0) product.price = formatINR(sellingPrice)
 
-  // FIX-N: image — all possible field names
-  const rawImage = apiProd?.product_image ?? apiProd?.image ?? apiProd?.image_url ?? apiProd?.thumbnail ?? apiProd?.thumb  // FIX-N
+  // FIX-N: image — all possible field names (nested OR top-level)
+  const rawImage = apiProd?.product_image ?? apiProd?.image ?? apiProd?.image_url ?? apiProd?.thumbnail ?? apiProd?.thumb ?? (item as any)?.product_image ?? (item as any)?.image  // FIX-N + support top-level
   const resolvedImage = normalizeImageUrl(rawImage)
   if (resolvedImage) product.image = resolvedImage
 
-  // FIX-N: tag
-  const apiTag = apiProd?.tag ?? apiProd?.category_name
+  // FIX-N: tag (nested OR top-level)
+  const apiTag = apiProd?.tag ?? apiProd?.category_name ?? (item as any)?.tag ?? (item as any)?.category_name
   if (apiTag) (product as any).tag = String(apiTag)
 
   // FIX-L: update product cache with fresh API data so future buildCartFromStorage() calls show correct data
@@ -447,12 +456,19 @@ function normaliseApiCartItem(item: ApiCartItem): CartLine | null {
 
 function parseLinesFromResponse(responseData: unknown): CartLine[] | null {
   const payload = responseData as any
-  const rows: ApiCartItem[] = Array.isArray(payload?.data)
-    ? payload.data
-    : Array.isArray(payload)
-    ? payload
-    : null
+
+  // Handle multiple common response shapes used by different backends
+  const candidates: unknown[] = []
+  if (Array.isArray(payload)) candidates.push(payload)
+  if (Array.isArray(payload?.data)) candidates.push(payload.data)
+  if (Array.isArray(payload?.data?.items)) candidates.push(payload.data.items)
+  if (Array.isArray(payload?.data?.cart_items)) candidates.push(payload.data.cart_items)
+  if (Array.isArray(payload?.items)) candidates.push(payload.items)
+  if (Array.isArray(payload?.cart_items)) candidates.push(payload.cart_items)
+
+  const rows: ApiCartItem[] | null = candidates.length > 0 ? (candidates[0] as ApiCartItem[]) : null
   if (!rows) return null
+
   const lines = rows.map(normaliseApiCartItem).filter((l): l is CartLine => l !== null)
   return lines.length > 0 ? lines : null
 }
@@ -697,18 +713,26 @@ export async function getCheckout(): Promise<{ lines: CartLine[]; cart_total: nu
       const priceVal  = it?.price ?? it?.selling_price ?? prodObj?.product_price ?? prodObj?.price ?? 0
       const origVal   = prodObj?.original_price ?? it?.original_price ?? priceVal
 
-      const fallback = productById(productId)
-      const product: any = fallback ? { ...fallback, id: productId } : {
-        id: productId, name: `Product #${productId}`, price: '₹0', image: '', tag: '', rating: 4
+      // API-FIRST: Build product from API data only (no local productById fallback)
+      // This ensures we always show real product data from the backend
+      const product: any = {
+        id: productId,
+        name: prodObj?.product_name ?? prodObj?.name ?? it?.name ?? `Product #${productId}`,
+        price: formatINR(priceVal),
+        image: '',
+        tag: prodObj?.tag ?? '',
+        rating: prodObj?.rating ?? 4,
       }
 
-      const apiName = prodObj?.product_name ?? prodObj?.name ?? it?.name
-      if (apiName)      product.name  = String(apiName)
-      if (priceVal > 0) product.price = formatINR(priceVal)
-
+      // Always try to resolve image from API
       const rawImg   = prodObj?.product_image ?? prodObj?.image ?? it?.image ?? prodObj?.image_url
       const resolved = normalizeImageUrl(rawImg)
-      if (resolved)  product.image = resolved
+      if (resolved) product.image = resolved
+
+      // Skip if no valid product ID or price is 0 and no API name
+      if (!productId || (priceVal <= 0 && !product.name)) {
+        return null
+      }
 
       return {
         id: Number.isFinite(cartId) && cartId > 0 ? cartId : productId,

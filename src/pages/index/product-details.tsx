@@ -21,6 +21,7 @@ import LayoutOne from '../../components/product/layout-one';
 import ScrollToTop from '../../components/scroll-to-top';
 import { productList, productTag } from '../../data/data';
 import { getProductById, getProductDetailsById } from '../../api/products';
+import { getReviewsByProduct, addReview as addReviewApi, deleteReview as deleteReviewApi } from '../../api/reviews';
 import { addToCart } from '../../api/cart.api';
 import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
 
@@ -724,7 +725,29 @@ function ProductAccordions({ descriptionText, detailsText, featuresText }: { des
   );
 }
 
-function CustomerReviews({ rating, total }: { rating: number; total: number }) {
+function CustomerReviews({ rating, total, reviews, onAdd, onDelete }: { rating: number; total: number; reviews: any[]; onAdd?: (r: any) => void; onDelete?: (id: number) => void }) {
+  const [showForm, setShowForm] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [form, setForm] = useState({ name: '', rating: 5, title: '', body: '' })
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (sending) return
+    if (!form.body || !form.rating) return
+    setSending(true)
+    try {
+      if (onAdd) await onAdd({ ...form })
+      setForm({ name: '', rating: 5, title: '', body: '' })
+      setShowForm(false)
+    } catch (err) {
+      console.warn('add review failed', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const tokenPresent = Boolean(window.localStorage.getItem('access_token'))
+
   return (
     <div id="customer-reviews" className="py-12">
       <div className="max-w-[1720px] mx-auto px-5">
@@ -743,28 +766,53 @@ function CustomerReviews({ rating, total }: { rating: number; total: number }) {
               ))}
             </div>
           </div>
-          <a href="#write-review" className="inline-flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 rounded" style={{ background: BRAND_GRADIENT }}><LuPencilLine size={16} />Write a Review</a>
+          <button onClick={() => setShowForm(s => !s)} className="inline-flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 rounded" style={{ background: BRAND_GRADIENT }}><LuPencilLine size={16} />{showForm ? 'Cancel' : 'Write a Review'}</button>
         </div>
+
+        {showForm && (
+          <form onSubmit={submit} className="mb-6 bg-white p-4 rounded-xl border border-gray-200">
+            <div className="flex gap-3 mb-3">
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" className="border border-gray-200 px-3 py-2 rounded w-1/3" />
+              <select value={String(form.rating)} onChange={e => setForm(f => ({ ...f, rating: Number(e.target.value) }))} className="border border-gray-200 px-3 py-2 rounded w-1/6">
+                {[5,4,3,2,1].map(n => <option key={n} value={n}>{n} star</option>)}
+              </select>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title (optional)" className="border border-gray-200 px-3 py-2 rounded flex-1" />
+            </div>
+            <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder="Write your review" className="w-full border border-gray-200 px-3 py-2 rounded mb-3" rows={4} />
+            <div className="flex items-center gap-3">
+              <button type="submit" disabled={sending} className="px-4 py-2 rounded text-white" style={{ background: BRAND_GRADIENT }}>{sending ? 'Posting...' : 'Post Review'}</button>
+              {!tokenPresent && <span className="text-sm text-gray-500">Sign in to post a review (optional but recommended)</span>}
+            </div>
+          </form>
+        )}
+
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {REVIEWS.map((r, i) => (
+          {reviews.map((r, i) => (
             <div key={r.id} className="bg-white rounded-xl p-5 flex flex-col gap-3 border border-gray-200 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{r.avatar}</div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{String(r.name ?? r.user?.name ?? '?').trim().slice(0,2).toUpperCase()}</div>
                 <div className="flex-1">
-                  <div className="text-base font-bold">{r.name}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5"><StarRating rating={r.rating} size={14} />{r.verified && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200 bg-green-50 text-green-700">✓ Verified</span>}</div>
+                  <div className="text-base font-bold">{r.name ?? r.user?.name ?? 'Customer'}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5"><StarRating rating={Number(r.rating) || 0} size={14} />{r.verified && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200 bg-green-50 text-green-700">✓ Verified</span>}</div>
                 </div>
-                <span className="text-xs text-gray-400">{r.date}</span>
+                <span className="text-xs text-gray-400">{new Date(r.date ?? Date.now()).toLocaleDateString()}</span>
               </div>
               <div><div className="text-base font-bold mb-1">{r.title}</div><p className="text-sm text-gray-600 leading-relaxed">{r.body}</p></div>
-              <div className="border-t border-gray-100 pt-2.5 flex items-center gap-1.5"><span className="text-xs text-gray-400">Helpful?</span><button className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5">👍 Yes</button><button className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5">👎 No</button></div>
+              <div className="border-t border-gray-100 pt-2.5 flex items-center gap-1.5">
+                <span className="text-xs text-gray-400">Helpful?</span>
+                <button className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5">👍 Yes</button>
+                <button className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5">👎 No</button>
+                {tokenPresent && onDelete && (
+                  <button onClick={() => onDelete(r.id)} className="ml-auto text-xs text-red-600 border border-red-100 rounded px-2 py-0.5">Delete</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
         <div className="text-center mt-8"><button className="bg-transparent font-bold text-sm px-7 py-2.5 rounded border border-[#5B4FBE] text-[#5B4FBE]">View All {total} Reviews</button></div>
       </div>
     </div>
-  );
+  )
 }
 
 // ----- MAIN COMPONENT -----
@@ -778,6 +826,8 @@ export default function ProductDetails() {
   const parsedId = parseInt(id ?? '0', 10);
   const fallbackProduct = productList.find((item: any) => item.id === parsedId);
   const [product, setProduct] = useState<any>(fallbackProduct);
+  const [reviews, setReviews] = useState<any[]>(REVIEWS)
+  const [reviewsLoading, setReviewsLoading] = useState(true)
 
   const stockQty: number =
     Number(product?.variants?.[0]?.stock ?? product?.stock ?? STOCK_QTY_FALLBACK) || 0;
@@ -810,6 +860,18 @@ export default function ProductDetails() {
         }
       })
       .finally(() => { if (alive) setLoading(false); });
+    // fetch reviews for this product
+    (async () => {
+      setReviewsLoading(true)
+      try {
+        const rv = await getReviewsByProduct(parsedId)
+        if (alive && Array.isArray(rv) && rv.length > 0) setReviews(rv)
+      } catch (e) {
+        // ignore
+      } finally {
+        if (alive) setReviewsLoading(false)
+      }
+    })()
     return () => { alive = false; };
   }, [parsedId]);
 
@@ -1036,7 +1098,25 @@ export default function ProductDetails() {
 
       {/* Reviews */}
       <div className="border-t border-gray-200 bg-gray-50">
-        <CustomerReviews rating={RATING_SUMMARY.average} total={RATING_SUMMARY.total} />
+        <CustomerReviews
+          rating={RATING_SUMMARY.average}
+          total={Math.max(RATING_SUMMARY.total, reviews.length)}
+          reviews={reviews}
+          onAdd={async (payload: any) => {
+            // payload expected { name, rating, title, body }
+            try {
+              const created = await addReviewApi({ product_id: parsedId, rating: Number(payload.rating) || 5, title: payload.title, body: payload.body, name: payload.name })
+              if (created) setReviews(prev => [created, ...prev])
+            } catch (err) {
+              console.warn('add review failed', err)
+              throw err
+            }
+          }}
+          onDelete={async (id: number) => {
+            const ok = await deleteReviewApi(id)
+            if (ok) setReviews(prev => prev.filter(r => r.id !== id))
+          }}
+        />
       </div>
 
       {/* Detail Tab */}

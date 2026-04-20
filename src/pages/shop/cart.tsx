@@ -537,14 +537,22 @@ export default function Cart() {
   const navigate     = useNavigate();
   const { isAuth }   = useAuth();
 
-  // FIX-5: checkout gate
+  // FIX-5: checkout gate — pass returnUrl query param for login redirect
+  // NOTE: Do NOT include isAuth in dependency array (would stale close over old value)
+  // isAuth will be read fresh when button is clicked
   const handleProceedToCheckout = useCallback(() => {
-    if (isAuth) {
+    // Read fresh auth state when button is clicked (not from closure)
+    const token = window.localStorage.getItem('access_token');
+    const authUser = window.localStorage.getItem('auth_user');
+    const isCurrentlyAuth = !!(token && authUser);
+    
+    if (isCurrentlyAuth) {
       navigate('/checkout');
     } else {
-      navigate('/login', { state: { from: '/checkout' } });
+      // Pass returnUrl as query param so login redirects back to checkout after signin
+      navigate('/login?returnUrl=%2Fcheckout');
     }
-  }, [isAuth, navigate]);
+  }, [navigate]);
 
   // ── Action handlers — all use line.id (cart_id) ──────────────────────────
 

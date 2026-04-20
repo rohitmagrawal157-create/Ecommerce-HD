@@ -23,7 +23,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { Link, useNavigate }             from 'react-router-dom';
-import { useEffect, useState, useMemo,
+import { useEffect, useState,
          useCallback, useRef }           from 'react';
 import { useAuth }                       from '../../hooks/useAuth';
 import Aos                               from 'aos';
@@ -167,7 +167,7 @@ export default function Checkout() {
   const { isAuth, loading: authLoading } = useAuth();
 
   // ── State ──────────────────────────────────────────────────────────────
-  const [cart,             setCart]             = useState<CartState>({ lines: [] });
+  const [cart,             setCart]             = useState<CartState & { apiCartTotal: number }>({ lines: [], apiCartTotal: 0 });
   const [cartLoading,      setCartLoading]      = useState(true);
   const [cartError,        setCartError]        = useState<string | null>(null);
 
@@ -220,7 +220,14 @@ export default function Checkout() {
     if (!isAuth) return;
     setCartLoading(true);
     getCheckout()
-      .then(res  => { if (alive.current) setCart({ lines: res.lines }); })
+      .then(res  => {
+        if (alive.current) {
+          setCart({
+            lines: res.lines,
+            apiCartTotal: res.cart_total, // Store API's subtotal (before shipping/coupon)
+          });
+        }
+      })
       .catch(e   => { if (alive.current) setCartError(e?.message ?? 'Failed to load cart.'); })
       .finally(() => { if (alive.current) setCartLoading(false); });
   }, [isAuth]);
@@ -258,10 +265,11 @@ export default function Checkout() {
   useEffect(() => { loadAddresses(); }, [loadAddresses]);
 
   // ── Derived totals ─────────────────────────────────────────────────────
-  const subtotal = useMemo(
-    () => cart.lines.reduce((s, l) => s + parseMoney(l.product.price) * l.quantity, 0),
-    [cart.lines],
-  );
+  // IMPORTANT: Use API's cart_total as the source of truth (not recalculated)
+  // API already handles complex calculations: pricing, variants, discounts, etc.
+  const subtotal = cart.apiCartTotal > 0
+    ? cart.apiCartTotal
+    : cart.lines.reduce((s, l) => s + parseMoney(l.product.price) * l.quantity, 0);
 
   const shippingCost = shippingMethod === 'fast' ? 99 : shippingMethod === 'pickup' ? 149 : 0;
   const couponDiscount = appliedCoupon?.discount ?? 0;
@@ -847,45 +855,60 @@ export default function Checkout() {
               </div>
 
               {/* ── RIGHT: Order Summary ───────────────────────────────── */}
+              {/* DATA SOURCE: All from API (/api/checkout)
+                  - cart.lines: Product details, quantities, prices from API
+                  - cart.apiCartTotal: Subtotal calculated by backend
+                  - shippingCost: Frontend logic (0/99/149)
+                  - couponDiscount: Applied by user (frontend validation only)
+                  - total: sum(apiCartTotal + shipping - coupon)
+              */}
               <div className="space-y-5" data-aos="fade-up" data-aos-delay="100">
 
-                {/* Order items */}
+                {/* Order items — from API */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-[72px]">
                   <h4 className="font-bold text-[17px] text-gray-900 mb-5">Order Summary</h4>
 
                   <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1">
                     {cart.lines.map(line => {
-                      const price    = parseMoney(line.product.price);
-                      const itemTotal = price * line.quantity;
+                      // FIX-10: All product data from API response
+                      const price    = parseMoney(line.product.price); // From API
+                      const itemTotal = price * line.quantity;         // Calculated
                       return (
                         // FIX-10: key on line.id (cart_id), unique per line
                         <div key={line.id} className="flex items-start gap-3">
                           <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                            {/* Image from API response */}
                             <img src={line.product.image || placeholder}
                               alt={line.product.name}
                               className="w-full h-full object-cover"
                               onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholder; }} />
                           </div>
                           <div className="flex-1 min-w-0">
+                            {/* Product name from API */}
                             <p className="text-[13px] font-semibold text-gray-800 leading-snug truncate">{line.product.name}</p>
+                            {/* Variant color from API if available */}
                             {(line as any).variantMeta?.color && (
                               <p className="text-[11px] text-gray-400">{(line as any).variantMeta.color}</p>
                             )}
+                            {/* Quantity from API */}
                             <p className="text-[12px] text-gray-400">Qty: {line.quantity}</p>
                           </div>
+                          {/* Price × Quantity */}
                           <p className="text-[14px] font-bold text-gray-900 flex-shrink-0">{fmtINR(itemTotal)}</p>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Price breakdown */}
+                  {/* Price breakdown — source of truth from API */}
                   <div className="mt-5 pt-4 border-t border-gray-100 space-y-2.5">
+                    {/* Subtotal: from API (cart_total) */}
                     <div className="flex justify-between text-[13px] text-gray-500">
                       <span>Subtotal ({cart.lines.length} item{cart.lines.length !== 1 ? 's' : ''})</span>
                       <span className="font-semibold text-gray-700">{fmtINR(subtotal)}</span>
                     </div>
 
+                    {/* Coupon discount: user applied (frontend) */}
                     {couponDiscount > 0 && (
                       <div className="flex justify-between text-[13px] text-green-600 font-medium">
                         <span>Coupon ({appliedCoupon?.code})</span>
@@ -893,6 +916,7 @@ export default function Checkout() {
                       </div>
                     )}
 
+                    {/* Shipping: frontend logic (0 | 99 | 149) */}
                     <div className="flex justify-between text-[13px] text-gray-500">
                       <span>Shipping</span>
                       <span className={shippingCost === 0 ? 'text-green-600 font-semibold' : 'font-semibold text-gray-700'}>
@@ -900,14 +924,16 @@ export default function Checkout() {
                       </span>
                     </div>
 
+                    {/* TOTAL: apiCartTotal + shipping - coupon */}
                     <div className="flex justify-between text-[16px] font-extrabold pt-3 border-t border-gray-100">
                       <span className="text-gray-900">Total</span>
                       <GradText>{fmtINR(total)}</GradText>
                     </div>
 
-                    {(subtotal - total + couponDiscount) > 0 && (
+                    {/* Savings message: coupon savings only */}
+                    {couponDiscount > 0 && (
                       <p className="text-[11px] text-green-600 font-semibold text-right">
-                        🎉 You save {fmtINR(couponDiscount + (subtotal - (subtotal - couponDiscount)))} on this order
+                        🎉 You save {fmtINR(couponDiscount)} on this order
                       </p>
                     )}
                   </div>

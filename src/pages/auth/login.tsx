@@ -174,10 +174,11 @@ export default function Login() {
 
   // FIX-1: read returnUrl from query param, not location.state.from
   // Cart sends:     /login?returnUrl=%2Fcheckout  → decoded: /checkout
-  // Direct visit:   /login                        → fallback: /
+  // Direct visit:   /login                        → fallback: / (home)
+  // Navbar Sign In: /login                        → fallback: / (home)
   const returnUrl = searchParams.get('returnUrl')
     ? decodeURIComponent(searchParams.get('returnUrl')!)
-    : '/';
+    : '/'; // Default: go home after direct login
 
   const [email,      setEmail]      = useState('');
   const [password,   setPassword]   = useState('');
@@ -248,10 +249,14 @@ export default function Login() {
       // Build user object for authDispatch — use whatever the backend returns
       const backendUser = data?.user ?? data?.data?.user;
       const userObj = {
+        id:      backendUser?.id      ?? email.split('@')[0],
         name:    backendUser?.name    ?? email.split('@')[0],
         email:   backendUser?.email   ?? email,
         isAdmin: backendUser?.is_admin ?? false,
       };
+
+      // Store user data in localStorage so useAuth() hook can read it
+      localStorage.setItem('auth_user', JSON.stringify(userObj));
 
       // FIX-2: refresh auth hook so Navbar and consumers re-read the stored token/user
       auth.refresh();
@@ -355,15 +360,15 @@ export default function Login() {
               </p>
             </div>
 
-            {/* FIX-1: show destination hint when returnUrl is set */}
-            {returnUrl !== '/' && (
+            {/* FIX-1: show destination hint — default is checkout, or custom returnUrl */}
+            {returnUrl && returnUrl !== '/' && (
               <div data-aos="fade-up" style={{
                 marginBottom: 20, padding: '10px 14px',
                 background: 'rgba(91,79,190,0.06)', border: '1px solid rgba(91,79,190,0.15)',
-                borderRadius: 8, fontSize: 13, color: BRAND_SOLID, fontWeight: 500,
+                borderRadius: 8, fontSize: 13, color: '#1B4965', fontWeight: 500,
               }}>
-                ✓ After signing in you'll be taken to{' '}
-                <strong>{decodeURIComponent(returnUrl).replace(/^\//, '').replace(/-/g, ' ') || 'your destination'}</strong>.
+                ✓ After signing in, you'll be taken to{' '}
+                <strong>{decodeURIComponent(returnUrl).replace(/^\//, '').replace(/-/g, ' ') || 'checkout'}</strong>.
               </div>
             )}
 

@@ -7,6 +7,7 @@ import ScrollToTop from "../../components/scroll-to-top";
 // import AccountTab from "../../components/account/account-tab";
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
+import placeholderImg from '../../assets/img/thumb/shop-card.jpg'
 import type { Product } from "../../api/products";
 import { addToCart } from "../../api/cart.api";
 import { getWishlist, removeFromWishlist, type WishlistState } from "../../api/wishlist.api";
@@ -249,10 +250,11 @@ export default function Wishlist() {
                         <div className="relative overflow-hidden" style={{ aspectRatio: '1/1' }}>
                           <Link to={`/product-details/${item.id}`} className="block absolute inset-0">
                             <img
-                              src={item.image}
+                              src={item.image && String(item.image).trim() ? item.image : placeholderImg}
                               alt={item.name}
                               loading="lazy"
                               className="img-zoom w-full h-full object-cover"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderImg; }}
                             />
                           </Link>
 
