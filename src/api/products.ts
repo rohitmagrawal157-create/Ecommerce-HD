@@ -1,7 +1,5 @@
 // src/api/product.api.ts
 import { apiClient } from './client';
-import { productList } from '../data/data';
-import { CATEGORIES } from '../data/categoryData';
 
 export interface Product {
   id: number;
@@ -101,14 +99,6 @@ async function fetchApiProducts(): Promise<Product[]> {
 
     const img = normalizeImageUrl(rawImage ?? '');
 
-    // In development, warn when image is missing to help debugging remote API shapes
-    // Only log missing image warnings in dev mode (branch via import.meta.env)
-    const isDev = (import.meta as any)?.env?.MODE === 'development' || (import.meta as any)?.env?.VITE_DEV === 'true';
-    if (isDev && (!img || img === '')) {
-      // eslint-disable-next-line no-console
-      console.warn(`[products] product ${id} has no image fields. Raw keys:`, Object.keys(p));
-    }
-
     return {
       id,
       name: String(p.name ?? p.title ?? p.product_name ?? ''),
@@ -203,12 +193,11 @@ export async function getProductDetailsById(id: number): Promise<ProductDetails 
 export async function getProducts(): Promise<Product[]> {
   try {
     const apiProducts = await fetchApiProducts();
-    if (apiProducts.length) return apiProducts;
+    return apiProducts
   } catch (err) {
-    console.error('[product.api] Failed to fetch from API, using local fallback', err);
+    console.error('[product.api] Failed to fetch from API', err);
+    return []
   }
-  // Fallback: local productList
-  return productList as unknown as Product[];
 }
 
 // Get single product by ID
@@ -224,31 +213,7 @@ export async function getProductById(id: number): Promise<Product | null> {
     console.error(`[product.api] API fetch for product ${id} failed`, err);
   }
 
-  // 2. Try productList (local mock)
-  const fromProductList = (productList as unknown as Product[]).find(p => p.id === id);
-  if (fromProductList) return fromProductList;
-
-  // 3. Try CATEGORIES products (final fallback)
-  for (const key of Object.keys(CATEGORIES)) {
-    const cat = CATEGORIES[key as keyof typeof CATEGORIES];
-    if (!cat?.products) continue;
-    const found = cat.products.find((p: any) => p.id === id);
-    if (found) {
-      // Provide safe defaults for missing fields
-      return {
-        id: found.id,
-        name: found.name,
-        price: found.price || '$0',
-        image: found.image || '',
-        tag: found.tag || found.badge || '',
-        rating: found.rating ?? 4,
-        // originalPrice: found.originalPrice || '',
-        // discount: found.discount || 0,
-        // color: found.color || '',
-      };
-    }
-  }
-
+  // No local fallbacks — only API-backed lookup allowed
   return null;
 }
 

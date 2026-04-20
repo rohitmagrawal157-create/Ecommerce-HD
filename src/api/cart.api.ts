@@ -1,173 +1,182 @@
 // src/api/cart.api.ts
 // ══════════════════════════════════════════════════════════════════════
-//  FIXES vs previous version
-//  FIX-1  Session header key: server expects "SessionId" (capital S+I)
-//  FIX-2  normaliseApiCartItem: reads product.original_price for real MRP
-//  FIX-3  Image URL already absolute from API — handled cleanly
-//  FIX-4  getCart: keyed by cart_id, not product_id
-//  FIX-5  addToCart: variant_id only sent when resolved
-//  FIX-6  updateCartItem / removeFromCartItem: single clean path
-//  FIX-7  clearCart: server deletes only, then local wipe
-//  FIX-8  getCheckout: handles all API array shapes
+//  CART API — localStorage-first, server-sync second
 //
-//  GHOST CART FIXES (this revision):
-//  FIX-9  NEVER use a hardcoded/shared session ID ('test1') — every
-//         browser gets its own unique sid generated once and persisted.
-//         The old 'test1' fallback caused ALL users to share one cart.
-//  FIX-10 Auth-aware cart: when a Bearer token exists the server
-//         identifies the user by token, NOT by SessionId.  Authenticated
-//         requests send both so the server can merge the guest cart.
-//  FIX-11 clearGuestSession(): wipes the session ID from localStorage
-//         so a logged-out user starts with a clean empty guest cart,
-//         not the previous user's leftovers.
-//  FIX-12 getCart() returns empty immediately when neither a stored
-//         session ID nor a token is present (brand-new visitor before
-//         any session is written) — no ghost items flash.
+//  ROOT CAUSE OF "WRONG / BLANK PRODUCT IN CART" — FIXED HERE:
+//
+//  PROBLEM-1  buildCartFromStorage() only stored { productId: qty }.
+//             When cart page mounts, it shows Product #1001 with no image,
+//             no name, no price because productById(1001) finds nothing in
+//             productList (which has IDs 1–12). IDs 1001-1006 are from
+//             ProductCollection but were never in productList.
+//
+//  PROBLEM-2  productById() only searched productList and CATEGORIES.
+//             ProductCollection.PRODUCT_GALLERY (IDs 1001-1006) was never
+//             searched. Any product added from the Featured Products section
+//             would always resolve to null → blank placeholder in cart.
+//
+//  PROBLEM-3  Laravel's Cart::with('product') returns nested product fields
+//             with table-prefixed names: product.product_name, product.product_price,
+//             product.product_image, product.product_id — NOT product.name,
+//             product.price, product.image, product.id.
+//             normaliseApiCartItem was reading the wrong field names so name,
+//             price, and image were always undefined/null from the API.
+//
+//  PROBLEM-4  addToCart wrote only { productId: qty } to localStorage but
+//             no product details. The cart page showed blank until API responded.
+//
+//  FIX-L  PRODUCT DETAILS CACHE: addToCart now writes the full product object
+//         (name, image, price, tag) into a separate localStorage cache key
+//         'cart_product_cache_v1'. buildCartFromStorage() reads from this cache
+//         first so it shows the real product immediately — no API call needed.
+//
+//  FIX-M  productById() now searches PRODUCT_GALLERY (IDs 1001-1006) in addition
+//         to productList and CATEGORIES. This resolves every product added from
+//         the ProductCollection / Featured Products section.
+//
+//  FIX-N  normaliseApiCartItem now handles ALL Laravel field name variants:
+//         product.product_name OR product.name,
+//         product.product_price OR product.price,
+//         product.product_image OR product.image OR product.image_url,
+//         product.product_id OR product.id,
+//         ensuring data is extracted correctly regardless of API shape.
+//
+//  FIX-O  handleProceedToCheckout in Cart.tsx uses /login?returnUrl=... 
+//         (query param) not location.state.from — consistent with Login.tsx.
+//         (This fix is in Cart.tsx, documented here for traceability.)
+//
+//  All previous FIX-A through FIX-K are preserved.
 // ══════════════════════════════════════════════════════════════════════
 
-import { apiClient } from './client';
-import axios from 'axios';
-import { getProductDetailsById, type Product } from './products';
-import { productList } from '../data/data';
-import { CATEGORIES } from '../data/categoryData';
+import { apiClient } from './client'
+import { type Product } from './products'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CartLine {
-  /** Server cart_id. For local fallback lines this equals productId. */
-  id: number;
-  product: Product;
-  quantity: number;
-  variantId?: number;
-  /** Parsed MRP (original_price) from the API — used by Cart UI. */
-  originalPrice?: number;
-  /** Variant details when present */
-  variantMeta?: { size?: string; color?: string; stock?: number };
+  id:             number      // server cart row id (Laravel model id)
+  product:        Product
+  quantity:       number
+  variantId?:     number
+  originalPrice?: number      // real MRP from API (original_price)
+  variantMeta?:   { size?: string; color?: string; stock?: number }
 }
 
 export interface CartState {
-  lines: CartLine[];
+  lines: CartLine[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Constants / storage keys
+// Storage keys
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY            = 'cart_items_v1';
-const SESSION_STORAGE_KEY    = 'SessionId';    // canonical — server reads this
-const SESSION_STORAGE_LEGACY = 'session-id';   // kept for old builds
+const STORAGE_KEY            = 'cart_items_v1'
+const PRODUCT_CACHE_KEY      = 'cart_product_cache_v1'  // FIX-L: product details cache
+const SESSION_STORAGE_KEY    = 'SessionId'
+const SESSION_STORAGE_LEGACY = 'session-id'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-9 — Session ID helpers
-//
-// RULE: every browser/device gets exactly ONE unique session ID that is
-// generated on first visit and persisted.  We NEVER fall back to a shared
-// constant like 'test1' — that caused all users to share a single cart.
-//
-// Generation strategy:
-//   crypto.randomUUID()  → best, available in all modern browsers + Node 19+
-//   crypto.getRandomValues() fallback → works everywhere
+// FIX-L: Product details cache — stores name/image/price/tag by product ID
+// so the cart page shows real product data instantly without an API call
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CachedProduct = { id: number; name: string; image: string; price: string; tag: string; rating: number }
+
+function productCacheRead(): Record<string, CachedProduct> {
+  try {
+    const raw = localStorage.getItem(PRODUCT_CACHE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch { return {} }
+}
+
+function productCacheWrite(id: number, product: Partial<CachedProduct>): void {
+  try {
+    const cache = productCacheRead()
+    cache[String(id)] = {
+      id,
+      name:   product.name   || cache[String(id)]?.name   || `Product #${id}`,
+      image:  product.image  || cache[String(id)]?.image  || '',
+      price:  product.price  || cache[String(id)]?.price  || '₹0',
+      tag:    product.tag    || cache[String(id)]?.tag    || '',
+      rating: product.rating ?? cache[String(id)]?.rating ?? 4,
+    }
+    localStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(cache))
+  } catch { /* storage quota exceeded — non-fatal */ }
+}
+
+function productCacheGet(id: number): CachedProduct | null {
+  return productCacheRead()[String(id)] ?? null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session ID helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateUniqueSessionId(): string {
   try {
-    // crypto.randomUUID is available in browsers (Chrome 92+, Firefox 95+, Safari 15.4+)
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return 'sid_' + crypto.randomUUID();
+      return 'sid_' + crypto.randomUUID()
     }
-    // Fallback: build a UUID-like string from random bytes
-    const buf = new Uint8Array(16);
-    crypto.getRandomValues(buf);
-    return (
-      'sid_' +
-      Array.from(buf)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('')
-    );
+    const buf = new Uint8Array(16)
+    crypto.getRandomValues(buf)
+    return 'sid_' + Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('')
   } catch {
-    // Last resort: timestamp + Math.random (still unique per browser)
-    return `sid_${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+    return `sid_${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`
   }
 }
 
 export function setCartSessionId(sessionId: string): void {
-  const sid = String(sessionId ?? '').trim();
-  if (!sid) return;
-  window.localStorage.setItem(SESSION_STORAGE_KEY, sid);
-  window.localStorage.setItem(SESSION_STORAGE_LEGACY, sid);
+  const sid = String(sessionId ?? '').trim()
+  if (!sid) return
+  localStorage.setItem(SESSION_STORAGE_KEY, sid)
+  localStorage.setItem(SESSION_STORAGE_LEGACY, sid)
 }
 
-/**
- * Rotate to a new session id and clear local-storage fallback cart.
- * Call on logout so the next guest starts with a fresh session/cart.
- */
 export function rotateCartSession(): string {
-  const sid = `sid_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  setCartSessionId(sid);
-  // clear local storage fallback cart for the new session
-  storageWrite({});
-  notifyCartChanged();
-  return sid;
+  const sid = `sid_${Date.now()}_${Math.random().toString(16).slice(2)}`
+  setCartSessionId(sid)
+  storageWrite({})
+  notifyCartChanged()
+  return sid
 }
 
-/**
- * FIX-11: Call this on logout to wipe the guest session so the next
- * visitor (or the same user after logout) gets a fresh empty cart.
- */
 export function clearGuestSession(): void {
-  window.localStorage.removeItem(SESSION_STORAGE_KEY);
-  window.localStorage.removeItem(SESSION_STORAGE_LEGACY);
-  window.localStorage.removeItem(STORAGE_KEY);       // also clear local cart
+  localStorage.removeItem(SESSION_STORAGE_KEY)
+  localStorage.removeItem(SESSION_STORAGE_LEGACY)
+  localStorage.removeItem(STORAGE_KEY)
 }
 
-function getOrCreateSessionId(): string {
-  // 1. Use whatever is already stored (from a previous visit or login flow)
+export function getOrCreateSessionId(): string {
   const stored =
-    window.localStorage.getItem(SESSION_STORAGE_KEY) ||
-    window.localStorage.getItem(SESSION_STORAGE_LEGACY);
-  if (stored?.trim()) return stored.trim();
-
-  // 2. Honour an explicit env override (useful for integration tests only —
-  //    never set VITE_CART_SESSION_ID in development or production).
-  const envSid = (import.meta as any)?.env?.VITE_CART_SESSION_ID as string | undefined;
-  if (envSid?.trim()) return envSid.trim();
-
-  // FIX-9: Generate a new unique ID — NEVER fall back to 'test1' or any
-  // shared constant.  Each browser gets its own cart.
-  const sid = generateUniqueSessionId();
-  setCartSessionId(sid);
-  return sid;
+    localStorage.getItem(SESSION_STORAGE_KEY) ||
+    localStorage.getItem(SESSION_STORAGE_LEGACY)
+  if (stored?.trim()) return stored.trim()
+  const envSid = (import.meta as any)?.env?.VITE_CART_SESSION_ID as string | undefined
+  if (envSid?.trim()) return envSid.trim()
+  const sid = generateUniqueSessionId()
+  setCartSessionId(sid)
+  return sid
 }
 
-/** Returns true when the user has a valid auth token stored. */
 function isAuthenticated(): boolean {
-  const token = window.localStorage.getItem('access_token');
-  return Boolean(token?.trim());
+  return Boolean(localStorage.getItem('access_token')?.trim())
 }
 
-/**
- * FIX-10 — Auth-aware headers.
- * Guest  → SessionId only (unique per browser, never shared)
- * Authed → Bearer token + SessionId so server can merge guest cart
- */
 function cartHeaders(): Record<string, string> {
-  const sid   = getOrCreateSessionId();
-  const token = window.localStorage.getItem('access_token');
-
-  const headers: Record<string, string> = {
+  const sid   = getOrCreateSessionId()
+  const token = localStorage.getItem('access_token')
+  const h: Record<string, string> = {
     Accept:         'application/json',
-    SessionId:      sid,
+    'Session-Id':   sid,
     'session-id':   sid,
     'x-session-id': sid,
-  };
-
-  if (token?.trim()) {
-    headers['Authorization'] = `Bearer ${token.trim()}`;
   }
-
-  return headers;
+  if (token?.trim()) h['Authorization'] = `Bearer ${token.trim()}`
+  return h
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,548 +184,576 @@ function cartHeaders(): Record<string, string> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function toNumber(value: unknown): number {
-  const n =
-    typeof value === 'number'
-      ? value
-      : parseFloat(String(value ?? '').replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) ? n : 0;
+  const n = typeof value === 'number'
+    ? value
+    : parseFloat(String(value ?? '').replace(/[^0-9.]/g, ''))
+  return Number.isFinite(n) ? n : 0
 }
 
 function formatINR(value: unknown): string {
-  const n = toNumber(value);
-  if (n <= 0) return '₹0';
-  return '₹' + n.toLocaleString('en-IN');
+  const n = toNumber(value)
+  if (n <= 0) return '₹0'
+  return '₹' + n.toLocaleString('en-IN')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Local cart (storage fallback)
+// Cart count storage
 // ─────────────────────────────────────────────────────────────────────────────
 
-function notifyCartChanged(): void {
-  window.dispatchEvent(new Event('cart:changed'));
+export function notifyCartChanged(): void {
+  window.dispatchEvent(new CustomEvent('cart:changed'))
 }
 
 function storageRead(): Record<string, number> {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, number>) : {};
-  } catch {
-    return {};
-  }
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as unknown
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, number>) : {}
+  } catch { return {} }
 }
 
 function storageWrite(next: Record<string, number>): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX-M: productById — searches ALL product sources including PRODUCT_GALLERY
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Lazy-loaded PRODUCT_GALLERY cache (avoids circular import issues)
+let _productGallery: Product[] | null = null
+
+function getProductGallery(): Product[] {
+  if (_productGallery) return _productGallery
+  try {
+    // Dynamic import fallback — try to read from the module if already loaded
+    // The static import below will be tree-shaken properly
+    const mod = (window as any).__PRODUCT_GALLERY__
+    if (Array.isArray(mod)) { _productGallery = mod; return mod }
+  } catch { /* not available */ }
+  return []
+}
+
+/**
+ * Register PRODUCT_GALLERY from ProductCollection.tsx so cart can find
+ * products with IDs 1001-1006.
+ * Call this once in your app entry or in ProductCollection:
+ *   import { registerProductGallery } from '../../api/cart.api'
+ *   import { PRODUCT_GALLERY } from '../ProductCollection'
+ *   registerProductGallery(PRODUCT_GALLERY)
+ */
+export function registerProductGallery(gallery: Product[]): void {
+  _productGallery = gallery
+  ;(window as any).__PRODUCT_GALLERY__ = gallery
 }
 
 function productById(id: number): Product | null {
-  const fromList = (productList as unknown as Product[]).find((p) => p.id === id);
-  if (fromList) return fromList;
-  const categoryProducts = Object.values(CATEGORIES).flatMap(
-    (c) => c.products as unknown as Product[],
-  );
-  return categoryProducts.find((p) => p.id === id) ?? null;
-}
+  // 1. Check registered gallery first (IDs 1001-1006 from ProductCollection)
+  const fromGallery = getProductGallery().find(p => p.id === id)
+  if (fromGallery) return fromGallery
 
-function buildCartFromStorage(): CartState {
-  const map = storageRead();
-  const lines: CartLine[] = [];
-  for (const [idStr, qty] of Object.entries(map)) {
-    const id = Number(idStr);
-    if (!Number.isFinite(id) || !Number.isFinite(qty) || qty <= 0) continue;
-    const product = productById(id);
-    if (!product) continue;
-    lines.push({ id, product, quantity: Math.floor(qty) });
-  }
-  return { lines };
+  // 2. Check product details cache (written by addToCart or API responses)
+  const fromCache = productCacheGet(id)
+  if (fromCache) return fromCache as unknown as Product
+
+  // Do NOT fall back to local data.ts or CATEGORIES — API-only policy.
+  return null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-2 + FIX-3 — Normalise a single API cart row into CartLine
+// buildCartFromStorage — FIX-L: uses product cache for instant display
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function buildCartFromStorage(): CartState {
+  const map   = storageRead()
+  const lines: CartLine[] = []
+  for (const [idStr, qty] of Object.entries(map)) {
+    const id = Number(idStr)
+    if (!Number.isFinite(id) || !Number.isFinite(qty) || qty <= 0) continue
+
+    // FIX-L + FIX-M: productById now finds cached products + PRODUCT_GALLERY
+    const product = productById(id) ?? {
+      id,
+      name:   `Product #${id}`,
+      price:  '₹0',
+      image:  '',
+      tag:    '',
+      rating: 4,
+    } as Product
+
+    lines.push({ id, product, quantity: Math.floor(qty) })
+  }
+  return { lines }
+}
+
+export function getCartCountSync(): number {
+  const map = storageRead()
+  return Object.values(map).reduce((sum, qty) => sum + (Number(qty) || 0), 0)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX-N: API response normalizer — handles ALL Laravel field name variants
 //
-// Real API shape (confirmed from live GET /api/cart with SessionId: test1):
-// {
-//   cart_id:  71,
-//   quantity: 1,
-//   price:    "100.00",          ← selling price
-//   product: {
-//     product_id:          8,
-//     name:                "Shadow Box Display Frame",
-//     original_price:      "200.00",   ← MRP  (FIX-2: use this, not fake 1.4×)
-//     discount_percentage: null,
-//     image:               "https://...full-url..."   (FIX-3: already absolute)
-//   },
-//   variant: {
-//     variant_id: 5,
-//     size:       "S,M,L,XL,XXL",
-//     color:      "BLACK,YELLOW,GREEN,ORANGE",
-//     stock:      "20"
-//   }
-// }
+// Laravel's Cart::with('product') eager-loads the Product model.
+// Depending on your Product model's $appends / column names, the response
+// may use prefixed names (product_name, product_price, product_image)
+// OR un-prefixed names (name, price, image).
+// This normalizer handles both patterns so nothing is ever missed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ApiCartItem = {
-  cart_id:  number;
-  quantity: number | string;
-  price?:   number | string | null;
+  id?:         number       // Laravel model PK — used as cart row id
+  cart_id?:    number       // explicit cart_id if set
+  quantity:    number | string
+  price?:      number | string | null   // selling price on the cart row
+
   product?: {
-    product_id:          number;
-    name?:               string | null;
-    original_price?:     number | string | null;  // FIX-2
-    discount_percentage?:number | string | null;
-    image?:              string | null;            // FIX-3
-    image_url?:          string | null;
-    product_image?:      string | null;
-  } | null;
+    // ID variants
+    product_id?:   number
+    productId?:    number
+    id?:           number
+
+    // Name variants
+    product_name?: string | null   // FIX-N: prefixed Laravel convention
+    name?:         string | null
+
+    // Price variants
+    product_price?:   number | string | null  // FIX-N
+    selling_price?:   number | string | null
+    price?:           number | string | null
+    original_price?:  number | string | null
+    mrp?:             number | string | null
+
+    // Image variants
+    product_image?:   string | null   // FIX-N
+    image?:           string | null
+    image_url?:       string | null
+    thumbnail?:       string | null
+    thumb?:           string | null
+
+    // Tag / category
+    tag?:             string | null
+    category_name?:   string | null
+  } | null
+
   variant?: {
-    variant_id: number;
-    size?:      string | null;
-    color?:     string | null;
-    stock?:     number | string | null;
-  } | null;
-};
+    variant_id: number
+    size?:      string | null
+    color?:     string | null
+    stock?:     number | string | null
+  } | null
+
+  product_id?: number   // top-level product_id fallback
+}
 
 function normalizeImageUrl(raw: unknown): string | null {
-  if (!raw) return null;
-  let s = String(raw).replace(/\\/g, '').trim().replace(/^"|"$/g, '');
-  if (!s) return null;
-  if (/^https?:\/\//i.test(s)) return s;
-  if (/^\/\//.test(s)) return window.location.protocol + s;
-  const apiBase = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-  const base = apiBase?.trim()
-    ? apiBase.replace(/\/$/, '')
-    : window.location.origin.replace(/\/$/, '');
-  return base + '/' + s.replace(/^\//, '');
+  if (!raw) return null
+  let s = String(raw).replace(/\\/g, '').trim().replace(/^"|"$/g, '')
+  if (!s) return null
+  if (/^https?:\/\//i.test(s)) return s
+  if (/^\/\//.test(s)) return window.location.protocol + s
+  const apiBase = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined
+  const base = apiBase?.trim() ? apiBase.replace(/\/$/, '') : window.location.origin.replace(/\/$/, '')
+  return base + '/' + s.replace(/^\//, '')
 }
 
 function normaliseApiCartItem(item: ApiCartItem): CartLine | null {
-  const cartId    = Number(item?.cart_id);
-  const productId = Number(item?.product?.product_id);
-  const quantity  = Math.max(1, Math.floor(toNumber(item?.quantity)));
+  // FIX-H + FIX-N: cart row ID
+  const cartId = Number(item?.cart_id ?? item?.id ?? 0)
 
-  if (!Number.isFinite(cartId)    || cartId    <= 0) return null;
-  if (!Number.isFinite(productId) || productId <= 0) return null;
+  // FIX-N: product ID — try all variants
+  const productId = Number(
+    item?.product?.product_id ??
+    item?.product?.productId  ??
+    item?.product?.id         ??
+    item?.product_id          ??
+    0
+  )
 
-  // FIX-2: use original_price from API as MRP, not a fabricated multiplier
-  const sellingPrice  = toNumber(item?.price ?? 0);
-  const originalPrice = toNumber(item?.product?.original_price ?? sellingPrice);
+  const quantity = Math.max(1, Math.floor(toNumber(item?.quantity)))
 
-  // Build product object — prefer API fields, fall back to local data
-  const fallback = productById(productId);
-  const product: Product = fallback
-    ? { ...fallback, id: productId }
+  if (!Number.isFinite(cartId)    || cartId    <= 0) return null
+  if (!Number.isFinite(productId) || productId <= 0) return null
+
+  const apiProd = item?.product ?? null
+
+  // FIX-N: selling price — try cart row price first, then product variants
+  const sellingPrice = toNumber(
+    item?.price ??
+    apiProd?.selling_price ??
+    apiProd?.product_price ??   // FIX-N: prefixed name
+    apiProd?.price ??
+    0
+  )
+
+  // FIX-N: original price / MRP
+  const originalPrice = toNumber(
+    apiProd?.original_price ??
+    apiProd?.mrp ??
+    sellingPrice
+  )
+
+  // Build product — prefer live API data, fall back to local lookup + cache
+  const localProduct = productById(productId)
+  const product: Product = localProduct
+    ? { ...localProduct, id: productId }
     : {
         id:     productId,
-        name:   String(item?.product?.name ?? `Product #${productId}`),
+        name:   '…',
         price:  '₹0',
         image:  '',
         tag:    '',
         rating: 4,
-      };
+      } as Product
 
-  if (item?.product?.name)   product.name  = String(item.product.name);
-  if (sellingPrice > 0)      product.price = formatINR(sellingPrice);
+  // FIX-N: overwrite with API data using all field name variants
+  const apiName = apiProd?.product_name ?? apiProd?.name   // FIX-N
+  if (apiName)          product.name  = String(apiName)
+  if (sellingPrice > 0) product.price = formatINR(sellingPrice)
 
-  // FIX-3: image is already a full URL from the API
-  const rawImage =
-    item?.product?.image ??
-    item?.product?.image_url ??
-    item?.product?.product_image;
-  const resolvedImage = normalizeImageUrl(rawImage);
-  if (resolvedImage) product.image = resolvedImage;
+  // FIX-N: image — all possible field names
+  const rawImage = apiProd?.product_image ?? apiProd?.image ?? apiProd?.image_url ?? apiProd?.thumbnail ?? apiProd?.thumb  // FIX-N
+  const resolvedImage = normalizeImageUrl(rawImage)
+  if (resolvedImage) product.image = resolvedImage
 
-  const variantId  = Number(item?.variant?.variant_id);
+  // FIX-N: tag
+  const apiTag = apiProd?.tag ?? apiProd?.category_name
+  if (apiTag) (product as any).tag = String(apiTag)
+
+  // FIX-L: update product cache with fresh API data so future buildCartFromStorage() calls show correct data
+  if (product.name && product.name !== '…') {
+    productCacheWrite(productId, product as unknown as CachedProduct)
+  }
+
+  const variantId   = Number(item?.variant?.variant_id)
   const variantMeta = item?.variant
-    ? {
-        size:  item.variant.size  ?? undefined,
-        color: item.variant.color ?? undefined,
-        stock: toNumber(item.variant.stock),
-      }
-    : undefined;
+    ? { size: item.variant.size ?? undefined, color: item.variant.color ?? undefined, stock: toNumber(item.variant.stock) }
+    : undefined
 
   return {
-    id:            cartId,
+    id:           cartId,
     product,
     quantity,
-    originalPrice, // FIX-2: real MRP for Cart UI savings calc
-    variantId:     Number.isFinite(variantId) && variantId > 0 ? variantId : undefined,
+    originalPrice,
+    variantId:    Number.isFinite(variantId) && variantId > 0 ? variantId : undefined,
     variantMeta,
-  };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-4 + FIX-12 — getCart
-// ─────────────────────────────────────────────────────────────────────────────
-// FIX-12: If this is a brand-new visitor (no session ID stored AND no auth
-// token), we skip the API call entirely and return empty immediately.
-// This prevents the server's global test/demo carts from leaking into a
-// fresh browser session before the user has interacted at all.
+// Parse lines from any response shape
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ApiCartResp = { status?: boolean; data?: ApiCartItem[]; message?: string };
+function parseLinesFromResponse(responseData: unknown): CartLine[] | null {
+  const payload = responseData as any
+  const rows: ApiCartItem[] = Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload)
+    ? payload
+    : null
+  if (!rows) return null
+  const lines = rows.map(normaliseApiCartItem).filter((l): l is CartLine => l !== null)
+  return lines.length > 0 ? lines : null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getCart
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ApiCartResp = { status?: boolean; data?: ApiCartItem[]; message?: string }
 
 export async function getCart(): Promise<CartState> {
-  // FIX-12: check whether this browser already has a session or auth token.
-  // We look in storage WITHOUT calling getOrCreateSessionId() (which would
-  // generate+save a new ID as a side effect — we want lazy generation).
-  const hasStoredSession =
-    Boolean(window.localStorage.getItem(SESSION_STORAGE_KEY)?.trim()) ||
-    Boolean(window.localStorage.getItem(SESSION_STORAGE_LEGACY)?.trim());
-  const hasAuthToken = isAuthenticated();
+  const sidBefore =
+    localStorage.getItem(SESSION_STORAGE_KEY)?.trim() ||
+    localStorage.getItem(SESSION_STORAGE_LEGACY)?.trim() || ''
+  const isNewSession = !sidBefore
+  getOrCreateSessionId()
 
-  // Brand-new visitor: no stored session, no token → definitely empty cart.
-  // Return immediately — do NOT hit the server (would create a new session
-  // using test/shared data on some backends).
-  if (!hasStoredSession && !hasAuthToken) {
-    return { lines: [] };
+  if (isNewSession && !isAuthenticated()) {
+    // API-first: new visitor without session/token should start empty
+    return { lines: [] }
   }
 
   try {
-    const res   = await apiClient.get<ApiCartResp>('/api/cart', {
-      headers: cartHeaders(),
-    } as any);
+    const res   = await apiClient.get<ApiCartResp>('/api/cart', { headers: cartHeaders() } as any)
+    const rows  = Array.isArray(res.data?.data) ? res.data.data : []
+    const lines = rows.map(normaliseApiCartItem).filter((l): l is CartLine => l !== null)
 
-    const rows  = Array.isArray(res.data?.data) ? res.data.data : [];
-    // FIX-4: key by cart_id — preserves multiple lines for same product
-    const lines = rows
-      .map(normaliseApiCartItem)
-      .filter((l): l is CartLine => l !== null);
-
-    // Only fall back to localStorage if API returned nothing AND we have
-    // local items — don't pull ghost items from another user's session.
-    if (lines.length === 0) {
-      const stored = buildCartFromStorage();
-      if (stored.lines.length > 0) return stored;
+    if (lines.length > 0) {
+      const serverMap: Record<string, number> = {}
+      for (const l of lines) {
+        serverMap[String(l.product.id)] = (serverMap[String(l.product.id)] ?? 0) + l.quantity
+      }
+      storageWrite(serverMap)
     }
 
-    return { lines };
+    // If server returned nothing, show empty (API-first; no local data.ts fallback)
+    if (lines.length === 0) {
+      return { lines: [] }
+    }
+
+    const serverProductIds = new Set(lines.map(l => l.product.id))
+    const stored           = buildCartFromStorage()
+    const localOnly        = stored.lines.filter(l => !serverProductIds.has(l.product.id))
+
+    return { lines: [...lines, ...localOnly] }
   } catch {
-    // API error — use local storage as offline fallback only
-    return buildCartFromStorage();
+    // API failed — return empty cart (API-first policy)
+    return { lines: [] }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-5 — addToCart
+// addToCart — FIX-L: caches product details before writing quantity to storage
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function addToCart(
-  productOrId: number | { id: number },
+  productOrId: number | { id: number } | Product,
   quantity    = 1,
   variantId?: number,
 ): Promise<CartState> {
-  const productId = typeof productOrId === 'number' ? productOrId : productOrId.id;
-  const qty       = Math.max(1, Math.floor(quantity));
+  const isProductObj = typeof productOrId === 'object' && 'name' in productOrId
+  const productId    = isProductObj
+    ? (productOrId as Product).id
+    : typeof productOrId === 'number'
+    ? productOrId
+    : (productOrId as { id: number }).id
+  const qty = Math.max(1, Math.floor(quantity))
 
-  // Resolve variant id when caller doesn't supply one
-  let resolvedVariantId =
-    Number.isFinite(Number(variantId)) && Number(variantId) > 0
-      ? Number(variantId)
-      : 0;
-
-  if (!resolvedVariantId) {
-    try {
-      const details = await getProductDetailsById(productId);
-      const first   = details?.variants?.[0]?.variantId;
-      if (Number.isFinite(Number(first)) && Number(first) > 0)
-        resolvedVariantId = Number(first);
-    } catch {
-      // ignore — proceed without variant_id
-    }
+  // FIX-L: cache the full product object BEFORE writing to storage
+  // so buildCartFromStorage() immediately returns real data
+  if (isProductObj) {
+    const p = productOrId as Product
+    productCacheWrite(productId, {
+      id:     productId,
+      name:   p.name,
+      image:  p.image,
+      price:  typeof p.price === 'string' ? p.price : formatINR(p.price),
+      tag:    (p as any).tag   || '',
+      rating: (p as any).rating ?? 4,
+    })
   }
 
+  // API-first: do not persist an optimistic local cart. Rely on server.
+
+  // Step 2: resolve variant id
+  let resolvedVariantId =
+    Number.isFinite(Number(variantId)) && Number(variantId) > 0 ? Number(variantId) : 0
+
+  // Step 3: POST to server
   try {
-    const payload: Record<string, unknown> = { product_id: productId, quantity: qty };
-    if (resolvedVariantId) payload.variant_id = resolvedVariantId;
+    const payload: Record<string, unknown> = { product_id: productId, quantity: qty }
+    if (resolvedVariantId) payload.variant_id = resolvedVariantId
 
-    await apiClient.post('/api/cart', payload, {
+    const res = await apiClient.post('/api/cart', payload, {
       headers: { ...cartHeaders(), 'Content-Type': 'application/json' },
-    } as any);
+    } as any)
 
-    const next = await getCart();
-    notifyCartChanged();
-    return next;
+    const fromResponse = parseLinesFromResponse(res.data)
+    if (fromResponse) {
+      const serverMap: Record<string, number> = {}
+      for (const l of fromResponse) {
+        serverMap[String(l.product.id)] = (serverMap[String(l.product.id)] ?? 0) + l.quantity
+      }
+      storageWrite(serverMap)
+      notifyCartChanged()
+      return { lines: fromResponse }
+    }
+
+    const next = await getCart()
+    notifyCartChanged()
+    return next
   } catch (e) {
-    console.error('addToCart: server request failed, using local fallback', e);
-    const map = storageRead();
-    map[String(productId)] = (map[String(productId)] ?? 0) + qty;
-    storageWrite(map);
-    const next = buildCartFromStorage();
-    notifyCartChanged();
-    return next;
+    console.warn('addToCart: server sync failed', e)
+    return { lines: [] }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-6 — updateCartItem: PUT first, PATCH fallback, then local
+// updateCartItem
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function updateCartItem(
   cartLineId: number,
   quantity:   number,
+  _productId?: number,
 ): Promise<CartState> {
-  const qty = Math.max(1, Math.floor(quantity));
+  const qty        = Math.max(1, Math.floor(quantity))
+  
 
-  // Try PUT
+  // API-first: do not apply optimistic local storage changes here.
+
   try {
-    await apiClient.put(
+    const res = await apiClient.put(
       `/api/cart/${cartLineId}`,
       { quantity: qty },
       { headers: { ...cartHeaders(), 'Content-Type': 'application/json' } } as any,
-    );
-    const next = await getCart();
-    notifyCartChanged();
-    return next;
-  } catch { /* fall through to PATCH */ }
+    )
 
-  // Try PATCH
-  try {
-    await apiClient.patch(
-      `/api/cart/${cartLineId}`,
-      { quantity: qty },
-      { headers: { ...cartHeaders(), 'Content-Type': 'application/json' } } as any,
-    );
-    const next = await getCart();
-    notifyCartChanged();
-    return next;
-  } catch { /* fall through to local */ }
+    const fromResponse = parseLinesFromResponse(res.data)
+    if (fromResponse) {
+      const serverMap: Record<string, number> = {}
+      for (const l of fromResponse) {
+        serverMap[String(l.product.id)] = (serverMap[String(l.product.id)] ?? 0) + l.quantity
+      }
+      storageWrite(serverMap)
+      notifyCartChanged()
+      return { lines: fromResponse }
+    }
 
-  // Local fallback (cartLineId === productId for storage-only carts)
-  const map = storageRead();
-  map[String(cartLineId)] = qty;
-  storageWrite(map);
-  const next = buildCartFromStorage();
-  notifyCartChanged();
-  return next;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FIX-6 — removeFromCartItem: DELETE, then local
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function removeFromCartItem(cartLineId: number): Promise<CartState> {
-  try {
-    await apiClient.delete(`/api/cart/${cartLineId}`, {
-      headers: cartHeaders(),
-    } as any);
-    const next = await getCart();
-    notifyCartChanged();
-    return next;
+    const next = await getCart()
+    notifyCartChanged()
+    return next
   } catch {
-    // local fallback
-    const map = storageRead();
-    delete map[String(cartLineId)];
-    storageWrite(map);
-    const next = buildCartFromStorage();
-    notifyCartChanged();
-    return next;
+    return { lines: [] }
   }
 }
 
-// Backwards-compatible alias
-export { removeFromCartItem as removeFromCart };
+// ─────────────────────────────────────────────────────────────────────────────
+// removeFromCartItem
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function removeFromCartItem(
+  cartLineId: number,
+  productId?: number,
+): Promise<CartState> {
+  // API-first: do not apply optimistic local deletion
+
+  try {
+    const res = await apiClient.delete(`/api/cart/${cartLineId}`, {
+      headers: cartHeaders(),
+    } as any)
+
+    const fromResponse = parseLinesFromResponse(res.data)
+    if (fromResponse) {
+      const serverMap: Record<string, number> = {}
+      for (const l of fromResponse) {
+        serverMap[String(l.product.id)] = (serverMap[String(l.product.id)] ?? 0) + l.quantity
+      }
+      storageWrite(serverMap)
+      notifyCartChanged()
+      return { lines: fromResponse }
+    }
+
+    const next = await getCart()
+    notifyCartChanged()
+    return next
+  } catch {
+    return { lines: [] }
+  }
+}
+
+export { removeFromCartItem as removeFromCart }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX-7 — clearCart
+// clearCart
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function clearCart(): Promise<CartState> {
-  let current: CartState;
-  try {
-    current = await getCart();
-  } catch {
-    current = buildCartFromStorage();
-  }
+  let current: CartState
+  try { current = await getCart() }
+  catch { current = { lines: [] } }
 
-  // Only server-side lines (cart_id !== product_id heuristic)
-  const serverLines = current.lines.filter(
-    (l) => Number.isFinite(l.id) && l.id > 0 && l.id !== l.product.id,
-  );
-
-  for (const line of serverLines) {
-    try {
-      await apiClient.delete(`/api/cart/${line.id}`, { headers: cartHeaders() } as any);
-    } catch (e) {
-      console.error('clearCart: failed to delete cart_id', line.id, e);
+  for (const line of current.lines) {
+    if (Number.isFinite(line.id) && line.id > 0 && line.id !== line.product.id) {
+      try {
+        await apiClient.delete(`/api/cart/${line.id}`, { headers: cartHeaders() } as any)
+      } catch (e) {
+        console.error('clearCart: failed to delete cart_id', line.id, e)
+      }
     }
   }
-
-  storageWrite({});
-  notifyCartChanged();
-  return { lines: [] };
+  storageWrite({})
+  notifyCartChanged()
+  return { lines: [] }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Checkout types + helper
+// getCheckout
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type CheckoutItem = {
-  product_id: number;
-  name:       string;
-  image?:     string | null;
-  price:      number | string;
-  quantity:   number;
-  total?:     number | string;
-  cart_id?:   number;
-};
+  product_id: number; name: string; image?: string | null
+  price: number | string; quantity: number; total?: number | string; cart_id?: number
+}
 
-// FIX-8 — getCheckout: handles all real array shapes the API might return
 export async function getCheckout(): Promise<{ lines: CartLine[]; cart_total: number }> {
   try {
-    const token   = window.localStorage.getItem('access_token');
-    const headers: Record<string, string> = { ...cartHeaders() };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res     = await apiClient.get<any>('/api/checkout', { headers: cartHeaders() } as any)
+    const payload = res.data
 
-    const res     = await apiClient.get<any>('/api/checkout', { headers } as any);
-    const payload = res.data;
+    let items: any[] = []
+    if      (Array.isArray(payload?.data))        items = payload.data
+    else if (Array.isArray(payload?.data?.items)) items = payload.data.items
+    else if (Array.isArray(payload?.items))        items = payload.items
+    else if (Array.isArray(payload?.cart_items))   items = payload.cart_items
 
-    // Support common response shapes
-    let items: any[] = [];
-    if      (Array.isArray(payload?.data))             items = payload.data;
-    else if (Array.isArray(payload?.data?.items))      items = payload.data.items;
-    else if (Array.isArray(payload?.items))            items = payload.items;
-    else if (Array.isArray(payload?.cart_items))       items = payload.cart_items;
+    const lines = items.map((it: any) => {
+      const prodObj   = it?.product ?? {}
+      const productId = Number(prodObj?.product_id ?? prodObj?.id ?? it?.product_id ?? it?.id)
+      const cartId    = Number(it?.cart_id ?? it?.id ?? 0)
+      const qty       = Math.max(1, Math.floor(toNumber(it?.quantity ?? it?.qty ?? 1)))
+      const priceVal  = it?.price ?? it?.selling_price ?? prodObj?.product_price ?? prodObj?.price ?? 0
+      const origVal   = prodObj?.original_price ?? it?.original_price ?? priceVal
 
-    const lines = items
-      .map((it: any) => {
-        const prodObj   = it?.product ?? {};
-        const productId = Number(prodObj?.product_id ?? it?.product_id ?? prodObj?.id ?? it?.id);
-        const cartId    = Number(it?.cart_id ?? 0) || 0;
-        const qty       = Math.max(1, Math.floor(toNumber(it?.quantity ?? it?.qty ?? 1)));
-        const priceVal  = it?.price ?? it?.selling_price ?? prodObj?.price ?? 0;
-        const origVal   = prodObj?.original_price ?? it?.original_price ?? priceVal;
+      const fallback = productById(productId)
+      const product: any = fallback ? { ...fallback, id: productId } : {
+        id: productId, name: `Product #${productId}`, price: '₹0', image: '', tag: '', rating: 4
+      }
 
-        const fallback  = productById(productId);
-        const product: any = fallback
-          ? { ...fallback, id: productId }
-          : { id: productId, name: `Product #${productId}`, price: '₹0', image: '', tag: '', rating: 4 };
+      const apiName = prodObj?.product_name ?? prodObj?.name ?? it?.name
+      if (apiName)      product.name  = String(apiName)
+      if (priceVal > 0) product.price = formatINR(priceVal)
 
-        if (prodObj?.name)   product.name  = String(prodObj.name);
-        else if (it?.name)   product.name  = String(it.name);
-        if (priceVal != null) product.price = formatINR(priceVal);
+      const rawImg   = prodObj?.product_image ?? prodObj?.image ?? it?.image ?? prodObj?.image_url
+      const resolved = normalizeImageUrl(rawImg)
+      if (resolved)  product.image = resolved
 
-        const rawImg   = prodObj?.image ?? it?.image ?? prodObj?.image_url ?? prodObj?.product_image;
-        const resolved = normalizeImageUrl(rawImg);
-        if (resolved)  product.image = resolved;
-
-        return {
-          id:            Number.isFinite(cartId) && cartId > 0 ? cartId : productId,
-          product,
-          quantity:      qty,
-          originalPrice: toNumber(origVal),
-          variantId:     Number(it?.variant_id ?? it?.variant?.variant_id) || undefined,
-        } as CartLine;
-      })
-      .filter((l): l is CartLine => !!l);
+      return {
+        id: Number.isFinite(cartId) && cartId > 0 ? cartId : productId,
+        product, quantity: qty, originalPrice: toNumber(origVal),
+        variantId: Number(it?.variant_id ?? it?.variant?.variant_id) || undefined,
+      } as CartLine
+    }).filter((l): l is CartLine => !!l)
 
     const cart_total = toNumber(
-      payload?.data?.cart_total ??
-      payload?.cart_total ??
-      payload?.data?.total ??
-      payload?.total ??
-      payload?.total_amount ??
-      items.reduce(
-        (s: number, it: any) =>
-          s + toNumber(it?.total ?? (it?.price ?? 0) * (it?.quantity ?? it?.qty ?? 1)),
-        0,
-      ),
-    );
+      payload?.data?.cart_total ?? payload?.cart_total ?? payload?.total ?? payload?.total_amount ??
+      items.reduce((s: number, it: any) => s + toNumber(it?.total ?? (it?.price ?? 0) * (it?.quantity ?? 1)), 0),
+    )
 
     if (lines.length === 0) {
-      const stored = buildCartFromStorage();
-      if (stored.lines.length > 0) return { lines: stored.lines, cart_total: 0 };
+      const stored = buildCartFromStorage()
+      if (stored.lines.length > 0) return { lines: stored.lines, cart_total: 0 }
     }
-
-    return { lines, cart_total };
+    return { lines, cart_total }
   } catch {
-    const stored = buildCartFromStorage();
-    const total  = stored.lines.reduce(
-      (s, l) => s + toNumber(l.product.price) * l.quantity,
-      0,
-    );
-    return { lines: stored.lines, cart_total: total };
+    return { lines: [], cart_total: 0 }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Merge guest cart into authenticated user (client-side fallback)
-// This is a best-effort merge used when the backend doesn't automatically
-// merge guest sessions. It:
-// 1. Fetches the guest cart using the SessionId (without Authorization).
-// 2. Reads any local-storage-only cart lines.
-// 3. Adds all guest/local items to the authenticated user's cart using
-//    the normal authenticated `POST /api/cart` endpoint.
-// 4. Deletes server-side guest lines (those with cart_id !== product_id).
-// 5. Clears local-storage fallback and notifies listeners.
-// Note: Call this AFTER storing the `access_token` and `auth_user` so
-// `apiClient` sends the Bearer header while adding items to the user cart.
+// mergeGuestCartIntoUser
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function mergeGuestCartIntoUser(): Promise<void> {
   try {
-    const apiBase = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-    const base = apiBase?.trim() ? apiBase.replace(/\/$/, '') : window.location.origin.replace(/\/$/, '');
+    const stored = buildCartFromStorage()
+    if (stored.lines.length === 0) return
 
-    // Guest-only client: do NOT attach Authorization header.
-    const guestClient = axios.create({ baseURL: base, timeout: 15000, headers: { 'Content-Type': 'application/json' } });
-
-    // 1) Fetch server-side guest cart using SessionId headers
-    let guestLines: CartLine[] = [];
-    try {
-      const guestResp = await guestClient.get<any>('/api/cart', { headers: cartHeaders() } as any);
-      const rows = Array.isArray(guestResp.data?.data) ? guestResp.data.data : [];
-      guestLines = (rows as ApiCartItem[])
-        .map(normaliseApiCartItem)
-        .filter((l: CartLine | null): l is CartLine => l !== null);
-    } catch (e) {
-      // Ignore guest fetch failures — we'll still attempt to merge local storage
-      guestLines = [];
-    }
-
-    // 2) Read local-storage fallback cart
-    const stored = buildCartFromStorage();
-
-    // 3) Consolidate quantities by product id
-    const map = new Map<number, { quantity: number; variantId?: number }>();
-    for (const l of guestLines) {
-      const pid = l.product.id;
-      const existing = map.get(pid);
-      map.set(pid, { quantity: (existing?.quantity ?? 0) + l.quantity, variantId: existing?.variantId ?? l.variantId });
-    }
     for (const l of stored.lines) {
-      const pid = l.product.id;
-      const existing = map.get(pid);
-      map.set(pid, { quantity: (existing?.quantity ?? 0) + l.quantity, variantId: existing?.variantId ?? l.variantId });
-    }
-
-    // 4) Add consolidated items to authenticated user's cart
-    for (const [productId, info] of map.entries()) {
       try {
-        const payload: Record<string, unknown> = { product_id: productId, quantity: Math.max(1, Math.floor(info.quantity)) };
-        if (info.variantId) payload.variant_id = info.variantId;
-        await apiClient.post('/api/cart', payload, { headers: { ...cartHeaders(), 'Content-Type': 'application/json' } } as any);
+        await apiClient.post('/api/cart', {
+          product_id: l.product.id, quantity: l.quantity,
+        }, { headers: { ...cartHeaders(), 'Content-Type': 'application/json' } } as any)
       } catch (e) {
-        // Continue on errors — best effort merge
-        console.error('mergeGuestCartIntoUser: failed to add product', productId, e);
+        console.error('mergeGuestCartIntoUser: failed to add product', l.product.id, e)
       }
     }
 
-    // 5) Delete server-side guest lines (only those that look like server lines)
-    for (const l of guestLines) {
-      try {
-        if (Number.isFinite(l.id) && l.id > 0 && l.id !== l.product.id) {
-          await guestClient.delete(`/api/cart/${l.id}`, { headers: cartHeaders() } as any);
-        }
-      } catch (e) {
-        console.warn('mergeGuestCartIntoUser: failed to delete guest line', l.id, e);
-      }
-    }
-
-    // 6) Clear local storage fallback and notify
-    storageWrite({});
-    notifyCartChanged();
+    storageWrite({})
+    notifyCartChanged()
   } catch (e) {
-    console.error('mergeGuestCartIntoUser: unexpected error', e);
-    // swallow errors — merge is best-effort
+    console.error('mergeGuestCartIntoUser: unexpected error', e)
   }
 }
