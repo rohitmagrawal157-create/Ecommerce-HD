@@ -193,14 +193,14 @@ export default function ProductCollection() {
 
         {/* Section Header */}
         <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center">
-          <div>
+          {/* <div>
             <img
               src={features}
               className="mx-auto w-14 sm:w-24"
               alt="Featured Products"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,0.25))' }}
             />
-          </div>
+          </div> */}
           <h3
             className="leading-none text-2xl md:text-3xl font-bold"
             style={{

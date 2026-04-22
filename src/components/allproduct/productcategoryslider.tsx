@@ -114,21 +114,21 @@ export default function ProductCategorySlider() {
   };
 
   return (
-    <div className="s-py-100-50 overflow-hidden">
+    <div className="s-py-75-50 overflow-hidden">
       <div className="container-fluid">
 
         {/* Section Header */}
         <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up">
 
           {/* New professional icon */}
-          <div>
+          {/* <div>
                 <img
                   src={products}
                   className="mx-auto w-14 sm:w-24"
                   alt=""
                   style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,0.25))' }}
                 />
-              </div>
+              </div> */}
 
           {/* Gradient heading */}
           <h3

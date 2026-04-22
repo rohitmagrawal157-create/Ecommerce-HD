@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: [
-      "trifocals-ranting-squall.ngrok-free.dev"
+      "trifocals-ranting-squall.ngrok-free.dev",'.trycloudflare.com'
     ]
   }
 })

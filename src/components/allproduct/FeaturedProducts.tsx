@@ -253,7 +253,7 @@ export default function TopPicks() {
 
         {/* Header */}
         <div style={{ marginBottom: 'clamp(12px,2vw,28px)', textAlign: 'center' }}>
-          <h2 className="tp-heading">Top 8 Art &amp; Canvas Picks</h2>
+          <h2 className="tp-heading">Top Art &amp; Canvas Picks</h2>
           <p style={{ fontSize: 'clamp(12px,1.5vw,15px)', color: '#9CA3AF', margin: '6px 0 0' }}>
             Handpicked premium collection for your space
           </p>

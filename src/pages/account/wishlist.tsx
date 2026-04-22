@@ -14,32 +14,12 @@ import { getWishlist, removeFromWishlist, type WishlistState } from "../../api/w
 
 import { RiShoppingBag2Line, RiDeleteBinLine } from "react-icons/ri";
 import { GoStarFill } from "react-icons/go";
-import {  LuHeart } from "react-icons/lu";
+import { LuHeart } from "react-icons/lu";
 import { BsCheckLg } from "react-icons/bs";
 
 import Aos from "aos";
 
-// Brand tokens (same as LayoutOne)
-// const B = {
-//   brandGrad: 'linear-gradient(135deg, #6B3FA0 0%, #DC2626 50%, #F97316 100%)',
-//   ctaGrad:   'linear-gradient(135deg, #0EA5C2 0%, #16A34A 60%, #84CC16 100%)',
-//   purple:    '#6B3FA0',
-//   red:       '#DC2626',
-//   orange:    '#F97316',
-//   teal:      '#0EA5C2',
-//   green:     '#16A34A',
-//   pink:      '#EC4899',
-//   yellow:    '#EAB308',
-//   bg:        '#FFFFFF',
-//   bgSoft:    '#FAFAFA',
-//   border:    '#EBEBF0',
-//   text:      '#111827',
-//   body:      '#374151',
-//   muted:     '#6B7280',
-//   faint:     '#9CA3AF',
-// };
-
-// Helper to compute MRP for sale items (if originalPrice missing)
+// Helper to compute MRP for sale items
 function computeMrp(price: string, discountPct = 20): string {
   const num = parseFloat(price.replace(/[^0-9.-]/g, ''));
   if (isNaN(num)) return '';
@@ -47,11 +27,9 @@ function computeMrp(price: string, discountPct = 20): string {
   return `$${mrp.toFixed(2)}`;
 }
 
-// Detect sale tags (for discount auto-computation)
 const SALE_TAGS = new Set(['Sale', 'Hot Sale', '10% OFF', 'Hot']);
 
 export default function Wishlist() {
-//   const navigate = useNavigate();
   const [wishlist, setWishlist] = useState<WishlistState>({ productIds: [], products: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,22 +71,35 @@ export default function Wishlist() {
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────
+  // UPDATED: handleAddToCart
+  // Logic: Add to Cart → If Success → Remove from Wishlist ("Shift to Cart")
+  // ─────────────────────────────────────────────────────────────────────
   const handleAddToCart = async (productId: number) => {
     if (busyCart === productId) return;
     setBusyCart(productId);
     try {
+      // 1. Add to cart API
       await addToCart(productId, 1);
+      
+      // 2. Show success visual feedback
       setCartAdded(productId);
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setCartAdded(null), 1600);
+
+      // 3. Remove from wishlist (Shift logic)
+      // We call removeFromWishlist which updates the state automatically
+      await removeFromWishlist(productId); 
+      
     } catch (err) {
-      console.error(err);
+      console.error("Failed to add to cart or remove from wishlist", err);
+      // Note: If addToCart fails, we do NOT remove from wishlist
     } finally {
       setBusyCart(null);
     }
   };
 
-  // Inject global styles once (matching LayoutOne)
+  // Inject global styles
   useEffect(() => {
     if (document.getElementById('wishlist-styles')) return;
     const style = document.createElement('style');
@@ -164,7 +155,7 @@ export default function Wishlist() {
       .inf-mrp {
         text-decoration: line-through;
         color: #9CA3AF;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 400;
       }
       .inf-disc {
@@ -207,12 +198,6 @@ export default function Wishlist() {
       <div className="s-py-100">
         <div className="container-fluid">
           <div className="max-w-[1720px] mx-auto flex items-start gap-8 md:gap-12 2xl:gap-24 flex-col md:flex-row my-profile-navtab">
-            {/* Sidebar */}
-            {/* <div className="w-full md:w-[200px] lg:w-[300px] flex-none" data-aos="fade-up" data-aos-delay="100">
-              <AccountTab />
-            </div> */}
-
-            {/* Wishlist Products Grid */}
             <div className="w-full md:w-auto md:flex-1" data-aos="fade-up" data-aos-delay="300">
               {loading ? (
                 <div className="text-center text-sm text-gray-500 py-10">Loading wishlist...</div>
@@ -231,9 +216,8 @@ export default function Wishlist() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
                   {wishlist.products.map((item: Product) => {
-                    // Price display logic (same as LayoutOne)
                     const isSaleTag = item.tag ? SALE_TAGS.has(item.tag.trim()) : false;
                     const discPct = item.discount ?? (isSaleTag ? 20 : 0);
                     const mrp = item.originalPrice ?? (discPct > 0 ? computeMrp(item.price, discPct) : '');
@@ -267,7 +251,7 @@ export default function Wishlist() {
                           {/* Tag badge */}
                           {item.tag && (
                             <span
-                              className="absolute top-0 left-0 z-20 text-white text-[9px] font-bold tracking-[0.14em] uppercase px-[10px] py-[5px] leading-none select-none"
+                              className="absolute top-0 left-0 z-20 text-white text-[8px] font-bold tracking-[0.14em] uppercase px-[8px] py-[3px] leading-none select-none"
                               style={{ background: `linear-gradient(135deg, #6B3FA0, #DC2626)` }}
                             >
                               {item.tag}
@@ -277,8 +261,8 @@ export default function Wishlist() {
                           {/* Discount badge */}
                           {showPricing && (
                             <span
-                              className="absolute z-20 text-white text-[8px] font-bold tracking-[0.1em] uppercase px-[10px] py-[4px] leading-none select-none"
-                              style={{ background: 'linear-gradient(135deg,#DC2626,#F97316)', top: 22, left: 0 }}
+                              className="absolute z-20 text-white text-[7px] font-bold tracking-[0.1em] uppercase px-[8px] py-[3px] leading-none select-none"
+                              style={{ background: 'linear-gradient(135deg,#DC2626,#F97316)', top: 18, left: 0 }}
                             >
                               -{discPct}% OFF
                             </span>
@@ -295,25 +279,25 @@ export default function Wishlist() {
                                 type="button"
                                 onClick={() => handleAddToCart(item.id)}
                                 disabled={busyCart === item.id}
-                                className="hover-btn flex-1 flex flex-col items-center justify-center gap-[4px] py-[11px] border-r border-white/15 disabled:opacity-50"
+                                className="hover-btn flex-1 flex flex-col items-center justify-center gap-[4px] py-[9px] border-r border-white/15 disabled:opacity-50"
                               >
                                 {cartAdded === item.id ? (
-                                  <BsCheckLg className="text-green-300" size={14} />
+                                  <BsCheckLg className="text-green-300" size={13} />
                                 ) : (
-                                  <RiShoppingBag2Line className="text-white" size={14} />
+                                  <RiShoppingBag2Line className="text-white" size={13} />
                                 )}
-                                <span className="text-[8px] font-bold tracking-[0.12em] uppercase text-white">
-                                  {cartAdded === item.id ? 'Added!' : 'Add Cart'}
+                                <span className="text-[7px] font-bold tracking-[0.12em] uppercase text-white">
+                                  {cartAdded === item.id ? 'Moved!' : 'Add Cart'}
                                 </span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleRemove(item.id)}
                                 disabled={busyRemove === item.id}
-                                className="hover-btn flex-1 flex flex-col items-center justify-center gap-[4px] py-[11px] disabled:opacity-50"
+                                className="hover-btn flex-1 flex flex-col items-center justify-center gap-[4px] py-[9px] disabled:opacity-50"
                               >
-                                <RiDeleteBinLine className="text-white" size={14} />
-                                <span className="text-[8px] font-bold tracking-[0.12em] uppercase text-white">
+                                <RiDeleteBinLine className="text-white" size={13} />
+                                <span className="text-[7px] font-bold tracking-[0.12em] uppercase text-white">
                                   Remove
                                 </span>
                               </button>
@@ -322,36 +306,35 @@ export default function Wishlist() {
                         </div>
 
                         {/* Info Zone */}
-                        <div className="p-4">
+                        <div className="p-3">
                           {/* Product Name */}
                           <Link to={`/product-details/${item.id}`} className="block mb-2">
                             <h5
-                              className="text-[15px] font-medium text-gray-800 line-clamp-2 hover:text-purple-600 transition"
-                              style={{ lineHeight: 1.42 }}
+                              className="text-[13px] font-medium text-gray-800 line-clamp-2 hover:text-purple-600 transition"
+                              style={{ lineHeight: 1.4 }}
                             >
                               {item.name}
                             </h5>
                           </Link>
 
                           {/* Rating */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="flex items-center gap-[2px]">
+                          <div className="flex items-center gap-1 mb-2">
+                            <div className="flex items-center gap-[1px]">
                               {[1, 2, 3, 4, 5].map((s) => (
                                 <GoStarFill
                                   key={s}
-                                  size={11}
+                                  size={10}
                                   className={s <= ratingNum ? 'text-yellow-500' : 'text-gray-200'}
                                 />
                               ))}
                             </div>
-                            <span className="text-xs font-bold text-gray-700">{ratingLabel}</span>
-                            <span className="text-[11px] text-gray-400">(1,230)</span>
+                            <span className="text-[10px] font-bold text-gray-700">{ratingLabel}</span>
                           </div>
 
                           {/* Price Row */}
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="inf-price text-[17px] font-bold">{item.price}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inf-price text-[15px] font-bold">{item.price}</span>
                               {showPricing && <span className="inf-mrp">{mrp}</span>}
                               {showPricing && <span className="inf-disc">-{discPct}%</span>}
                             </div>
@@ -359,12 +342,12 @@ export default function Wishlist() {
                             <button
                               onClick={() => handleAddToCart(item.id)}
                               disabled={busyCart === item.id}
-                              className="hidden sm:flex items-center justify-center w-7 h-7 border border-gray-200 rounded-full hover:bg-teal-500 hover:border-teal-500 transition group"
+                              className="hidden sm:flex items-center justify-center w-6 h-6 border border-gray-200 rounded-full hover:bg-teal-500 hover:border-teal-500 transition group"
                             >
                               {cartAdded === item.id ? (
-                                <BsCheckLg size={11} className="text-green-600" />
+                                <BsCheckLg size={10} className="text-green-600" />
                               ) : (
-                                <RiShoppingBag2Line size={11} className="text-gray-500 group-hover:text-white" />
+                                <RiShoppingBag2Line size={10} className="text-gray-500 group-hover:text-white" />
                               )}
                             </button>
                           </div>

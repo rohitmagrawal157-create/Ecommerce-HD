@@ -1,27 +1,27 @@
 // src/components/navbar/navbar-one.tsx
 // @ts-nocheck
 // ══════════════════════════════════════════════════════════════════════════════
-//  NavbarOne — Live API Categories + FIXED cart/wishlist badge counts
+//  NavbarOne — Expert Live Search + All previous fixes preserved
 //
-//  CART BADGE FIXES (this revision):
+//  SEARCH UPGRADES (this revision):
 //
-//  FIX-BADGE-1  refreshCounts() is now synchronous-first.
-//               It reads localStorage via getCartCountSync() (0ms) before
-//               any network call, so the badge updates the instant
-//               'cart:changed' fires — not after a 200-600ms getCart() await.
+//  SEARCH-1  Live suggestions dropdown — calls GET /api/products/search?q=xxx
+//            with 280ms debounce. Shows product image + name + price inline.
 //
-//  FIX-BADGE-2  Background server reconciliation only INCREASES the badge.
-//               If getCart() returns 0 (FIX-12 guard, network error, or
-//               brand-new visitor), it no longer overwrites a valid local count.
+//  SEARCH-2  Keyboard navigation — ArrowUp / ArrowDown / Enter / Escape fully
+//            supported within the suggestion list.
 //
-//  FIX-BADGE-3  'cart:changed' listener is now added with a named stable
-//               ref — the old inline handler was a new function each render,
-//               so removeEventListener never matched it → memory leak.
+//  SEARCH-3  Recent searches — last 6 queries stored in localStorage and shown
+//            when the input is focused but empty.
 //
-//  FIX-BADGE-4  Cart count now also responds to the 'storage' event so
-//               multiple tabs stay in sync.
+//  SEARCH-4  Correct field mapping — API returns product_id / original_price /
+//            image (not id / price / product_image). mapSearchItem() handles this.
 //
-//  All previous category/navigation fixes are preserved unchanged.
+//  SEARCH-5  Clicking a suggestion navigates to /product-details/:id directly.
+//
+//  SEARCH-6  Mobile search bar shares the same suggestion engine.
+//
+//  All previous badge / category / navigation fixes are preserved unchanged.
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
@@ -30,15 +30,14 @@ import {
   LuHeart, LuShoppingBasket, LuSearch, LuMapPin,
   LuTruck, LuSmartphone, LuCircle, LuX,
   LuChevronDown, LuChevronRight, LuMenu, LuUser,
-  LuClipboardCheck, LuGift, LuLogOut,
+  LuClipboardCheck, LuGift, LuLogOut, LuClock, LuTrendingUp,
 } from 'react-icons/lu'
 import { RiEBike2Line } from 'react-icons/ri'
 
-// ── FIX-BADGE-1: Import synchronous count helpers ─────────────────────────────
 import { getCartCountSync, rotateCartSession } from '../../api/cart.api'
 import { apiClient } from '../../api/client'
 
-// ── Sync wishlist count (reads localStorage, no async) ────────────────────────
+// ── Sync wishlist count ────────────────────────────────────────────────────────
 function getWishlistCountSync(): number {
   try {
     const raw = window.localStorage.getItem('wishlist_items_v1')
@@ -90,10 +89,64 @@ interface ApiChild { id: number; name: string; image_url: string | null }
 interface ApiCat   { id: number; name: string; image_url: string | null; children: ApiChild[] }
 interface ApiResp  { status: boolean; data: ApiCat[] }
 
-// ── Internal types ─────────────────────────────────────────────────────────────
 type MenuLink = string | { name: string; badge?: string; path?: string; id?: number; parentId?: number }
 interface MenuGroup { heading: string; links: MenuLink[] }
 interface DeptMenu  { id?: number; image: string; imageAlt: string; flatLinks?: MenuLink[]; groups: MenuGroup[] }
+
+// ── Search suggestion type (matches actual API) ────────────────────────────────
+interface SearchSuggestion {
+  id:    number      // product_id from API
+  name:  string
+  price: string      // formatted ₹ price
+  image: string      // full absolute URL
+}
+
+// ─── Recent searches helpers ──────────────────────────────────────────────────
+const RECENT_KEY = 'search_recent_v1'
+const MAX_RECENT = 6
+
+function getRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    return raw ? (JSON.parse(raw) as string[]).slice(0, MAX_RECENT) : []
+  } catch { return [] }
+}
+
+function saveRecentSearch(q: string): void {
+  if (!q.trim()) return
+  try {
+    const prev = getRecentSearches().filter((r) => r.toLowerCase() !== q.toLowerCase())
+    localStorage.setItem(RECENT_KEY, JSON.stringify([q.trim(), ...prev].slice(0, MAX_RECENT)))
+  } catch {}
+}
+
+function removeRecentSearch(q: string): void {
+  try {
+    const prev = getRecentSearches().filter((r) => r !== q)
+    localStorage.setItem(RECENT_KEY, JSON.stringify(prev))
+  } catch {}
+}
+
+// ── Map raw search API item → SearchSuggestion ────────────────────────────────
+// Actual API: { product_id, name, original_price, discount_percentage, image }
+function mapSearchItem(p: any): SearchSuggestion | null {
+  const id = Number(p.product_id ?? p.id ?? 0)
+  if (!id) return null
+
+  const rawPrice = p.price ?? p.product_price ?? p.original_price ?? 0
+  const num      = parseFloat(String(rawPrice).replace(/[^0-9.]/g, ''))
+  const price    = Number.isFinite(num) && num > 0 ? `₹${num.toLocaleString('en-IN')}` : ''
+
+  let rawImg: unknown = p.image ?? p.image_url ?? p.product_image ?? ''
+  if (!rawImg && Array.isArray(p.images) && p.images.length > 0) rawImg = p.images[0]
+  let img = String(rawImg ?? '').replace(/\\/g, '').trim()
+  if (img && !/^https?:\/\//i.test(img)) {
+    const base = (import.meta as any)?.env?.VITE_API_BASE_URL ?? window.location.origin
+    img = base.replace(/\/$/, '') + '/' + img.replace(/^\//, '')
+  }
+
+  return { id, name: String(p.name ?? ''), price, image: img }
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const toSlug       = (s: string) => s.toLowerCase().replace(/[\s&\/]+/g, '-')
@@ -185,11 +238,87 @@ const STYLES = `
   .hcn-icon-btn:hover .hcn-ico{color:${BRAND_SOLID}!important}
   .hcn-icon-btn:hover .hcn-lbl{color:${BRAND_SOLID}!important}
 
-  .hcn-search-wrap{display:flex;align-items:center;height:44px;border-radius:100px;overflow:hidden;background:#f4f3f8;border:1.5px solid ${C.borderMd};transition:border-color .2s,box-shadow .2s}
+  /* ── Search bar & dropdown ────────────────────────────────────── */
+  .hcn-search-wrap{display:flex;align-items:center;height:44px;border-radius:100px;overflow:hidden;background:#f4f3f8;border:1.5px solid ${C.borderMd};transition:border-color .2s,box-shadow .2s;position:relative}
   .hcn-search-wrap.focused{border-color:${BRAND_SOLID};box-shadow:0 0 0 3px rgba(91,79,190,.12)}
   .hcn-search-input{flex:1;min-width:0;background:transparent;border:none;outline:none;padding:0 10px;font-size:14px;color:${C.text};font-family:${FONT}}
   .hcn-search-input::placeholder{color:${C.light}}
 
+  /* suggestions dropdown */
+  .hcn-suggest-drop{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;
+    background:#fff;border-radius:14px;
+    border:1px solid #e8e8e8;
+    box-shadow:0 16px 48px rgba(0,0,0,.13),0 4px 12px rgba(0,0,0,.06);
+    z-index:9100;overflow:hidden;
+    animation:hcnDropIn .18s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes hcnDropIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  .hcn-suggest-item{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 14px;cursor:pointer;
+    transition:background .12s;
+    border-bottom:1px solid #f5f5f5;
+  }
+  .hcn-suggest-item:last-child{border-bottom:none}
+  .hcn-suggest-item:hover,.hcn-suggest-item.is-active{background:#f5f3ff}
+  .hcn-suggest-img{
+    width:38px;height:38px;border-radius:8px;object-fit:cover;
+    flex-shrink:0;background:#f0f0f0;border:1px solid #eee;
+  }
+  .hcn-suggest-name{
+    font-size:13px;font-weight:500;color:${C.text};font-family:${FONT};
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;
+  }
+  .hcn-suggest-name em{
+    font-style:normal;
+    background:linear-gradient(135deg,${BRAND_SOLID},#E8314A);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    font-weight:700;
+  }
+  .hcn-suggest-price{
+    font-size:12px;font-weight:700;font-family:${FONT};
+    background:linear-gradient(135deg,${BRAND_SOLID},#E8314A);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    flex-shrink:0;
+  }
+  .hcn-suggest-section{
+    padding:7px 14px 4px;font-size:10px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:#bbb;font-family:${FONT};
+    background:#fafafa;border-bottom:1px solid #f0f0f0;
+  }
+  .hcn-suggest-recent{
+    display:flex;align-items:center;gap:8px;padding:8px 14px;
+    cursor:pointer;transition:background .12s;
+  }
+  .hcn-suggest-recent:hover,.hcn-suggest-recent.is-active{background:#f5f3ff}
+  .hcn-suggest-recent-text{font-size:13px;font-family:${FONT};color:#444;flex:1}
+  .hcn-suggest-recent-del{
+    background:none;border:none;cursor:pointer;padding:2px 4px;
+    color:#ccc;font-size:11px;line-height:1;border-radius:4px;
+    transition:color .12s,background .12s;
+  }
+  .hcn-suggest-recent-del:hover{color:#e11d48;background:#fff0f0}
+  .hcn-suggest-footer{
+    padding:9px 14px;background:#fafafa;border-top:1px solid #f0f0f0;
+    font-size:12px;font-family:${FONT};color:${C.muted};
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .hcn-suggest-see-all{
+    font-size:12px;font-weight:700;font-family:${FONT};
+    background:${BRAND_GRAD};-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+    cursor:pointer;
+  }
+  .hcn-suggest-spinner{
+    width:14px;height:14px;border:2px solid #e8e8e8;
+    border-top-color:${BRAND_SOLID};border-radius:50%;
+    animation:hcnSpin .6s linear infinite;flex-shrink:0;
+  }
+  @keyframes hcnSpin{to{transform:rotate(360deg)}}
+
+  /* ── Rest of existing styles ──────────────────────────────────── */
   .hcn-mob-header{transform:translateY(0);transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
   .hcn-mob-header.is-hidden{transform:translateY(-100%)}
   .hcn-mob-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:9px;border-radius:10px;-webkit-tap-highlight-color:transparent;text-decoration:none;color:inherit}
@@ -210,7 +339,6 @@ const STYLES = `
   .hcn-pdrop-item:hover{background:${C.brandBg};color:${BRAND_SOLID}}
   .hcn-pdrop-item.danger:hover{background:#fff5f5;color:#e11d48}
 
-  /* FIX-BADGE: animate badge count changes */
   @keyframes hcn-badge-pop { 0%{transform:scale(1)} 50%{transform:scale(1.4)} 100%{transform:scale(1)} }
   .hcn-badge-pop { animation: hcn-badge-pop 0.3s ease; }
 `
@@ -226,32 +354,19 @@ function Tooltip({ text, visible }: { text: string; visible: boolean }) {
   )
 }
 
-// FIX-BADGE: CountBadge now animates when count changes
 function CountBadge({ count }: { count: number }) {
   const [prevCount, setPrevCount] = useState(count)
   const [popping,   setPopping]   = useState(false)
-
   useEffect(() => {
     if (count !== prevCount && count > 0) {
-      setPopping(true)
-      setPrevCount(count)
+      setPopping(true); setPrevCount(count)
       const t = setTimeout(() => setPopping(false), 300)
       return () => clearTimeout(t)
     }
   }, [count, prevCount])
-
   if (count <= 0) return null
   return (
-    <span
-      className={popping ? 'hcn-badge-pop' : ''}
-      style={{
-        position:'absolute', top:-7, right:-7,
-        minWidth:16, height:16, padding:'0 4px', borderRadius:8,
-        background:BRAND_GRAD, color:'#fff',
-        fontSize:9, fontWeight:700,
-        display:'flex', alignItems:'center', justifyContent:'center',
-      }}
-    >
+    <span className={popping ? 'hcn-badge-pop' : ''} style={{ position:'absolute',top:-7,right:-7,minWidth:16,height:16,padding:'0 4px',borderRadius:8,background:BRAND_GRAD,color:'#fff',fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center' }}>
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -260,11 +375,270 @@ function CountBadge({ count }: { count: number }) {
 function CatBarSkeleton() {
   return (
     <div className="dsk" style={{ display:'flex',alignItems:'center',height:48,padding:'0 24px',gap:8,borderBottom:'1px solid #e8e8e8' }}>
-      {[100,90,120,80,130,95,85,110].map((w,i)=>(
-        <div key={i} className="hcn-skel" style={{ width:w,height:14,flexShrink:0 }}/>
-      ))}
+      {[100,90,120,80,130,95,85,110].map((w,i)=>(<div key={i} className="hcn-skel" style={{ width:w,height:14,flexShrink:0 }}/>))}
     </div>
   )
+}
+
+// ── Highlight matching text ────────────────────────────────────────────────────
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <em>{text.slice(idx, idx + query.length)}</em>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
+// ── Search Suggestions Dropdown ────────────────────────────────────────────────
+interface SearchDropProps {
+  query:        string
+  suggestions:  SearchSuggestion[]
+  recentItems:  string[]
+  loading:      boolean
+  activeIdx:    number
+  onSelect:     (s: SearchSuggestion) => void
+  onRecent:     (q: string) => void
+  onDeleteRecent: (q: string, e: React.MouseEvent) => void
+  onSeeAll:     () => void
+  visible:      boolean
+}
+
+function SearchDrop({
+  query, suggestions, recentItems, loading,
+  activeIdx, onSelect, onRecent, onDeleteRecent, onSeeAll, visible,
+}: SearchDropProps) {
+  if (!visible) return null
+
+  const showRecents    = !query.trim() && recentItems.length > 0
+  const showSuggestions = query.trim().length > 0
+  const isEmpty        = showSuggestions && !loading && suggestions.length === 0
+
+  return (
+    <div className="hcn-suggest-drop">
+
+      {/* Loading spinner row */}
+      {loading && (
+        <div style={{ display:'flex',alignItems:'center',gap:10,padding:'12px 14px' }}>
+          <div className="hcn-suggest-spinner"/>
+          <span style={{ fontSize:13,color:C.muted,fontFamily:FONT }}>Searching…</span>
+        </div>
+      )}
+
+      {/* Recent searches */}
+      {showRecents && !loading && (
+        <>
+          <div className="hcn-suggest-section">
+            <span style={{ display:'flex',alignItems:'center',gap:5 }}>
+              <LuClock size={10}/>Recent Searches
+            </span>
+          </div>
+          {recentItems.map((r, i) => (
+            <div
+              key={r}
+              className={`hcn-suggest-recent${activeIdx === i ? ' is-active' : ''}`}
+              onMouseDown={() => onRecent(r)}
+            >
+              <LuClock size={13} color="#bbb" style={{ flexShrink:0 }}/>
+              <span className="hcn-suggest-recent-text">{r}</span>
+              <button
+                className="hcn-suggest-recent-del"
+                onMouseDown={(e) => onDeleteRecent(r, e)}
+                title="Remove"
+              >✕</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Suggestions */}
+      {showSuggestions && !loading && suggestions.length > 0 && (
+        <>
+          <div className="hcn-suggest-section">
+            <span style={{ display:'flex',alignItems:'center',gap:5 }}>
+              <LuTrendingUp size={10}/>Products
+            </span>
+          </div>
+          {suggestions.map((s, i) => (
+            <div
+              key={s.id}
+              className={`hcn-suggest-item${activeIdx === i ? ' is-active' : ''}`}
+              onMouseDown={() => onSelect(s)}
+            >
+              {s.image ? (
+                <img
+                  src={s.image}
+                  alt={s.name}
+                  className="hcn-suggest-img"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                />
+              ) : (
+                <div className="hcn-suggest-img" style={{ background:'#f0f0f0' }}/>
+              )}
+              <span className="hcn-suggest-name">
+                <HighlightMatch text={s.name} query={query}/>
+              </span>
+              {s.price && <span className="hcn-suggest-price">{s.price}</span>}
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* No results */}
+      {isEmpty && (
+        <div style={{ padding:'18px 14px',textAlign:'center',color:C.muted,fontSize:13,fontFamily:FONT }}>
+          No products found for "<strong>{query}</strong>"
+        </div>
+      )}
+
+      {/* Footer — see all results */}
+      {showSuggestions && !loading && suggestions.length > 0 && (
+        <div className="hcn-suggest-footer">
+          <span style={{ fontSize:12,color:C.muted }}>{suggestions.length} result{suggestions.length!==1?'s':''} found</span>
+          <span className="hcn-suggest-see-all" onMouseDown={onSeeAll}>
+            See all results →
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── useSearchLogic: shared hook for desktop + mobile search ───────────────────
+function useSearchLogic(navigate: ReturnType<typeof useNavigate>) {
+  const [query,        setQuery]        = useState('')
+  const [focused,      setFocused]      = useState(false)
+  const [suggestions,  setSuggestions]  = useState<SearchSuggestion[]>([])
+  const [recentItems,  setRecentItems]  = useState<string[]>([])
+  const [loading,      setLoading]      = useState(false)
+  const [activeIdx,    setActiveIdx]    = useState(-1)
+  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef     = useRef<AbortController | null>(null)
+
+  // Load recents when focused with empty query
+  useEffect(() => {
+    if (focused && !query.trim()) {
+      setRecentItems(getRecentSearches())
+      setActiveIdx(-1)
+    }
+  }, [focused, query])
+
+  // Debounced API search
+  useEffect(() => {
+    if (!query.trim()) {
+      setSuggestions([]); setLoading(false); setActiveIdx(-1); return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      if (abortRef.current) abortRef.current.abort()
+      abortRef.current = new AbortController()
+      try {
+        const res = await apiClient.get('/api/products/search', {
+          params: { q: query.trim() },
+          signal: abortRef.current.signal,
+        } as any)
+        const data = res.data
+        let items: any[] = []
+        if (Array.isArray(data?.data))           items = data.data
+        else if (Array.isArray(data))             items = data
+
+        const mapped = items
+          .map(mapSearchItem)
+          .filter((s): s is SearchSuggestion => s !== null)
+          .slice(0, 8) // max 8 suggestions
+
+        setSuggestions(mapped)
+        setActiveIdx(-1)
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.warn('[Search] API error:', err?.message)
+          setSuggestions([])
+        }
+      } finally {
+        setLoading(false)
+      }
+    }, 280)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query])
+
+  const showDrop = focused && (!!query.trim() || recentItems.length > 0)
+
+  const handleSelect = useCallback((s: SearchSuggestion) => {
+    saveRecentSearch(s.name)
+    setQuery(''); setFocused(false); setSuggestions([])
+    navigate(`/product-details/${s.id}`)
+  }, [navigate])
+
+  const handleRecent = useCallback((q: string) => {
+    setQuery(q)
+  }, [])
+
+  const handleDeleteRecent = useCallback((q: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    removeRecentSearch(q)
+    setRecentItems(getRecentSearches())
+  }, [])
+
+  const handleSubmit = useCallback(() => {
+    const q = query.trim(); if (!q) return
+    saveRecentSearch(q)
+    setFocused(false); setSuggestions([])
+    navigate(`/shop-v1?q=${encodeURIComponent(q)}`)
+  }, [query, navigate])
+
+  const handleSeeAll = useCallback(() => {
+    const q = query.trim(); if (!q) return
+    saveRecentSearch(q)
+    setFocused(false); setSuggestions([])
+    navigate(`/shop-v1?q=${encodeURIComponent(q)}`)
+  }, [query, navigate])
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const total = query.trim()
+      ? suggestions.length
+      : recentItems.length
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIdx((i) => Math.min(i + 1, total - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIdx((i) => Math.max(i - 1, -1))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (activeIdx >= 0 && query.trim() && suggestions[activeIdx]) {
+        handleSelect(suggestions[activeIdx])
+      } else if (activeIdx >= 0 && !query.trim() && recentItems[activeIdx]) {
+        handleRecent(recentItems[activeIdx])
+      } else {
+        handleSubmit()
+      }
+    } else if (e.key === 'Escape') {
+      setFocused(false); setSuggestions([])
+    }
+  }, [activeIdx, suggestions, recentItems, query, handleSelect, handleRecent, handleSubmit])
+
+  return {
+    query, setQuery,
+    focused, setFocused,
+    suggestions,
+    recentItems,
+    loading,
+    activeIdx,
+    showDrop,
+    handleSelect,
+    handleRecent,
+    handleDeleteRecent,
+    handleSubmit,
+    handleSeeAll,
+    handleKeyDown,
+  }
 }
 
 // ── Mega Menu Panel ────────────────────────────────────────────────────────────
@@ -300,10 +674,7 @@ function MegaMenuPanel({ dept, data, isOpen, navbarBottom, onEnter, onLeave }: {
                 const isAll = name.toLowerCase().startsWith('all ')
                 const href  = getLinkPath(item, deptId)
                 return (
-                  <a
-                    key={i}
-                    href={href}
-                    onClick={(e) => { e.preventDefault(); onLeave(); navigate(href) }}
+                  <a key={i} href={href} onClick={(e) => { e.preventDefault(); onLeave(); navigate(href) }}
                     className={`hcn-fl-link ${isAll ? 'is-all' : ''}`}
                     style={isAll ? gradText(dg.grad) : {}}
                   >
@@ -315,11 +686,9 @@ function MegaMenuPanel({ dept, data, isOpen, navbarBottom, onEnter, onLeave }: {
                 )
               })}
               {deptId && (
-                <a
-                  href={`/category?id=${deptId}`}
+                <a href={`/category?id=${deptId}`}
                   onClick={(e) => { e.preventDefault(); onLeave(); navigate(`/category?id=${deptId}`) }}
-                  style={{ display:'inline-flex',alignItems:'center',gap:4,marginTop:14,fontSize:12,fontWeight:700,fontFamily:FONT,...gradText(dg.grad) }}
-                >
+                  style={{ display:'inline-flex',alignItems:'center',gap:4,marginTop:14,fontSize:12,fontWeight:700,fontFamily:FONT,...gradText(dg.grad) }}>
                   View All {dept} →
                 </a>
               )}
@@ -344,7 +713,6 @@ function ProfileDropdown({ user, isOpen, onToggle, onLogout, containerRef }: {
     { icon: LuGift,           label: 'My Cart',       path: '/cart'          },
   ]
   const initial = user?.name?.trim()?.[0]?.toUpperCase() ?? '?'
-
   return (
     <div ref={containerRef} style={{ position:'relative',display:'flex',alignItems:'center' }}>
       <button onClick={onToggle} className="hcn-icon-btn" aria-expanded={isOpen} style={{ flexDirection:'column',alignItems:'center',gap:'2px',background:'none',border:'none',padding:'5px 9px',borderRadius:'8px',cursor:'pointer' }}>
@@ -478,16 +846,11 @@ export default function NavbarOne() {
   const curr      = location.pathname + location.search
 
   const [activeMenu,    setActiveMenu]    = useState<string|null>(null)
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [searchVal,     setSearchVal]     = useState('')
   const [showFreeShip,  setShowFreeShip]  = useState(false)
   const [showEmi,       setShowEmi]       = useState(false)
   const [drawerOpen,    setDrawerOpen]    = useState(false)
-
-  // FIX-BADGE-1: Initialize synchronously from localStorage — no async flash
   const [cartCount,     setCartCount]     = useState<number>(() => getCartCountSync())
   const [wishlistCount, setWishlistCount] = useState<number>(() => getWishlistCountSync())
-
   const [isAuth,        setIsAuth]        = useState(false)
   const [authUser,      setAuthUser]      = useState<{name:string;email:string}|null>(null)
   const [profileOpen,   setProfileOpen]   = useState(false)
@@ -513,7 +876,30 @@ export default function NavbarOne() {
   const megaMenu    = useMemo(() => apiMenu ?? {}, [apiMenu])
   const departments = useMemo(() => apiDepts ?? [], [apiDepts])
 
-  // ── API ──────────────────────────────────────────────────────────────────────
+  // ── Search logic (desktop) ────────────────────────────────────────────────
+  const deskSearch = useSearchLogic(navigate)
+  // Search wrap ref for click-outside close
+  const deskSearchRef = useRef<HTMLDivElement>(null)
+
+  // ── Search logic (mobile) ─────────────────────────────────────────────────
+  const mobSearch = useSearchLogic(navigate)
+  const mobSearchRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (deskSearchRef.current && !deskSearchRef.current.contains(e.target as Node)) {
+        deskSearch.setFocused(false)
+      }
+      if (mobSearchRef.current && !mobSearchRef.current.contains(e.target as Node)) {
+        mobSearch.setFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [deskSearch, mobSearch])
+
+  // ── API categories ────────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true
     const ctrl = new AbortController()
@@ -529,10 +915,7 @@ export default function NavbarOne() {
           setApiMenu({}); setApiDepts([])
         }
       } catch (err: any) {
-        if (err?.name !== 'AbortError') {
-          console.warn('[NavbarOne] API failed:', err?.message)
-          setApiMenu({}); setApiDepts([])
-        }
+        if (err?.name !== 'AbortError') { setApiMenu({}); setApiDepts([]) }
       } finally {
         if (alive) setApiLoading(false)
       }
@@ -540,7 +923,7 @@ export default function NavbarOne() {
     return () => { alive = false; ctrl.abort() }
   }, [])
 
-  // ── Navbar measurement ───────────────────────────────────────────────────────
+  // ── Navbar measurement ────────────────────────────────────────────────────
   const measureNavbar = useCallback(() => {
     if (navRef.current) setNavbarBottom(navRef.current.getBoundingClientRect().bottom)
   }, [])
@@ -557,7 +940,7 @@ export default function NavbarOne() {
     return () => window.removeEventListener('resize', measureNavbar)
   }, [measureNavbar])
 
-  // ── Catbar scroll masks ──────────────────────────────────────────────────────
+  // ── Catbar scroll masks ───────────────────────────────────────────────────
   const checkCatBar = useCallback(() => {
     const el = catBarRef.current; if (!el) return
     setCatBarScroll({ left: el.scrollLeft > 8, right: el.scrollLeft < el.scrollWidth - el.clientWidth - 8 })
@@ -570,7 +953,7 @@ export default function NavbarOne() {
     return () => { el.removeEventListener('scroll', checkCatBar); window.removeEventListener('resize', checkCatBar) }
   }, [checkCatBar, departments])
 
-  // ── Auth ─────────────────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const syncAuth = useCallback(() => {
     const token = window.localStorage.getItem('access_token')
     const raw   = window.localStorage.getItem('auth_user')
@@ -579,58 +962,37 @@ export default function NavbarOne() {
     else setAuthUser(null)
   }, [])
 
-  // ── FIX-BADGE-1: refreshCounts — synchronous fast-path ───────────────────────
+  // ── Badge refresh ─────────────────────────────────────────────────────────
   const refreshCounts = useCallback(() => {
-    // Step 1: Read localStorage synchronously — badge updates in <1ms
-    const syncCartQty = getCartCountSync()
-    const syncWlLen   = getWishlistCountSync()
-    setCartCount(syncCartQty)
-    setWishlistCount(syncWlLen)
-
-    // Step 2: Background server reconciliation (non-blocking)
-    // FIX-BADGE-2: Only update if server count is GREATER than sync count.
-    // This prevents getCart() returning [] (FIX-12 guard / network error)
-    // from zeroing out the correct localStorage count.
-    import('../../api/cart.api')
-      .then(({ getCart }) => getCart())
-      .then((cart) => {
-        const serverQty = cart.lines.reduce((s, l) => s + (l.quantity ?? 0), 0)
-        if (serverQty > 0) setCartCount(serverQty)
-      })
-      .catch(() => {})
-
-    import('../../api/wishlist.api')
-      .then(({ getWishlist }) => getWishlist())
-      .then((wl) => {
-        if (wl.productIds.length > 0) setWishlistCount(wl.productIds.length)
-      })
-      .catch(() => {})
+    setCartCount(getCartCountSync())
+    setWishlistCount(getWishlistCountSync())
+    import('../../api/cart.api').then(({ getCart }) => getCart()).then((cart) => {
+      const q = cart.lines.reduce((s, l) => s + (l.quantity ?? 0), 0)
+      if (q > 0) setCartCount(q)
+    }).catch(() => {})
+    import('../../api/wishlist.api').then(({ getWishlist }) => getWishlist()).then((wl) => {
+      if (wl.productIds.length > 0) setWishlistCount(wl.productIds.length)
+    }).catch(() => {})
   }, [])
 
-  // ── FIX-BADGE-3 + FIX-BADGE-4: Stable event listeners ───────────────────────
   useEffect(() => {
-    syncAuth()
-    refreshCounts()
-
-    // Named stable handlers so removeEventListener matches correctly
-    const onCartChanged    = () => refreshCounts()
-    const onWlChanged      = () => refreshCounts()
-    const onAuthChanged    = () => { syncAuth(); refreshCounts() }
-    const onStorageChanged = (e: StorageEvent) => {
+    syncAuth(); refreshCounts()
+    const onCart = () => refreshCounts()
+    const onWl   = () => refreshCounts()
+    const onAuth = () => { syncAuth(); refreshCounts() }
+    const onStorage = (e: StorageEvent) => {
       if (e.key === 'access_token' || e.key === 'auth_user') syncAuth()
       if (e.key?.startsWith('cart') || e.key?.startsWith('wishlist')) refreshCounts()
     }
-
-    window.addEventListener('cart:changed',    onCartChanged    as EventListener)
-    window.addEventListener('wishlist:changed', onWlChanged      as EventListener)
-    window.addEventListener('auth:changed',     onAuthChanged    as EventListener)
-    window.addEventListener('storage',          onStorageChanged as EventListener)
-
+    window.addEventListener('cart:changed',    onCart)
+    window.addEventListener('wishlist:changed', onWl)
+    window.addEventListener('auth:changed',     onAuth)
+    window.addEventListener('storage',          onStorage as EventListener)
     return () => {
-      window.removeEventListener('cart:changed',    onCartChanged    as EventListener)
-      window.removeEventListener('wishlist:changed', onWlChanged      as EventListener)
-      window.removeEventListener('auth:changed',     onAuthChanged    as EventListener)
-      window.removeEventListener('storage',          onStorageChanged as EventListener)
+      window.removeEventListener('cart:changed',    onCart)
+      window.removeEventListener('wishlist:changed', onWl)
+      window.removeEventListener('auth:changed',     onAuth)
+      window.removeEventListener('storage',          onStorage as EventListener)
     }
   }, [refreshCounts, syncAuth])
 
@@ -643,7 +1005,7 @@ export default function NavbarOne() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // ── Scroll ───────────────────────────────────────────────────────────────────
+  // ── Scroll ────────────────────────────────────────────────────────────────
   const onScroll = useCallback(() => {
     const y = window.scrollY
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -668,10 +1030,8 @@ export default function NavbarOne() {
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      const target       = e.target as Node
-      const clickedHeader = navRef.current?.contains(target)
-      const clickedMega   = megaWrapRef.current?.contains(target)
-      if (!clickedHeader && !clickedMega) setActiveMenu(null)
+      if (!navRef.current?.contains(e.target as Node) && !megaWrapRef.current?.contains(e.target as Node))
+        setActiveMenu(null)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -680,12 +1040,6 @@ export default function NavbarOne() {
   const enter = (key: string) => { if (timerRef.current) clearTimeout(timerRef.current); setActiveMenu(key) }
   const leave = () => { timerRef.current = setTimeout(() => setActiveMenu(null), 120) }
   const keep  = () => { if (timerRef.current) clearTimeout(timerRef.current) }
-
-  const handleSearch = useCallback(() => {
-    const q = searchVal.trim(); if (!q) return
-    navigate(`/shop-v1?q=${encodeURIComponent(q)}`)
-    setSearchFocused(false)
-  }, [searchVal, navigate])
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('access_token'); localStorage.removeItem('auth_user')
@@ -733,14 +1087,51 @@ export default function NavbarOne() {
                 {[{h:6,c:'#5B4FBE'},{h:9,c:'#E8314A'},{h:7,c:'#F97316'},{h:5,c:'#2563EB'},{h:8,c:'#22C55E'}].map(({h,c},i)=><div key={i} style={{ width:3,height:h,borderRadius:2,background:c }}/>)}
               </div>
             </Link>
-            <div style={{ flex:1,minWidth:0,maxWidth:620 }}>
-              <form role="search" onSubmit={(e)=>{e.preventDefault();handleSearch();}} className={`hcn-search-wrap${searchFocused?' focused':''}`}>
+
+            {/* ── Desktop Search ── */}
+            <div ref={deskSearchRef} style={{ flex:1,minWidth:0,maxWidth:620,position:'relative' }}>
+              <form role="search" onSubmit={(e) => { e.preventDefault(); deskSearch.handleSubmit() }}
+                className={`hcn-search-wrap${deskSearch.focused?' focused':''}`}>
                 <LuSearch size={15} color="#aaa" style={{ marginLeft:14,flexShrink:0 }}/>
-                <input aria-label="Search products" type="text" className="hcn-search-input" placeholder="Search printing, signage, products..." value={searchVal} onChange={e=>setSearchVal(e.target.value)} onFocus={()=>setSearchFocused(true)} onBlur={()=>setSearchFocused(false)} autoComplete="off"/>
-                {searchVal&&<button onMouseDown={e=>{e.preventDefault();setSearchVal('');}} style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex',alignItems:'center' }} aria-label="Clear search"><LuX size={13}/></button>}
-                <button type="submit" aria-label="Search" style={{ height:'100%',padding:'0 22px',border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT,flexShrink:0 }}>Search</button>
+                <input
+                  aria-label="Search products"
+                  type="text"
+                  className="hcn-search-input"
+                  placeholder="Search frames, paintings, prints…"
+                  value={deskSearch.query}
+                  onChange={(e) => deskSearch.setQuery(e.target.value)}
+                  onFocus={() => deskSearch.setFocused(true)}
+                  onKeyDown={deskSearch.handleKeyDown}
+                  autoComplete="off"
+                />
+                {deskSearch.loading && <div className="hcn-suggest-spinner" style={{ marginRight:8 }}/>}
+                {deskSearch.query && !deskSearch.loading && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); deskSearch.setQuery('') }}
+                    style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex',alignItems:'center' }}
+                    aria-label="Clear search"
+                  ><LuX size={13}/></button>
+                )}
+                <button type="submit" aria-label="Search"
+                  style={{ height:'100%',padding:'0 22px',border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT,flexShrink:0 }}>
+                  Search
+                </button>
               </form>
+              <SearchDrop
+                query={deskSearch.query}
+                suggestions={deskSearch.suggestions}
+                recentItems={deskSearch.recentItems}
+                loading={deskSearch.loading}
+                activeIdx={deskSearch.activeIdx}
+                onSelect={deskSearch.handleSelect}
+                onRecent={deskSearch.handleRecent}
+                onDeleteRecent={deskSearch.handleDeleteRecent}
+                onSeeAll={deskSearch.handleSeeAll}
+                visible={deskSearch.showDrop}
+              />
             </div>
+
             <div style={{ display:'flex',alignItems:'center',gap:4,marginLeft:'auto',flexShrink:0 }}>
               {isAuth ? (
                 <ProfileDropdown user={authUser} isOpen={profileOpen} onToggle={()=>setProfileOpen(p=>!p)} onLogout={handleLogout} containerRef={profileRef}/>
@@ -755,7 +1146,7 @@ export default function NavbarOne() {
               </Link>
               <Link to="/cart" className="hcn-icon-btn">
                 <div style={{ position:'relative' }}><LuShoppingBasket className="hcn-ico" size={21} color="#444"/><CountBadge count={cartCount}/></div>
-                <span className="hcn-lbl" style={{ fontSize:10.5,color:C.muted,fontFamily:FONT,fontWeight:500 }}>Basket</span>
+                <span className="hcn-lbl" style={{ fontSize:10.5,color:C.muted,fontFamily:FONT,fontWeight:500 }}>Cart</span>
               </Link>
             </div>
           </div>
@@ -809,18 +1200,55 @@ export default function NavbarOne() {
               : <Link to="/login" className="hcn-mob-icon"><LuUser size={22} color="#2a2a2a" strokeWidth={1.8}/></Link>
             }
           </div>
+
+          {/* ── Mobile Search ── */}
           <div style={{ padding:'9px 12px',borderBottom:`1px solid ${C.border}` }}>
-            <form role="search" onSubmit={(e)=>{e.preventDefault();handleSearch();}} className={`hcn-search-wrap${searchFocused?' focused':''}`}>
-              <LuSearch size={15} color={C.light} style={{ marginLeft:13,flexShrink:0 }}/>
-              <input aria-label="Search products" type="text" className="hcn-search-input" placeholder="Search printing, signage..." value={searchVal} onChange={e=>setSearchVal(e.target.value)} onFocus={()=>setSearchFocused(true)} onBlur={()=>setSearchFocused(false)} autoComplete="off"/>
-              {searchVal&&<button onMouseDown={e=>{e.preventDefault();setSearchVal('');}} style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex' }} aria-label="Clear search"><LuX size={13}/></button>}
-              <button type="submit" aria-label="Search" style={{ height:'100%',width:48,border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0 }}><LuSearch size={16} color="#fff"/></button>
-            </form>
+            <div ref={mobSearchRef} style={{ position:'relative' }}>
+              <form role="search" onSubmit={(e) => { e.preventDefault(); mobSearch.handleSubmit() }}
+                className={`hcn-search-wrap${mobSearch.focused?' focused':''}`}>
+                <LuSearch size={15} color={C.light} style={{ marginLeft:13,flexShrink:0 }}/>
+                <input
+                  aria-label="Search products"
+                  type="text"
+                  className="hcn-search-input"
+                  placeholder="Search printing, signage…"
+                  value={mobSearch.query}
+                  onChange={(e) => mobSearch.setQuery(e.target.value)}
+                  onFocus={() => mobSearch.setFocused(true)}
+                  onKeyDown={mobSearch.handleKeyDown}
+                  autoComplete="off"
+                />
+                {mobSearch.loading && <div className="hcn-suggest-spinner" style={{ marginRight:8 }}/>}
+                {mobSearch.query && !mobSearch.loading && (
+                  <button type="button" onMouseDown={(e) => { e.preventDefault(); mobSearch.setQuery('') }}
+                    style={{ background:'none',border:'none',cursor:'pointer',padding:'0 6px',color:C.light,display:'flex' }} aria-label="Clear search">
+                    <LuX size={13}/>
+                  </button>
+                )}
+                <button type="submit" aria-label="Search"
+                  style={{ height:'100%',width:48,border:'none',borderRadius:'0 100px 100px 0',background:BRAND_GRAD,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0 }}>
+                  <LuSearch size={16} color="#fff"/>
+                </button>
+              </form>
+              <SearchDrop
+                query={mobSearch.query}
+                suggestions={mobSearch.suggestions}
+                recentItems={mobSearch.recentItems}
+                loading={mobSearch.loading}
+                activeIdx={mobSearch.activeIdx}
+                onSelect={mobSearch.handleSelect}
+                onRecent={mobSearch.handleRecent}
+                onDeleteRecent={mobSearch.handleDeleteRecent}
+                onSeeAll={mobSearch.handleSeeAll}
+                visible={mobSearch.showDrop}
+              />
+            </div>
           </div>
+
           <div style={{ padding:'8px 12px',background:C.white }}>
             <div className="hcn-chips">
               {departments.map(label => {
-                const data     = megaMenu[label]; const dg = resolveDeptGrad(label); const isChipActive = activeChip===label
+                const data = megaMenu[label]; const dg = resolveDeptGrad(label); const isChipActive = activeChip===label
                 return (
                   <Link key={label}
                     to={data?.id ? `/category?id=${data.id}` : `/category?sub=${encodeURIComponent(label)}`}
