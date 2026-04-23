@@ -33,7 +33,7 @@ import { RiShoppingBag2Line }            from 'react-icons/ri'
 import { BsCheckLg }                     from 'react-icons/bs'
 import { Link }                          from 'react-router-dom'
 import { addToCart }                     from '../../api/cart.api'
-import { isWishlisted, toggleWishlist }  from '../../api/wishlist.api'
+import { isWishlisted, isWishlistedAsync, toggleWishlist }  from '../../api/wishlist.api'
 import placeholderImg from '../../assets/img/thumb/shop-card.jpg'
 
 // ── Item interface ────────────────────────────────────────────────────────────
@@ -433,7 +433,12 @@ export default function LayoutOne({ item }: { item: Item }) {
   // Wishlist init — unchanged
   useEffect(() => {
     let alive = true
-    isWishlisted(item.id).then(v => { if (alive) setWished(v) }).catch(() => {})
+    // Prefer server-verified async check; fall back to sync if unavailable
+    try {
+      isWishlistedAsync(item.id).then(v => { if (alive) setWished(v) }).catch(() => {})
+    } catch {
+      try { const v = isWishlisted(item.id); if (alive) setWished(v) } catch {}
+    }
     return () => { alive = false }
   }, [item.id])
 

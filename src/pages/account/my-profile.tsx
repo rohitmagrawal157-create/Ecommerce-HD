@@ -400,7 +400,7 @@ export default function MyProfile() {
                 <div className="w-full max-w-[900px] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
                   {/* ── BANNER / SHADE ─────────────────────────────────── */}
-                  <div style={{ height: 100, position: 'relative', background: 'linear-gradient(135deg,#f3f1ff 0%,#fff1f3 50%,#fff7f0 100%)' }}>
+                  <div style={{ height: 100, position: 'relative', background: 'linear-gradient' }}>
                     {/* Pattern */}
                     <div style={{
                       position: 'absolute', inset: 0, opacity: 0.3,

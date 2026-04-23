@@ -10,7 +10,7 @@ import { GoStarFill } from 'react-icons/go'
 import { LuEye, LuHeart } from 'react-icons/lu'
 import { RiShoppingBag2Line } from 'react-icons/ri'
 import { addToCart } from '../../api/cart.api'
-import { isWishlisted, toggleWishlist } from '../../api/wishlist.api'
+import { isWishlistedAsync, toggleWishlist } from '../../api/wishlist.api'
 
 interface ProductData{
     id: number;
@@ -28,9 +28,8 @@ export default function BestSeller() {
 
     useEffect(() => {
       // Only load for cards we render in this component (first 4 items).
-      const ids = productList.slice(0, 4).map((p) => p.id)
-      Promise.all(ids.map((id) => isWishlisted(id).then((v) => ({ id, v })).catch(() => ({ id, v: false }))))
-        .then((rows) => {
+    const ids = productList.slice(0, 4).map((p) => p.id)
+    Promise.all(ids.map((id) => isWishlistedAsync(id).then((v) => ({ id, v })).catch(() => ({ id, v: false })))).then((rows) => {
           setWishedMap((prev) => {
             const next = { ...prev }
             rows.forEach(({ id, v }) => {

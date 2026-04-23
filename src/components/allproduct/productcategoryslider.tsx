@@ -1,257 +1,482 @@
 // src/components/ProductCategorySlider.tsx
 import { Link } from 'react-router-dom';
-import TinySlider from 'tiny-slider-react';
-import 'tiny-slider/dist/tiny-slider.css';
-import { useRef } from 'react';
-import products from '../../assets/img/png/products.png';
+import { useRef, useEffect, useState, useCallback } from 'react';
 
-// ── Brand gradient tokens ────────────────────────────────────────────────────
+const API_URL    = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/category-products';
+const PLACEHOLDER = 'https://placehold.co/480x600/f3f1ff/5B4FBE?text=No+Image';
+
 const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
 const CTA   = 'linear-gradient(90deg,#2563EB,#06B6D4,#22C55E)';
 
-// ── Category data (unchanged) ────────────────────────────────────────────────
-const categoryOne = [
-  {
-    id: 1, name: 'Temple Art', item: 'Canvas Print',
-    tag: 'NEW', tagGrad: 'linear-gradient(90deg,#5B4FBE,#EC4899)',
-    image: 'https://imgs.search.brave.com/Fh0bVSoFNZGyejmBi2ixP5KzMV2l1ZBscvJnOqPIBww/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/NzErMlNPUUoyWUwu/anBn',
-  },
-  {
-    id: 2, name: 'Portrait Sketch', item: 'Charcoal Drawing',
-    tag: 'HOT', tagGrad: 'linear-gradient(90deg,#E8314A,#F97316)',
-    image: 'https://imgs.search.brave.com/xvRRFzB3ffBI183PkWbEf-qU-mcKpIOVeEo032IKxxs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9rb3Rh/cnQuaW4vY2RuL3No/b3AvZmlsZXMvZWZm/ZWN0MjZfMC5qcGc_/dj0xNzI0NjQ2MTM5/JndpZHRoPTUzMw',
-  },
-  {
-    id: 3, name: 'Wall Mural', item: 'Large Format',
-    tag: 'SALE', tagGrad: 'linear-gradient(90deg,#2563EB,#06B6D4)',
-    image: 'https://imgs.search.brave.com/QvITnnte9GaQQ3pX4RFyfZTQmlfWYWj83s7xthIUQKY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudXdhbGxzLmNv/bS9wcm9kdWN0cy8x/NTMwMDAvMTUzNzE5/L2MwMDAwN3BpZzEx/bXNfOTAwLndlYnA',
-  },
-  {
-    id: 4, name: 'Wallpaper', item: 'Modern Design',
-    tag: 'NEW', tagGrad: 'linear-gradient(90deg,#5B4FBE,#EC4899)',
-    image: 'https://imgs.search.brave.com/sJldnUuNYOe-tPZhqqXG8yt4o72tO-hVGzZdU_0wYS8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9saWZl/bmNvbG9ycy5pbi9j/ZG4vc2hvcC9maWxl/cy9yb3NhLWNoaW5v/aXNlcmllLXdhbGxw/YXBlci1saXZpbmct/cm9vbS1jbGF5LWJl/aWdlLndlYnA_dj0x/NzY1ODgwNTk3Jndp/ZHRoPTMyMA',
-  },
-  {
-    id: 5, name: 'Curtains', item: 'Premium Fabric',
-    tag: 'HOT', tagGrad: 'linear-gradient(90deg,#E8314A,#F97316)',
-    image: 'https://imgs.search.brave.com/-SXqLkKCRCTqOJjsLlRijKyb2n6MKh3slcXykgLqXWU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/ODFhSy1JenFaRkwu/anBn',
-  },
+const TAGS = [
+  { label: 'NEW',  grad: 'linear-gradient(90deg,#5B4FBE,#EC4899)' },
+  { label: 'HOT',  grad: 'linear-gradient(90deg,#E8314A,#F97316)' },
+  { label: 'SALE', grad: 'linear-gradient(90deg,#2563EB,#06B6D4)' },
 ];
 
-// ── Slider settings (unchanged) ──────────────────────────────────────────────
-const settings = {
-  items: 1, slideBy: 1, controls: false, nav: false,
-  autoplay: true, autoplayTimeout: 3000, autoplayHoverPause: true,
-  speed: 800, loop: true, mouseDrag: true, gutter: 24,
-  responsive: {
-    640:  { items: 2, gutter: 20 },
-    768:  { items: 2, gutter: 24 },
-    1024: { items: 3, gutter: 28 },
-    1280: { items: 3, gutter: 30 },
-  },
-};
+interface SlideItem {
+  categoryId:    number;
+  categoryName:  string;
+  productName:   string;
+  price:         string;
+  originalPrice: string;
+  image:         string;
+  productId:     number;
+  discountPct:   number | null;
+}
 
-// ── NEW Professional Icon (grid of product cards) ────────────────────────────
-// function CollectionIcon() {
-//   return (
-//     <div
-//       className="mx-auto mb-4"
-//       style={{
-//         width: 72,
-//         height: 72,
-//         borderRadius: 20,
-//         background: BRAND,
-//         display: 'flex',
-//         alignItems: 'center',
-//         justifyContent: 'center',
-//         boxShadow: '0 8px 28px rgba(91,79,190,0.30)',
-//       }}
-//     >
-//       <svg
-//         width="36"
-//         height="36"
-//         viewBox="0 0 36 36"
-//         fill="none"
-//         xmlns="http://www.w3.org/2000/svg"
-//       >
-//         {/* Four product card squares arranged in a 2x2 grid (clean, modern) */}
-//         <rect x="2" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-//         <rect x="20" y="2" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-//         <rect x="2" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-//         <rect x="20" y="20" width="14" height="14" rx="2.5" stroke="white" strokeWidth="1.6" fill="none"/>
-//         {/* Small sparkle / star in top-left card */}
-//         <path
-//           d="M8 8 L8.5 6.5 L9 8 L10.5 8.5 L9 9 L8.5 10.5 L8 9 L6.5 8.5 L8 8Z"
-//           fill="white" fillOpacity="0.9"
-//         />
-//         {/* Heart in bottom-right card */}
-//         <path
-//           d="M27 26 C27 24.5 25.5 23.5 24.5 24.5 C23.5 25.5 24 27 27 29 C30 27 30.5 25.5 29.5 24.5 C28.5 23.5 27 24.5 27 26Z"
-//           fill="white" fillOpacity="0.9"
-//         />
-//       </svg>
-//     </div>
-//   );
-// }
+function formatINR(val: string | number | null | undefined): string {
+  const n = parseFloat(String(val ?? '0').replace(/[^0-9.]/g, ''));
+  if (!n || isNaN(n)) return '₹0';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+async function fetchSlides(): Promise<SlideItem[]> {
+  const res  = await fetch(API_URL, { headers: { Accept: 'application/json' } });
+  const json = await res.json();
+  const result: SlideItem[] = [];
+
+  for (const cat of json.data ?? []) {
+    const products = (cat.product ?? []).filter((p: any) => p.image);
+    if (!products.length) continue;
+    const first = products[0];
+    const price  = parseFloat(String(first.price ?? '0'));
+    const orig   = parseFloat(String(first.original_price ?? '0'));
+    const disc   = orig > price && orig > 0 ? Math.round(((orig - price) / orig) * 100) : null;
+    result.push({
+      categoryId:   cat.category_id,
+      categoryName: cat.category_name,
+      productName:  first.name,
+      price:        formatINR(first.price),
+      originalPrice:formatINR(first.original_price),
+      image:        first.image,
+      productId:    first.product_id,
+      discountPct:  disc,
+    });
+  }
+  return result;
+}
 
 export default function ProductCategorySlider() {
-  const sliderRef = useRef<any>(null);
+  const [slides, setSlides]   = useState<SlideItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [perView, setPerView] = useState(5); // default for desktop
+  const trackRef  = useRef<HTMLDivElement>(null);
+  const autoRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pausedRef = useRef(false);
 
-  const handlePrev = () => {
-    const s = sliderRef.current;
-    if (!s) return;
-    if (typeof s.goTo === 'function') return s.goTo('prev');
-    if (s.slider?.goTo) return s.slider.goTo('prev');
-    if (s.tns?.goTo) return s.tns.goTo('prev');
-  };
+  useEffect(() => {
+    fetchSlides()
+      .then(setSlides)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleNext = () => {
-    const s = sliderRef.current;
-    if (!s) return;
-    if (typeof s.goTo === 'function') return s.goTo('next');
-    if (s.slider?.goTo) return s.slider.goTo('next');
-    if (s.tns?.goTo) return s.tns.goTo('next');
-  };
+  // Responsive perView
+  useEffect(() => {
+    const calc = () => {
+      const w = window.innerWidth;
+      if (w >= 1280) setPerView(5);
+      else if (w >= 768) setPerView(3);
+      else setPerView(1);
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, []);
+
+  const maxIndex = Math.max(0, slides.length - perView);
+
+  const scrollTo = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, maxIndex));
+    setCurrent(clamped);
+    const track = trackRef.current;
+    if (!track) return;
+    const card = track.children[0] as HTMLElement | null;
+    if (!card) return;
+    const gap = 24;
+    const cardW = card.getBoundingClientRect().width + gap;
+    track.style.transform = `translateX(-${clamped * cardW}px)`;
+  }, [maxIndex]);
+
+  // Auto-play
+  useEffect(() => {
+    if (!slides.length) return;
+    const tick = () => {
+      if (pausedRef.current) return;
+      setCurrent(prev => {
+        const next = prev >= maxIndex ? 0 : prev + 1;
+        const track = trackRef.current;
+        if (track) {
+          const card = track.children[0] as HTMLElement | null;
+          if (card) {
+            const cardW = card.getBoundingClientRect().width + 24;
+            track.style.transform = `translateX(-${next * cardW}px)`;
+          }
+        }
+        return next;
+      });
+    };
+    autoRef.current = setInterval(tick, 4000);
+    return () => { if (autoRef.current) clearInterval(autoRef.current); };
+  }, [slides.length, maxIndex]);
 
   return (
-    <div className="s-py-75-50 overflow-hidden">
-      <div className="container-fluid">
+    <section className="pcs-section">
+      <div className="pcs-container">
 
-        {/* Section Header */}
-        <div className="max-w-xl mx-auto mb-8 md:mb-12 text-center" data-aos="fade-up">
-
-          {/* New professional icon */}
-          {/* <div>
-                <img
-                  src={products}
-                  className="mx-auto w-14 sm:w-24"
-                  alt=""
-                  style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,0.25))' }}
-                />
-              </div> */}
-
-          {/* Gradient heading */}
-          <h3
-            className="leading-none text-2xl md:text-3xl font-bold"
-            style={{
-              background: BRAND,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              display: 'inline-block',
-            }}
-          >
-            Product Collection
-          </h3>
-
-          <div style={{
-            width: 48, height: 3, borderRadius: 2,
-            margin: '10px auto 0', background: BRAND,
-          }} />
-
-          <p className="mt-4 text-gray-500 text-sm md:text-base">
+        {/* Header */}
+        <div className="pcs-header">
+          <h3 className="pcs-title">Product Collection</h3>
+          <div className="pcs-bar" />
+          <p className="pcs-subtitle">
             Explore our curated selection of premium products, tailored to suit every need and taste.
           </p>
         </div>
 
-        {/* Slider Container */}
-        <div className="max-w-[1720px] mx-auto relative group" data-aos="fade-up" data-aos-delay="100">
-          <div className="hv1-pdct-ctgry-slider">
-            <TinySlider settings={settings} ref={sliderRef}>
-              {categoryOne.map((item) => (
-                <Link key={item.id} className="relative block px-3" to="/product-category">
-                  <div
-                    className="overflow-hidden rounded-3xl"
-                    style={{ boxShadow: '0 8px 32px rgba(91,79,190,0.10)' }}
-                  >
-                    <img
-                      className="w-full h-[320px] md:h-[380px] lg:h-[420px] object-cover transition-transform duration-700 hover:scale-105"
-                      src={item.image} alt={item.name} loading="lazy"
-                    />
-                    <div
-                      className="absolute inset-0 rounded-3xl opacity-0 hover:opacity-20 transition-opacity duration-300"
-                      style={{ background: BRAND }}
-                    />
-                  </div>
-
-                  {item.tag && (
-                    <div
-                      className="absolute top-4 right-6 px-3 py-1 rounded-full text-white text-[10px] font-bold tracking-widest z-10"
-                      style={{ background: item.tagGrad, boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
-                    >
-                      {item.tag}
-                    </div>
-                  )}
-
-                  <div className="absolute bottom-8 left-0 px-6 w-full flex justify-start">
-                    <div
-                      className="p-5 md:p-6 bg-white dark:bg-title backdrop-blur-sm rounded-2xl shadow-xl w-auto"
-                      style={{ boxShadow: '0 8px 32px rgba(91,79,190,0.12)' }}
-                    >
-                      <span
-                        className="text-base md:text-xl font-medium leading-none"
-                        style={{
-                          background: BRAND,
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }}
-                      >
-                        {item.item}
-                      </span>
-                      <h4 className="text-2xl md:text-3xl mt-2 font-semibold leading-tight text-gray-900 dark:text-white">
-                        {item.name}
-                      </h4>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </TinySlider>
+        {/* Slider */}
+        {loading ? (
+          <div className="pcs-skeletons">
+            {[1,2,3,4,5].map(i => <div key={i} className="pcs-skeleton" />)}
           </div>
-
-          {/* Prev button */}
-          <button
-            onClick={handlePrev}
-            aria-label="Previous"
-            className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full shadow-xl absolute top-1/2 -translate-y-1/2 left-4 z-[999] transition-all duration-300 group/btn"
-            style={{ background: '#fff' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = BRAND)}
-            onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = '#fff')}
-          >
-            <svg
-              className="fill-current text-gray-700 group-hover/btn:text-white transition-colors"
-              width="20" height="12" viewBox="0 0 24 14" fill="none"
+        ) : (
+          <>
+            <div
+              className="pcs-slider-wrap"
+              onMouseEnter={() => { pausedRef.current = true; }}
+              onMouseLeave={() => { pausedRef.current = false; }}
             >
-              <path d="M0.180223 7.38726L5.62434 12.8314C5.8199 13.0598 6.16359 13.0864 6.39195 12.8908C6.62031 12.6952 6.64693 12.3515 6.45132 12.1232C6.43307 12.1019 6.41324 12.082 6.39195 12.0638L1.87877 7.54516L23.4322 7.54516C23.7328 7.54516 23.9766 7.30141 23.9766 7.00072C23.9766 6.70003 23.7328 6.45632 23.4322 6.45632L1.87877 6.45632L6.39195 1.94314C6.62031 1.74758 6.64693 1.40389 6.45132 1.17553C6.25571 0.947171 5.91207 0.920551 5.68371 1.11616C5.66242 1.13441 5.64254 1.15424 5.62434 1.17553L0.180175 6.6197C-0.0308748 6.83196 -0.0308748 7.1749 0.180223 7.38726Z"/>
-            </svg>
-          </button>
+              {/* Prev */}
+              <button className="pcs-nav pcs-nav--prev" onClick={() => scrollTo(current - 1)} aria-label="Previous">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
 
-          {/* Next button */}
-          <button
-            onClick={handleNext}
-            aria-label="Next"
-            className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full shadow-xl absolute top-1/2 -translate-y-1/2 right-4 z-[999] transition-all duration-300 group/btn"
-            style={{ background: '#fff' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = CTA)}
-            onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = '#fff')}
-          >
-            <svg
-              className="fill-current text-gray-700 group-hover/btn:text-white transition-colors"
-              width="20" height="12" viewBox="0 0 24 14" fill="none"
-            >
-              <path d="M23.8198 6.61958L18.3757 1.17541C18.1801 0.947054 17.8364 0.920433 17.608 1.11604C17.3797 1.31161 17.3531 1.65529 17.5487 1.88366C17.5669 1.90494 17.5868 1.92483 17.608 1.94303L22.1212 6.46168L0.567835 6.46168C0.267191 6.46168 0.0234375 6.70543 0.0234375 7.00612C0.0234375 7.30681 0.267191 7.55052 0.567835 7.55052L22.1212 7.55052L17.608 12.0637C17.3797 12.2593 17.3531 12.6029 17.5487 12.8313C17.7443 13.0597 18.0879 13.0863 18.3163 12.8907C18.3376 12.8724 18.3575 12.8526 18.3757 12.8313L23.8198 7.38714C24.0309 7.17488 24.0309 6.83194 23.8198 6.61958Z"/>
-            </svg>
-          </button>
-        </div>
+              {/* Viewport */}
+              <div className="pcs-viewport">
+                <div className="pcs-track" ref={trackRef}>
+                  {slides.map((slide, idx) => {
+                    const tag = TAGS[idx % TAGS.length];
+                    return (
+                      <Link
+                        key={slide.categoryId}
+                        to={`/product-category/${slide.categoryId}`}
+                        className="pcs-card"
+                      >
+                        {/* Image */}
+                        <div className="pcs-img-wrap">
+                          <img
+                            src={slide.image}
+                            alt={slide.categoryName}
+                            className="pcs-img"
+                            loading="lazy"
+                            onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
+                          />
+                          <div className="pcs-gradient-overlay" />
+                        </div>
 
-        {/* HIDE THE "stop" BUTTON generated by tiny-slider */}
-        <style>{`
-          .tns-controls button[data-action="stop"],
-          button[data-action="stop"] {
-            display: none !important;
-          }
-        `}</style>
+                        {/* Top badges */}
+                        <span className="pcs-tag" style={{ background: tag.grad }}>{tag.label}</span>
+                        {slide.discountPct && (
+                          <span className="pcs-off">-{slide.discountPct}%</span>
+                        )}
+
+                        {/* Bottom info */}
+                        <div className="pcs-info">
+                          <span className="pcs-cat">{slide.categoryName}</span>
+                          <h4 className="pcs-name">{slide.productName}</h4>
+                          <div className="pcs-prices">
+                            <span className="pcs-price">{slide.price}</span>
+                            <span className="pcs-orig">{slide.originalPrice}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Next */}
+              <button className="pcs-nav pcs-nav--next" onClick={() => scrollTo(current + 1)} aria-label="Next">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Dots */}
+            {/* {slides.length > perView && (
+              <div className="pcs-dots">
+                {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => scrollTo(i)}
+                    className={`pcs-dot${i === current ? ' active' : ''}`}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )} */}
+          </>
+        )}
       </div>
-    </div>
+
+      <style>{`
+        /* Section */
+        .pcs-section {
+          padding: 72px 0 80px;
+          overflow: hidden;
+          background: #ffffff;
+        }
+        .pcs-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 20px;
+        }
+
+        /* Header */
+        .pcs-header { text-align: center; margin-bottom: 48px; }
+        .pcs-title {
+          display: inline-block;
+          font-size: clamp(26px, 5vw, 36px);
+          font-weight: 800;
+          background: ${BRAND};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin: 0 0 12px;
+          line-height: 1.2;
+        }
+        .pcs-bar {
+          width: 56px; height: 3px; border-radius: 2px;
+          background: ${BRAND};
+          margin: 0 auto 16px;
+        }
+        .pcs-subtitle {
+          font-size: 16px; color: #6b7280; max-width: 560px;
+          margin: 0 auto; line-height: 1.6;
+        }
+
+        /* Skeletons */
+        .pcs-skeletons {
+          display: flex; gap: 24px; padding: 0 64px;
+        }
+        .pcs-skeleton {
+          flex: 1; border-radius: 20px;
+          aspect-ratio: 3/4;
+          background: linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: pcs-shimmer 1.5s infinite;
+        }
+        @keyframes pcs-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
+        /* Slider wrap — relative for nav buttons */
+        .pcs-slider-wrap { position: relative; }
+
+        /* Viewport — clips overflow, gives horizontal space for nav */
+        .pcs-viewport {
+          overflow: hidden;
+          margin: 0 64px;
+        }
+        @media (max-width: 1023px) {
+          .pcs-viewport { margin: 0 56px; }
+        }
+        @media (max-width: 639px) {
+          .pcs-viewport { margin: 0 48px; }
+        }
+
+        /* Track */
+        .pcs-track {
+          display: flex;
+          gap: 24px;
+          transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform;
+        }
+
+        /* Card — responsive perView via flex basis */
+        .pcs-card {
+          flex: 0 0 calc((100% - 96px) / 5);   /* 5 items on large */
+          min-width: 0;
+          position: relative;
+          display: block;
+          border-radius: 20px;
+          overflow: hidden;
+          text-decoration: none;
+          background: #faf9ff;
+          box-shadow: 0 4px 20px rgba(91,79,190,0.08);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        @media (max-width: 1279px) {
+          .pcs-card { flex: 0 0 calc((100% - 48px) / 3); } /* 3 items */
+        }
+        @media (max-width: 767px) {
+          .pcs-card { flex: 0 0 100%; }               /* 1 item */
+        }
+        .pcs-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 20px 40px rgba(91,79,190,0.15);
+        }
+
+        /* Image wrapper — keeps card height consistent */
+        .pcs-img-wrap {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 3 / 4;
+          overflow: hidden;
+          background: #ede9fe;
+        }
+        .pcs-img {
+          width: 100%; height: 100%;
+          object-fit: cover; display: block;
+          transition: transform 0.7s ease;
+        }
+        .pcs-card:hover .pcs-img { transform: scale(1.05); }
+
+        /* Gradient overlay for better text visibility */
+        .pcs-gradient-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(
+            to bottom,
+            transparent 35%,
+            rgba(0,0,0,0.6) 100%
+          );
+          pointer-events: none;
+        }
+
+        /* Tag badge */
+        .pcs-tag {
+          position: absolute;
+          top: 14px; right: 14px;
+          padding: 4px 12px;
+          border-radius: 40px;
+          color: #fff;
+          font-size: 10px; font-weight: 800;
+          letter-spacing: 0.12em;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+          z-index: 5;
+          text-transform: uppercase;
+        }
+
+        /* Discount pill */
+        .pcs-off {
+          position: absolute;
+          top: 14px; left: 14px;
+          padding: 4px 10px;
+          border-radius: 40px;
+          background: #fff;
+          color: #E8314A;
+          font-size: 11px; font-weight: 800;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+          z-index: 5;
+        }
+
+        /* Bottom info panel */
+        .pcs-info {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          padding: 16px 14px 18px;
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(91,79,190,0.1);
+          z-index: 5;
+        }
+        .pcs-cat {
+          display: block;
+          font-size: 10px; font-weight: 800;
+          letter-spacing: 0.1em; text-transform: uppercase;
+          background: ${BRAND};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pcs-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #111827;
+          margin: 0 0 8px;
+          line-height: 1.35;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .pcs-prices {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .pcs-price {
+          font-size: 16px;
+          font-weight: 800;
+          background: ${BRAND};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .pcs-orig {
+          font-size: 12px;
+          color: #9ca3af;
+          text-decoration: line-through;
+        }
+
+        /* Nav buttons */
+        .pcs-nav {
+          position: absolute;
+          top: 50%; transform: translateY(-50%);
+          z-index: 20;
+          width: 46px; height: 46px;
+          border-radius: 50%; border: none;
+          background: #fff; color: #374151;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+          transition: all 0.25s;
+          padding: 0;
+        }
+        .pcs-nav:hover {
+          background: ${BRAND};
+          color: #fff;
+          transform: translateY(-50%) scale(1.05);
+          box-shadow: 0 8px 28px rgba(91,79,190,0.3);
+        }
+        .pcs-nav--prev { left: 6px; }
+        .pcs-nav--next { right: 6px; }
+        @media (min-width: 768px) {
+          .pcs-nav { width: 52px; height: 52px; }
+        }
+
+        /* Dots */
+        .pcs-dots {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          margin-top: 32px;
+        }
+        .pcs-dot {
+          width: 8px; height: 8px;
+          border-radius: 20px;
+          border: none;
+          background: #cbd5e1;
+          cursor: pointer;
+          padding: 0;
+          transition: width 0.3s, background 0.3s;
+        }
+        .pcs-dot.active {
+          width: 28px;
+          background: ${BRAND};
+        }
+        button[data-action="stop"] { display: none !important; }
+      `}</style>
+    </section>
   );
 }

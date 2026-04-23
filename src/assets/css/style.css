@@ -38,6 +38,53 @@ Table of Content
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   MOBILE FIX: Horizontal Scroll Prevention (Core Styles)
+   ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+html,
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+* {
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Ensure all major containers respect viewport */
+main,
+[role="main"],
+section,
+article,
+asideo {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Fix paddings/margins that might cause overflow */
+.container,
+.container-fluid,
+[class*="container"] {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* Prevent Tailwind width utilities from breaking layout */
+[class*="w-screen"] {
+  width: 100vw !important;
+  margin-left: -50vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
 @font-face {
   font-family: "July it";
   src: url("../fonts/Julyit.woff2") format("woff2"), url("../fonts/Julyit.woff") format("woff"), url("../fonts/Julyit.ttf") format("truetype");

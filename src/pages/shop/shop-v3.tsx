@@ -20,14 +20,14 @@ import NavbarOne from '../../components/navbar/navbar-one'
 import FooterOne from '../../components/footer/footer-one'
 import ScrollToTop from '../../components/scroll-to-top'
 import { addToCart } from '../../api/cart.api'
-import { isWishlisted, toggleWishlist } from '../../api/wishlist.api'
+import { isWishlistedAsync, toggleWishlist } from '../../api/wishlist.api'
 
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
 
 // ─── Theme constants (matches NavbarOne & CategoryShopPage) ───────────────────
 const ACCENT  = '#187fc1'
 const FONT    = "'DM Sans', sans-serif"
-const FONT_H  = "'Syne', sans-serif"
+const FONT_H  = "'DM Sans', sans-serif"
 
 // ─── Printing & Signage Category Slider Data ──────────────────────────────────
 const CATEGORY_SLIDES = [
@@ -219,7 +219,7 @@ function ProductCard({ item }: { item: typeof PRODUCTS[0] }) {
 
   useEffect(() => {
     const sync = () => {
-      isWishlisted(item.id).then(setWishlisted).catch(() => {})
+      isWishlistedAsync(item.id).then(setWishlisted).catch(() => {})
     }
     window.addEventListener('wishlist:changed', sync)
     return () => window.removeEventListener('wishlist:changed', sync)

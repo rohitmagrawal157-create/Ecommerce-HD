@@ -86,7 +86,7 @@ export default function AccountTab() {
   const navItems = [
     { path: '/my-profile',    label: 'My Profile',    icon: <LuUser size={18} /> },
     { path: '/my-account',    label: 'My Account',    icon: <LuLayoutDashboard size={18} /> },
-    { path: '/edit-account',  label: 'Edit Account',  icon: <LuSettings size={18} /> },
+    // { path: '/edit-account',  label: 'Edit Account',  icon: <LuSettings size={18} /> },
     { path: '/order-history', label: 'Order History', icon: <LuClipboardList size={18} /> },
     { path: '/wishlist',      label: 'Wishlist',      icon: <LuHeart size={18} /> },
   ]

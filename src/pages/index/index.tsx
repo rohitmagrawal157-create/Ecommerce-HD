@@ -36,6 +36,12 @@ import AOS from 'aos';
 import FeaturedProducts from '../../components/allproduct/FeaturedProducts.tsx';
 import ProductCategorySlider from '../../components/allproduct/productcategoryslider.tsx';
 import ProductCollection from '../../components/allproduct/ProductCollection.tsx';
+import SuggestedForYou from '../../components/allproduct/SuggestedForYou.tsx';
+import WidestCollection from '../../components/allproduct/WidestCollection.tsx';
+import GrabOrGone from '../../components/allproduct/GrabOrGone.tsx';
+import CategoryIconsRow from '../../components/allproduct/CategoryIconsRow.tsx';
+import TrendsYouMayLike from '../../components/allproduct/TrendsYouMayLike.tsx';
+import NewProducts from '../../components/allproduct/NewProducts.tsx';
 
 // ── Brand color tokens ────────────────────────────────────────────
 const BRAND_GRAD = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
@@ -66,83 +72,17 @@ function Index() {
        
 
         {/* ── New Products ─────────────────────────────────────────── */}
-        <div className="s-py-25-100">
-          <div className="container-fluid">
-
-            <div className="max-w-xl mx-auto mb-8 mt-10 md:mb-12 text-center" data-aos="fade-up">
-              {/* ── New professional icon (sparkle + gift) ── */}
-              {/* <div>
-                <img
-                  src={newImg}
-                  className="mx-auto w-14 sm:w-24"
-                  alt=""
-                  style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,0.25))' }}
-                />
-              </div> */}
-
-              {/* 3px gradient rule above heading */}
-              {/* <div style={{ width: 48, height: 3, background: BRAND_GRAD_H, margin: '20px auto 16px', borderRadius: 2 }} /> */}
-
-              {/* Gradient heading */}
-              <h3
-                className="leading-none text-2xl md:text-3xl"
-                style={gradTxt}
-              >
-                New Products
-              </h3>
-              <p className="mt-3" style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7 }}>
-                Be the first to experience innovation with our latest arrivals.
-                Stay ahead of the curve and discover what's new in style, technology, and more.
-              </p>
-            </div>
-
-            {/* Products Grid (unchanged) */}
-            <div
-              className="max-w-[1720px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
-              data-aos="fade-up"
-              data-aos-delay="100"
-            >
-              {productList.slice(0, 4).map((item: Product, index: number) => (
-                <LayoutOne item={item} key={index} />
-              ))}
-            </div>
-
-            {/* CTA — brand gradient button (unchanged) */}
-            <div className="text-center mt-10 md:mt-14">
-              <Link
-                to="/shop-v1"
-                data-text="All Products"
-                style={{
-                  display: 'inline-block',
-                  padding: '14px 40px',
-                  background: BRAND_GRAD,
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textDecoration: 'none',
-                  transition: 'opacity 0.2s, transform 0.2s',
-                  borderRadius: 10,
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLAnchorElement).style.opacity = '0.88';
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                }}
-              >
-                All Products
-              </Link>
-            </div>
-          </div>
-        </div>
+       <NewProducts />
 
         {/* ── Why Choose Us ────────────────────────────────────────── */}
      
 
         {/* ── Product Collection ────────────────────────────────────── */}
+        <GrabOrGone />
+        <CategoryIconsRow />
+        <TrendsYouMayLike />
+        <WidestCollection />
+        <SuggestedForYou />
         <ProductCollection />
 
         

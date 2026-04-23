@@ -23,7 +23,7 @@ import { productList, productTag } from '../../data/data';
 import { getProductById, getProductDetailsById } from '../../api/products';
 import { getReviewsByProduct, addReview as addReviewApi, deleteReview as deleteReviewApi } from '../../api/reviews';
 import { addToCart } from '../../api/cart.api';
-import { isWishlisted, toggleWishlist } from '../../api/wishlist.api';
+import { isWishlisted, isWishlistedAsync, toggleWishlist } from '../../api/wishlist.api';
 
 function formatINR(value: unknown): string {
   if (value === null || value === undefined || value === '') return '₹0';
@@ -150,6 +150,8 @@ function ProductGallery({ media, productName, discountPct }: { media: MediaItem[
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const imgContainerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchMovedRef = useRef(false);
   const activeItem = media[activeIdx];
   const isEmbedVideo = activeItem.type === 'video' && !!activeItem.embedUrl;
 
@@ -181,6 +183,28 @@ function ProductGallery({ media, productName, discountPct }: { media: MediaItem[
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPos({ x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)) });
   };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches && e.touches[0]
+    if (!t) return
+    touchStartRef.current = { x: t.clientX, y: t.clientY }
+    touchMovedRef.current = false
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches && e.touches[0]
+    if (!t || !touchStartRef.current) return
+    const dx = Math.abs(t.clientX - touchStartRef.current.x)
+    const dy = Math.abs(t.clientY - touchStartRef.current.y)
+    if (dx > 8 || dy > 8) touchMovedRef.current = true
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    // open lightbox only if it was a tap (no significant move)
+    if (!touchMovedRef.current) setLightboxOpen(true)
+    touchStartRef.current = null
+    touchMovedRef.current = false
+  }
 
   return (
     <>
@@ -219,7 +243,14 @@ function ProductGallery({ media, productName, discountPct }: { media: MediaItem[
             onMouseEnter={() => activeItem.type === 'image' && setZoom(true)}
             onMouseLeave={() => setZoom(false)}
             onMouseMove={handleMouseMove}
-            onClick={() => setLightboxOpen(true)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onClick={() => {
+              // prevent opening after a touch-drag caused a click
+              if (touchMovedRef.current) { touchMovedRef.current = false; return }
+              setLightboxOpen(true)
+            }}
           >
             {activeItem.type === 'image' ? (
               <>
@@ -375,7 +406,7 @@ function WishlistButton({ productId }: { productId: number }) {
   useEffect(() => {
     let alive = true;
     if (!Number.isFinite(productId) || productId <= 0) return;
-    isWishlisted(productId).then(v => { if (alive) setWished(v); }).catch(() => {});
+    isWishlistedAsync(productId).then(v => { if (alive) setWished(v); }).catch(() => {});
     return () => { alive = false; };
   }, [productId]);
   const toggle = async () => {

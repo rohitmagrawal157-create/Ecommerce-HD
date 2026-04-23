@@ -204,6 +204,7 @@ export default function TopPicks() {
     const controller = new AbortController();
     const CATEGORIES_API_URL = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Shopping-Cart/public/api/categories';
 
+
     const fetchFeaturedCategories = async () => {
       try {
         const res = await fetch(CATEGORIES_API_URL, { signal: controller.signal });

@@ -375,7 +375,7 @@ export default function Checkout() {
     };
   }
 
-  // POST /api/orders
+  // POST /api/place-order
   async function placeOrderOnServer(paymentRef?: string) {
     const orderPayload = {
       billing_address:   buildAddressPayload(billing),
@@ -395,7 +395,9 @@ export default function Checkout() {
       total,
       payment_reference: paymentRef ?? null,
     };
-    const res = await apiClient.post('/api/orders', orderPayload, { headers: authHeaders() } as any);
+    console.log('[Checkout] Placing order with payload:', orderPayload);
+    const res = await apiClient.post('/api/place-order', orderPayload, { headers: authHeaders() } as any);
+    console.log('[Checkout] Order placed successfully:', res.data);
     return res.data;
   }
 
@@ -412,61 +414,70 @@ export default function Checkout() {
     setIsPlacingOrder(true); setOrderError(null);
 
     try {
-      if (paymentMethod === 'card') {
-        const sdkReady = await new Promise<boolean>(resolve => {
-          if ((window as any).Razorpay) return resolve(true);
-          const s = document.createElement('script');
-          s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          s.onload = () => resolve(true); s.onerror = () => resolve(false);
-          document.body.appendChild(s);
-        });
-        if (!sdkReady) throw new Error('Failed to load payment gateway. Try COD.');
-
-        let rzpOrderId: string | undefined;
-        try {
-          const r = await fetch('/api/razorpay/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
-            body: JSON.stringify({ amount: Math.round(total * 100) }),
-          });
-          if (r.ok) { const d = await r.json(); rzpOrderId = d?.id; }
-        } catch { /* non-fatal */ }
-
-        await new Promise<void>((resolve, reject) => {
-          const opts: any = {
-            key:      import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_SBdvJaJvWcsKUc',
-            amount:   Math.round(total * 100),
-            currency: 'INR',
-            name:     'Infinity Printing & Signage',
-            description: 'Order Payment',
-            prefill:  { name: billing.fullName, email: billing.email, contact: billing.phone },
-            theme:    { color: PRI },
-            handler: async (response: any) => {
-              try {
-                await fetch('/api/razorpay/verify-payment', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...authHeaders() },
-                  body: JSON.stringify({
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_order_id:   response.razorpay_order_id ?? rzpOrderId,
-                    razorpay_signature:  response.razorpay_signature,
-                  }),
-                });
-                await placeOrderOnServer(response.razorpay_payment_id);
-                resolve();
-              } catch (e) { reject(e); }
-            },
-          };
-          if (rzpOrderId) opts.order_id = rzpOrderId;
-          const rzp = new (window as any).Razorpay(opts);
-          rzp.on('payment.failed', (r: any) => reject(new Error(r?.error?.description ?? 'Payment failed')));
-          rzp.open();
-        });
-      } else {
-        await placeOrderOnServer();
-      }
+      // ═══════════════════════════════════════════════════════════════════
+      // RAZORPAY INTEGRATION TEMPORARILY DISABLED
+      // Uncomment the code below when Razorpay is ready to be integrated
+      // ═══════════════════════════════════════════════════════════════════
+      // if (paymentMethod === 'card') {
+      //   const sdkReady = await new Promise<boolean>(resolve => {
+      //     if ((window as any).Razorpay) return resolve(true);
+      //     const s = document.createElement('script');
+      //     s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      //     s.onload = () => resolve(true); s.onerror = () => resolve(false);
+      //     document.body.appendChild(s);
+      //   });
+      //   if (!sdkReady) throw new Error('Failed to load payment gateway. Try COD.');
+      //
+      //   let rzpOrderId: string | undefined;
+      //   try {
+      //     const r = await fetch('/api/razorpay/create-order', {
+      //       method: 'POST',
+      //       headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      //       body: JSON.stringify({ amount: Math.round(total * 100) }),
+      //     });
+      //     if (r.ok) { const d = await r.json(); rzpOrderId = d?.id; }
+      //   } catch { /* non-fatal */ }
+      //
+      //   await new Promise<void>((resolve, reject) => {
+      //     const opts: any = {
+      //       key:      import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_SBdvJaJvWcsKUc',
+      //       amount:   Math.round(total * 100),
+      //       currency: 'INR',
+      //       name:     'Infinity Printing & Signage',
+      //       description: 'Order Payment',
+      //       prefill:  { name: billing.fullName, email: billing.email, contact: billing.phone },
+      //       theme:    { color: PRI },
+      //       handler: async (response: any) => {
+      //         try {
+      //           await fetch('/api/razorpay/verify-payment', {
+      //             method: 'POST',
+      //             headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      //             body: JSON.stringify({
+      //               razorpay_payment_id: response.razorpay_payment_id,
+      //               razorpay_order_id:   response.razorpay_order_id ?? rzpOrderId,
+      //               razorpay_signature:  response.razorpay_signature,
+      //             }),
+      //           });
+      //           await placeOrderOnServer(response.razorpay_payment_id);
+      //           resolve();
+      //         } catch (e) { reject(e); }
+      //       },
+      //     };
+      //     if (rzpOrderId) opts.order_id = rzpOrderId;
+      //     const rzp = new (window as any).Razorpay(opts);
+      //     rzp.on('payment.failed', (r: any) => reject(new Error(r?.error?.description ?? 'Payment failed')));
+      //     rzp.open();
+      //   });
+      // } else {
+      //   await placeOrderOnServer();
+      // }
+      
+      // Direct order placement (bypasses Razorpay for now)
+      console.log('[Checkout] Placing order with payment method:', paymentMethod);
+      await placeOrderOnServer();
+      
       setOrderSuccess(true);
-      setTimeout(() => navigate('/payment-success'), 600);
+      setTimeout(() => navigate('/account/orders'), 600);
     } catch (err: any) {
       setOrderError(err?.message ?? 'Failed to place order. Please try again.');
     } finally {
@@ -889,7 +900,7 @@ export default function Checkout() {
                       style={{ background: BRAND }}>
                       {isPlacingOrder
                         ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Processing…</>
-                        : (paymentMethod === 'card' ? '💳 Pay & Place Order' : '📦 Place Order (COD)')
+                        : '📦 Place Order'
                       }
                     </button>
                     <p className="text-[11px] text-gray-400 text-center mt-2">🔒 256-bit SSL Encrypted &amp; Secure</p>

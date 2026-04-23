@@ -1,5 +1,6 @@
 /**
  * ProductDetails - Refactored with modular components, improved UX, and cart API flow
+ * FIXED: Added body overflow control to prevent horizontal scroll & page instability on mobile.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -11,7 +12,6 @@ import { FaWhatsapp } from 'react-icons/fa';
 
 import NavbarOne from '../../components/navbar/navbar-one';
 import FooterOne from '../../components/footer/footer-one';
-import LayoutOne from '../../components/product/layout-one';
 import ScrollToTop from '../../components/scroll-to-top';
 import { ProductHeader } from '../../components/product-details/ProductHeader';
 import { ProductGallery } from '../../components/product-details/ProductGallery';
@@ -33,10 +33,11 @@ import {
   useCountdown,
   useToast,
 } from '../../utils/product.utils';
+import LayoutOne from '../../components/product/layout-one';
 
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 // Constants
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #5B4FBE 0%, #E8314A 50%, #F97316 100%)';
 const BRAND_SOLID = '#5B4FBE';
@@ -96,9 +97,9 @@ const productImages = {
   p4: 'https://placehold.co/600x400?text=Product+4',
 };
 
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 // Review Component
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 interface ReviewFormProps {
   onSubmit: (data: any) => Promise<void>;
@@ -204,9 +205,6 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             )}
           </div>
         </div>
-        <span className="text-xs text-gray-400">
-          {new Date(review.date ?? Date.now()).toLocaleDateString()}
-        </span>
       </div>
 
       <div>
@@ -351,10 +349,9 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 // ShippingBox — inline shipping / delivery info block
-// New block added for the reordered sequence (was not present before)
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 interface ShippingBoxProps {
   stockQty: number;
@@ -403,7 +400,8 @@ const ShippingBox: React.FC<ShippingBoxProps> = ({ stockQty }) => {
           <p className="text-xs text-gray-500 mt-0.5">
             {stockQty > 0
               ? `Only ${stockQty} left in stock — order soon`
-              : 'Currently out of stock — check back soon'}
+              : 'Currently out of stock — check back soon'
+          }
           </p>
         </div>
       </div>
@@ -411,9 +409,9 @@ const ShippingBox: React.FC<ShippingBoxProps> = ({ stockQty }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 // Main Component
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
@@ -613,6 +611,18 @@ export default function ProductDetails() {
     });
   }, []);
 
+  // ─────────────────────────────────────────────────────────
+  // FIX: PREVENT HORIZONTAL SCROLL & INSTABILITY
+  // ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Lock horizontal scroll to prevent "wobble" on mobile
+    document.body.style.overflowX = 'hidden';
+    return () => {
+      // Restore when leaving page
+      document.body.style.overflowX = '';
+    };
+  }, []);
+
   // Loading state
   if (loading) {
     return (
@@ -677,8 +687,8 @@ export default function ProductDetails() {
       <div className="s-py-50">
         <div className="container-fluid">
           <div className="max-w-[1720px] mx-auto flex flex-col lg:flex-row gap-10">
-
-            {/* ── LEFT: Gallery ────────────────────────────────────────────── */}
+            
+            {/* ── LEFT: Gallery ────────────────────────────────────── */}
             <div className="w-full lg:w-[58%]">
               <ProductGallery
                 media={mediaItems}
@@ -688,11 +698,10 @@ export default function ProductDetails() {
             </div>
 
             {/* ── RIGHT: Product info — reordered sequence ─────────────────── */}
-            <div className="lg:max-w-[635px] w-full">
+            {/* FIX: Added min-h-[700px] to prevent vertical collapse/shift */}
+            <div className="lg:max-w-[635px] w-full min-h-[700px] flex flex-col gap-4">
 
               {/* ① Name + Rating + Price + Wishlist / Share icons */}
-              {/* ProductHeader renders: product name, star rating, review count,
-                  price with original/discount, wishlist toggle, share icon */}
               <ProductHeader
                 name={productName}
                 rating={RATING_SUMMARY.average}
@@ -707,11 +716,8 @@ export default function ProductDetails() {
                 isLoadingWishlist={wishlistLoading}
               />
 
-              {/* ② Size / Color / Customize — rendered by ProductInfo (top portion)
-                  ProductInfo internally shows sizes, colors, customize, sku, category.
-                  We pass only the variant/customize fields here so it appears
-                  right after name+price, before the cart button. */}
-              <div className="mt-5">
+              {/* ② Size / Color / Customize — rendered by ProductInfo (top portion) */}
+              <div className="mt-4">
                 <ProductInfo
                   description={undefined}   /* description moved below cart */
                   details={undefined}       /* details moved below cart */
@@ -724,7 +730,6 @@ export default function ProductDetails() {
               </div>
 
               {/* ③ Quantity selector + Add to Cart + Buy Now */}
-              {/* ProductActions renders qty stepper, Add to Cart, Buy Now */}
               <ProductActions
                 quantity={quantity}
                 onQuantityChange={setQuantity}
@@ -735,7 +740,6 @@ export default function ProductDetails() {
               />
 
               {/* ④ Shipping box + Estimated delivery 15–16 days */}
-              {/* ShippingBox is new — added for this sequence, no existing code removed */}
               <ShippingBox stockQty={stockQty} />
 
               {/* ⑤ Bulk order WhatsApp link */}
@@ -775,11 +779,12 @@ export default function ProductDetails() {
               {/* ⑦ Description paragraph */}
               <p className="text-base text-gray-600 mt-5 leading-relaxed" style={{ whiteSpace: 'pre-line' }}>
                 {product?.description ??
-                  `Experience the epitome of relaxation with our ${productName}. Crafted with plush cushioning and ergonomic design, it offers unparalleled comfort for lounging or reading.`}
+                  `Experience the epitome of relaxation with our ${productName}. Crafted with plush cushioning and ergonomic design, it offers unparalleled comfort for lounging or reading.`
+                }
               </p>
 
             </div>
-            {/* ── end RIGHT panel ──────────────────────────────────────────── */}
+            {/* ── end RIGHT panel ──────────────────────────────────── */}
 
           </div>
         </div>

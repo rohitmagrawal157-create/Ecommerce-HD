@@ -154,17 +154,19 @@ async function fetchApiProducts(): Promise<Product[]> {
   return items.map(mapApiProduct);
 }
 
-// ─── GET /api/categories/:id/products ─────────────────────────────────────────
+// ─── GET /api/categories/:id/all-products ─────────────────────────────────────
 // Called when user clicks a specific category pill in ShopV1
+// Note: Uses /all-products endpoint to fetch ALL products for the category
 export async function fetchProductsByCategory(categoryId: number): Promise<Product[]> {
   if (!categoryId || categoryId <= 0) return fetchApiProducts();
 
-  const res     = await apiClient.get<any>(`/api/categories/${categoryId}/products`);
+  const res     = await apiClient.get<any>(`/api/categories/${categoryId}/all-products`);
   const payload = res.data;
 
   let items: any[] = [];
-  if (Array.isArray(payload))            items = payload;
-  else if (Array.isArray(payload?.data)) items = payload.data;
+  if (Array.isArray(payload))             items = payload;
+  else if (Array.isArray(payload?.data))  items = payload.data;
+  else if (Array.isArray(payload?.data?.data)) items = payload.data.data;
 
   return items.map(mapApiProduct);
 }

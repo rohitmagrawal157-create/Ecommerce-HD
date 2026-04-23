@@ -775,19 +775,7 @@ function MobileDrawer({ open, onClose, departments, megaMenu }: {
           <Link to="/login" onClick={onClose} style={{ display:'block',textAlign:'center',padding:'11px 0',borderRadius:10,background:CTA_GRAD,color:'#fff',fontWeight:700,fontSize:13,letterSpacing:'0.06em',fontFamily:FONT }}>SIGN UP / SIGN IN</Link>
         </div>
         <div style={{ flex:1,overflowY:'auto',overscrollBehavior:'contain' }}>
-          {[{label:'Home',links:[{name:'Home',path:'/'},{name:'Contact',path:'/contact'}]},{label:'Shop',links:[{name:'Shop',path:'/shop-v1'},{name:'Cart',path:'/cart'}]}].map(sec=>(
-            <div key={sec.label} style={{ borderBottom:`1px solid #f5f5f5` }}>
-              <button onClick={()=>toggle(sec.label)} className="hcn-drawer-btn">{sec.label}<LuChevronDown size={14} color="#999" style={{ transition:'transform .2s',transform:expanded===sec.label?'rotate(180deg)':'rotate(0)' }}/></button>
-              <div style={{ maxHeight:expanded===sec.label?300:0,overflow:'hidden',transition:'max-height .3s ease' }}>
-                <div style={{ background:'#fafaf9',padding:'8px 16px 14px',display:'flex',flexDirection:'column',gap:9 }}>
-                  {sec.links.map((l,i)=><Link key={i} to={l.path} onClick={onClose} className="hcn-sub-link">{l.name}</Link>)}
-                </div>
-              </div>
-            </div>
-          ))}
-          <Link to="/contact" onClick={onClose} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'13px 16px',borderBottom:`1px solid #f5f5f5`,fontSize:14,fontWeight:600,color:C.text,fontFamily:FONT }}>
-            Contact<LuChevronRight size={14} color="#aaa"/>
-          </Link>
+          {/* Home / Shop / Contact removed per request; departments follow below */}
           {departments.map(dept => {
             const data  = megaMenu[dept]; if(!data) return null
             const dg    = resolveDeptGrad(dept)
@@ -1057,23 +1045,151 @@ export default function NavbarOne() {
       <header ref={navRef} className="hcn" style={{ width:'100%',position:'sticky',top:0,zIndex:1000,fontFamily:FONT,boxShadow:scrolled?'0 2px 20px rgba(0,0,0,.09)':'0 1px 0 #ebebeb',transition:'box-shadow .3s' }}>
 
         {/* Utility bar */}
-        <div className={`dsk hcn-util-bar${scrolled?' is-hidden':''}`}>
-          <div style={{ maxWidth:1720,margin:'0 auto',padding:'0 24px',height:36,display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-            <div style={{ display:'flex',alignItems:'center',gap:2 }}>
-              <div style={{ position:'relative' }}><button onMouseEnter={()=>setShowFreeShip(true)} onMouseLeave={()=>setShowFreeShip(false)} style={{ display:'flex',alignItems:'center',gap:6,padding:'0 10px',height:36,background:'none',border:'none',cursor:'pointer',color:'#ccc',fontSize:11.5,fontFamily:FONT }}><RiEBike2Line size={14} color={BRAND_SOLID}/>Fast Delivery</button><Tooltip text="Fast delivery on all print orders" visible={showFreeShip}/></div>
-              <span style={{ color:'#3a3a3a',fontSize:10 }}>|</span>
-              <div style={{ position:'relative' }}><button onMouseEnter={()=>setShowEmi(true)} onMouseLeave={()=>setShowEmi(false)} style={{ display:'flex',alignItems:'center',gap:6,padding:'0 10px',height:36,background:'none',border:'none',cursor:'pointer',color:'#ccc',fontSize:11.5,fontFamily:FONT }}><svg width="13" height="13" fill="none" stroke={BRAND_SOLID} strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><rect x="5" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/><rect x="10" y="14" width="4" height="2" rx=".5" fill={BRAND_SOLID} stroke="none"/></svg>EMI Options</button><Tooltip text="Easy EMI on bulk orders" visible={showEmi}/></div>
-            </div>
-            <div style={{ display:'flex',alignItems:'center' }}>
-              {[{icon:<LuMapPin size={13} color={BRAND_SOLID}/>,label:'Delivering To',href:'#'},{icon:<LuSmartphone size={13} color={BRAND_SOLID}/>,label:'Download Apps',href:'/apps'},{icon:<LuTruck size={13} color={BRAND_SOLID}/>,label:'Track Order',href:'/track'},{icon:<LuCircle size={13} color={BRAND_SOLID}/>,label:'Help',href:'/help'}].map(({icon,label,href},i,arr)=>(
-                <span key={label} style={{ display:'flex',alignItems:'center' }}>
-                  <Link to={href} className="hcn-util-link">{icon}{label}</Link>
-                  {i<arr.length-1&&<span style={{ color:'#3a3a3a',fontSize:10 }}>|</span>}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className={`dsk hcn-util-bar${scrolled ? ' is-hidden' : ''}`}>
+  <div
+    style={{
+      background: 'linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #C33764 100%)',
+      maxWidth: 1720,
+      margin: '0 auto',
+      padding: '0 24px',
+      height: 36,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottom: '1px solid rgba(239, 238, 244, 0.4)',
+    }}
+  >
+    {/* Left: Delivery & EMI */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ position: 'relative' }}>
+        <button
+          onMouseEnter={() => setShowFreeShip(true)}
+          onMouseLeave={() => setShowFreeShip(false)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '0 12px',
+            height: 36,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#ffffff',
+            fontSize: 12,
+            fontWeight: 500,
+            fontFamily: FONT,
+            transition: 'all 0.2s ease',
+            letterSpacing: '0.3px',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'linear-gradient(90deg, #09f5fd, #04eef6fa, #fffb07)';
+            e.currentTarget.style.webkitBackgroundClip = 'text';
+            // e.currentTarget.style.webkitTextFillColor = 'transparent';
+            e.currentTarget.style.color = 'transparent';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'none';
+            e.currentTarget.style.color = '#ffffff';
+          }}
+        >
+          <RiEBike2Line size={14} style={{ color: '#f4f2f7' }} />
+          Fast Delivery
+        </button>
+        <Tooltip text="Fast delivery on all print orders" visible={showFreeShip} />
+      </div>
+
+      <span style={{ color: '#4a4a6a', fontSize: 10 }}>|</span>
+
+      <div style={{ position: 'relative' }}>
+        <button
+          onMouseEnter={() => setShowEmi(true)}
+          onMouseLeave={() => setShowEmi(false)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '0 12px',
+            height: 36,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#ffffff',
+            fontSize: 12,
+            fontWeight: 500,
+            fontFamily: FONT,
+            transition: 'all 0.2s ease',
+            letterSpacing: '0.3px',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'linear-gradient(90deg, #09f5fd, #04eef6fa, #fffb07)';
+            e.currentTarget.style.webkitBackgroundClip = 'text';
+            // e.currentTarget.style.webkitTextFillColor = 'transparent';
+            e.currentTarget.style.color = 'transparent';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'none';
+            e.currentTarget.style.color = '#ffffff';
+          }}
+        >
+          <svg width="13" height="13" fill="none" stroke="#ffffff" strokeWidth="1.5" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <path d="M2 10h20" />
+            <rect x="5" y="14" width="4" height="2" rx=".5" fill="#ffffff" stroke="none" />
+            <rect x="10" y="14" width="4" height="2" rx=".5" fill="#ffffff" stroke="none" />
+          </svg>
+          EMI Options
+        </button>
+        <Tooltip text="Easy EMI on bulk orders" visible={showEmi} />
+      </div>
+    </div>
+
+    {/* Right: Links */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {[
+        { icon: <LuMapPin size={13} />, label: 'Delivering To', href: '#' },
+        { icon: <LuSmartphone size={13} />, label: 'Download Apps', href: '/apps' },
+        { icon: <LuTruck size={13} />, label: 'Track Order', href: '/track' },
+        { icon: <LuCircle size={13} />, label: 'Help', href: '/help' },
+      ].map(({ icon, label, href }, i, arr) => (
+        <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Link
+            to={href}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              color: '#ffffff',
+              fontSize: 12,
+              fontWeight: 500,
+              fontFamily: FONT,
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              letterSpacing: '0.3px',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'linear-gradient(90deg, #09f5fd, #04eef6fa, #fffb07)';
+              e.currentTarget.style.webkitBackgroundClip = 'text';
+              // e.currentTarget.style.webkitTextFillColor = 'transparent';
+              e.currentTarget.style.color = 'transparent';
+              const svg = e.currentTarget.querySelector('svg');
+              if (svg) svg.style.color = '#c084fc';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.color = '#ffffff';
+              const svg = e.currentTarget.querySelector('svg');
+              if (svg) svg.style.color = '#c084fc';
+            }}
+          >
+            <span style={{ color: '#ffffff', transition: 'color 0.2s' }}>{icon}</span>
+            {label}
+          </Link>
+          {i < arr.length - 1 && <span style={{ color: '#4a4a6a', fontSize: 10 }}>|</span>}
+        </span>
+      ))}
+    </div>
+  </div>
+</div>
 
         {/* Logo + Search + Actions */}
         <div className="dsk" style={{ background:C.white,borderBottom:`1px solid ${C.border}` }}>

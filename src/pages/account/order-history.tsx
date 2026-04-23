@@ -5,11 +5,11 @@ import bg from '../../assets/img/shortcode/breadcumb.jpg';
 import AccountTab from '../../components/account/account-tab';
 import FooterOne from '../../components/footer/footer-one';
 import ScrollToTop from '../../components/scroll-to-top';
-import { cartData } from '../../data/data';
+import { fetchMyOrders, fetchOrderDetails } from '../../api/orders.api';
 import Aos from 'aos';
 import {
   LuPackage, LuCircle, LuClock,
-  LuSearch, LuEye, LuDownload, LuRefreshCw, LuFilter
+  LuSearch, LuEye, LuDownload, LuRefreshCw, LuFilter, LuLoader
 } from 'react-icons/lu';
 
 const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
@@ -36,7 +36,10 @@ interface CartData {
   tag: string; 
   name: string; 
   price: string; 
-  status: string 
+  status: string;
+  orderId?: string;
+  createdAt?: string;
+  fullOrder?: any;
 }
 
 const STATUS_CONFIG = {
@@ -52,7 +55,19 @@ const STATUS_CONFIG = {
     text: '#ea580c', 
     border: '#fed7aa' 
   },
-  Cancel:    { 
+  Confirmed: { 
+    icon: <LuClock size={12}/>, 
+    bg: '#fff7ed', 
+    text: '#ea580c', 
+    border: '#fed7aa' 
+  },
+  Shipped:   { 
+    icon: <LuClock size={12}/>, 
+    bg: '#fef3f2', 
+    text: '#f59e0b', 
+    border: '#fcd34d' 
+  },
+  Cancelled:    { 
     icon: <LuCircle size={12}/>, 
     bg: '#fef2f2', 
     text: '#dc2626', 
@@ -74,7 +89,62 @@ export default function OrderHistory() {
 
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('All');
-  const orders = cartData as CartData[];
+  const [orders, setOrders] = useState<CartData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all orders
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchMyOrders();
+      
+      // Map API response to CartData format
+      const mappedOrders: CartData[] = data.map((order) => {
+        const firstProduct = order.lines?.[0];
+        const statusMap: Record<string, string> = {
+          'Pending': 'Pending',
+          'Confirmed': 'Pending',
+          'Shipped': 'Pending',
+          'Completed': 'Completed',
+          'Cancelled': 'Cancel'
+        };
+        
+        return {
+          image: firstProduct?.image || '',
+          tag: firstProduct?.productName || 'Order',
+          name: `Order #${order.id}`,
+          price: `$${order.total?.toFixed(2) || '0.00'}`,
+          status: statusMap[order.status] || order.status,
+          orderId: String(order.id),
+          createdAt: order.createdAt,
+          fullOrder: order
+        };
+      });
+      
+      setOrders(mappedOrders);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      // Fallback to empty state if API fails
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrderDetailsHandler = async (orderId: string) => {
+    try {
+      const response = await fetchOrderDetails(orderId);
+      console.log('Order Details:', response);
+      alert(`Order Details loaded. Check console for details.`);
+    } catch (error) {
+      console.error('Failed to fetch order details:', error);
+      alert('Failed to load order details');
+    }
+  };
 
   const filtered = orders.filter(o => {
     const matchTab = activeTab === 'All' || o.status === activeTab;
@@ -200,7 +270,14 @@ export default function OrderHistory() {
   </div>
 
   {/* ========== TABLE ROWS ========== */}
-  {filtered.length === 0 ? (
+  {loading ? (
+    <div className="text-center py-16">
+      <div className="flex justify-center mb-3">
+        <LuLoader size={32} className="text-[#5B4FBE] animate-spin" />
+      </div>
+      <p className="text-[15px] font-bold text-gray-700">Loading orders...</p>
+    </div>
+  ) : filtered.length === 0 ? (
     <div className="text-center py-16">
       <div className="text-4xl mb-3">📦</div>
       <p className="text-[15px] font-bold text-gray-700 mb-1">No orders found</p>
@@ -246,7 +323,10 @@ export default function OrderHistory() {
 
               {/* Actions - fixed width, flex nowrap */}
               <div className="flex items-center gap-2 whitespace-nowrap">
-                <button title="View Order" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-[#5B4FBE] hover:text-[#5B4FBE] transition">
+                <button 
+                  onClick={() => fetchOrderDetailsHandler((item as any).orderId)}
+                  title="View Order" 
+                  className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-[#5B4FBE] hover:text-[#5B4FBE] transition">
                   <LuEye size={13}/>
                 </button>
                 <button title="Download Invoice" className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
@@ -280,7 +360,9 @@ export default function OrderHistory() {
                   </span>
                 )}
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
+                  <button 
+                    onClick={() => fetchOrderDetailsHandler((item as any).orderId)}
+                    className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
                     <LuEye size={13} />
                   </button>
                   <button className="p-1.5 rounded-lg border border-gray-200 text-gray-400">
