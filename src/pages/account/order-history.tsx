@@ -20,7 +20,7 @@ import type { Order, OrderDetailItem } from '../../api/orders.api';
 import Aos from 'aos';
 import {
   LuPackage, LuCircle, LuClock,
-  LuSearch, LuEye, LuDownload, LuRefreshCw, LuFilter, LuLoader, LuX,
+   LuEye, LuDownload, LuRefreshCw, LuFilter, LuLoader, LuX,
 } from 'react-icons/lu';
 
 // ── Brand tokens ───────────────────────────────────────────────────────

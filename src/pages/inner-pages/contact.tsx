@@ -13,7 +13,7 @@ import Aos         from "aos";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const BRAND     = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
-const BRAND_S   = '#5B4FBE';
+// const BRAND_S   = '#5B4FBE';
 const FONT      = "'DM Sans', sans-serif";
 
 function GradText({ children, className = '' }: { children: React.ReactNode; className?: string }) {

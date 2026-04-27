@@ -32,7 +32,7 @@ const FONT  = "'DM Sans', sans-serif"
 // ─── Shipping threshold (MUST match Cart.tsx) ─────────────────────────────────
 const FREE_SHIPPING_THRESHOLD = 3000
 const SHIPPING_FEE            = 99
-const PLATFORM_FEE            = 0   // not shown on checkout
+// const PLATFORM_FEE            = 0   // not shown on checkout
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function parseMoney(price: unknown): number {
