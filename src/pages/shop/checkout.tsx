@@ -593,6 +593,67 @@ export default function Checkout() {
                 </div>
 
                 {/* Shipping Method */}
+                {/* <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px' }}>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Shipping Method</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {([
+                      { value: 'Delivery', label: `Standard Delivery (5–7 days)`, cost: subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE },
+                      { value: 'pickup',   label: 'Local Pickup',                   cost: 50 },
+                    ] as const).map(opt => (
+                      <label key={opt.value} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', border: `1.5px solid ${shippingMethod === opt.value ? PRI : '#e5e7eb'}`, borderRadius: 10, background: shippingMethod === opt.value ? '#f3f1ff' : 'white', cursor: 'pointer', transition: 'all .15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input type="radio" name="shipping" value={opt.value} checked={shippingMethod === opt.value} onChange={() => setShippingMethod(opt.value)} style={{ accentColor: PRI }} />
+                          <div>
+                            <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>{opt.label}</span>
+                            {opt.value === 'Delivery' && subtotal < FREE_SHIPPING_THRESHOLD && (
+                              <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Add {fmtINR(FREE_SHIPPING_THRESHOLD - subtotal)} more for free shipping</p>
+                            )}
+                            {opt.value === 'Delivery' && subtotal >= FREE_SHIPPING_THRESHOLD && (
+                              <p style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>🎉 Free shipping unlocked!</p>
+                            )}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: opt.cost === 0 ? '#16a34a' : '#374151' }}>
+                          {opt.cost === 0 ? 'FREE' : fmtINR(opt.cost)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div> */}
+
+                {/* Payment Method */}
+                {/* <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px' }}>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Payment Method</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}> */}
+                    {/* COD */}
+                    {/* <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1.5px solid ${paymentMethod === 'cod' ? PRI : '#e5e7eb'}`, borderRadius: 10, background: paymentMethod === 'cod' ? '#f3f1ff' : 'white', cursor: 'pointer', transition: 'all .15s' }}>
+                      <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} style={{ accentColor: PRI }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>🏠 Cash on Delivery</p>
+                        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Pay when your order arrives — no online payment needed</p>
+                      </div>
+                      {paymentMethod === 'cod' && <span style={{ fontSize: 10, padding: '3px 8px', background: '#dcfce7', color: '#16a34a', borderRadius: 20, fontWeight: 700 }}>Selected</span>}
+                    </label> */}
+
+                    {/* Card */}
+                    {/* <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1.5px solid ${paymentMethod === 'card' ? PRI : '#e5e7eb'}`, borderRadius: 10, background: paymentMethod === 'card' ? '#f3f1ff' : 'white', cursor: 'pointer', transition: 'all .15s' }}>
+                      <input type="radio" name="payment" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} style={{ accentColor: PRI }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>💳 Debit / Credit Card</p>
+                        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Secured by Razorpay — UPI, Cards, Net Banking</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {['VISA','MC','UPI'].map(b => <span key={b} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#f3f4f6', color: '#6b7280', borderRadius: 4 }}>{b}</span>)}
+                      </div>
+                    </label>
+                  </div>
+                </div> */}
+              </div>
+
+              {/* ── RIGHT COLUMN: Order Summary ──────────────────────────── */}
+              <div data-aos="fade-up" data-aos-delay="80">
+
+                 {/* Shipping Method */}
                 <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px' }}>
                   <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Shipping Method</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -621,8 +682,7 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Payment Method */}
-                <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px' }}>
+                  <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px' }}>
                   <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Payment Method</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {/* COD */}
@@ -648,10 +708,7 @@ export default function Checkout() {
                     </label>
                   </div>
                 </div>
-              </div>
 
-              {/* ── RIGHT COLUMN: Order Summary ──────────────────────────── */}
-              <div data-aos="fade-up" data-aos-delay="80">
                 <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', padding: '24px', position: 'sticky', top: 72 }}>
                   <h4 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 20 }}>Order Summary</h4>
 

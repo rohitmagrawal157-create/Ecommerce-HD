@@ -28,7 +28,7 @@ const FONT        = "'DM Sans', sans-serif"
 // ─── Shipping threshold (MUST match Checkout.tsx) ─────────────────────────────
 const FREE_SHIPPING_THRESHOLD = 3000
 const SHIPPING_FEE            = 99
-const PLATFORM_FEE            = 10
+const PLATFORM_FEE            = 0
 
 // ─── Coupons ──────────────────────────────────────────────────────────────────
 const COUPONS: Record<string, { label: string; type: 'percent' | 'fixed'; value: number; minOrder?: number }> = {
