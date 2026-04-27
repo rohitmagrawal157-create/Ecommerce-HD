@@ -366,11 +366,11 @@ function OrderSummary({ lines, subtotal, appliedOffer, onApplyOffer, onRemoveOff
         </div>
 
         {/* Available Offers */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f0f0f0', padding: '16px', fontFamily: FONT }}>
+        {/* <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f0f0f0', padding: '16px', fontFamily: FONT }}>
           <h4 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>🏷️ Available Offers</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}> */}
             {/* Free shipping offer row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f9fafb', borderRadius: 10 }}>
+            {/* <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f9fafb', borderRadius: 10 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 2 }}>Free Shipping above {fmtINR(FREE_SHIPPING_THRESHOLD)}</p>
                 <p style={{ fontSize: 11, color: '#9ca3af' }}>Auto-applied at checkout</p>
@@ -388,7 +388,7 @@ function OrderSummary({ lines, subtotal, appliedOffer, onApplyOffer, onRemoveOff
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   )
