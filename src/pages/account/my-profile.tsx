@@ -11,7 +11,7 @@ import ScrollToTop from '../../components/scroll-to-top'
 import bg from '../../assets/img/shortcode/breadcumb.jpg'
 
 import {
-  LuMail, LuMapPin, LuPhoneCall, LuPencil, LuCheck,
+  LuMail, LuPhoneCall, LuPencil, LuCheck,
   LuX, LuUpload, LuExternalLink, LuLock, LuEye, LuEyeOff,
   LuUser, LuSave,
 } from 'react-icons/lu'

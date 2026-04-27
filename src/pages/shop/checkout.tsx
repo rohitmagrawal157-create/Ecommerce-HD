@@ -1,6 +1,7 @@
 // src/pages/Checkout.tsx
 // ══════════════════════════════════════════════════════════════════════
-//  Updated for confirmed API shapes:
+//  FIXED: Backend requires address_id (integer) not billing_address (object)
+//  Flow: Save/upsert address → get address_id → POST /api/place-order with address_id
 //
 //  GET /api/checkout returns:
 //    { status, cart_items: [{
@@ -8,19 +9,12 @@
 //        product: { product_id, name, image }
 //    }] }
 //
-//  CartLine shape from new cart.api.ts:
+//  CartLine shape from cart.api.ts:
 //    line.id         = cart_id
 //    line.productId  = actual product_id (from product.product_id)
 //    line.product    = { id, name, price, image }
 //    line.subtotal   = price × quantity
 //    line.quantity   = qty
-//
-//  All fixes from previous version preserved:
-//    - POST/PUT/DELETE addresses to /api/addresses
-//    - POST /api/orders for order placement
-//    - Razorpay integration
-//    - Auth guard
-//    - Indian cities
 // ══════════════════════════════════════════════════════════════════════
 
 import { Link, useNavigate }              from 'react-router-dom';
@@ -34,9 +28,9 @@ import ScrollToTop from '../../components/scroll-to-top';
 import bg          from '../../assets/img/shortcode/breadcumb.jpg';
 import placeholder from '../../assets/img/thumb/shop-card.jpg';
 
-import type { CartLine, CartState } from '../../api/cart.api';
-import { getCheckout } from '../../api/cart.api';
-import { apiClient }   from '../../api/client';
+import type { CartState } from '../../api/cart.api';
+import { getCheckout }    from '../../api/cart.api';
+import { apiClient }      from '../../api/client';
 
 // ── Brand tokens ──────────────────────────────────────────────────────────
 const BRAND = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
@@ -146,7 +140,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { isAuth, loading: authLoading } = useAuth();
 
-  // Cart state — CartLine now has productId field
+  // Cart state
   const [cart,        setCart]        = useState<CartState & { apiCartTotal: number }>({ lines: [], apiCartTotal: 0 });
   const [cartLoading, setCartLoading] = useState(true);
   const [cartError,   setCartError]   = useState<string | null>(null);
@@ -175,11 +169,9 @@ export default function Checkout() {
 
   const alive = useRef(true);
 
-  // Auth guard
+  // ── Auth guard ──────────────────────────────────────────────────────────
   useEffect(() => {
-    console.log('[Checkout] Auth guard check:', { authLoading, isAuth });
     if (!authLoading && !isAuth) {
-      console.log('[Checkout] Redirecting to login - not authenticated');
       navigate('/login', { state: { from: '/checkout' } });
     }
   }, [authLoading, isAuth, navigate]);
@@ -192,52 +184,23 @@ export default function Checkout() {
     return () => { alive.current = false; };
   }, []);
 
-  // Load cart from GET /api/checkout
-  // Response: { status, data: [{ cart_id, quantity, price, product: { product_id, name, image } }] }
+  // ── Load cart ───────────────────────────────────────────────────────────
   useEffect(() => {
-    // CRITICAL: Don't skip if !isAuth during authLoading because useAuth is still initializing
-    // Only skip if we've finished loading AND determined user is not authenticated
-    if (authLoading) {
-      console.log('[Checkout] Auth still loading, skipping cart load...');
-      return;
-    }
-    
-    if (!isAuth) {
-      console.log('[Checkout] Not authenticated, cart load skipped');
-      return;
-    }
+    if (authLoading) return;
+    if (!isAuth) return;
 
-    console.log('[Checkout] ═══════════════════════════════════════');
-    console.log('[Checkout] Loading cart from /api/checkout...');
-    console.log('[Checkout] ═══════════════════════════════════════');
     setCartLoading(true);
     setCartError(null);
-    
+
     getCheckout()
       .then(res => {
-        console.log('[Checkout] ═══════════════════════════════════════');
-        console.log('[Checkout] Cart loaded successfully');
-        console.log('[Checkout] Response:', res);
-        console.log('[Checkout] Lines received:', res.lines.length);
-        console.log('[Checkout] Total:', res.cart_total);
-        console.log('[Checkout] ═══════════════════════════════════════');
-        
         if (alive.current) {
           setCart({ lines: res.lines, apiCartTotal: res.cart_total });
-          console.log('[Checkout] Cart state updated:', { 
-            lineCount: res.lines.length, 
-            total: res.cart_total 
-          });
         }
       })
       .catch(e => {
-        console.error('[Checkout] ═══════════════════════════════════════');
-        console.error('[Checkout] Cart load FAILED');
-        console.error('[Checkout] Error:', e);
-        console.error('[Checkout] ═══════════════════════════════════════');
         if (alive.current) {
-          const errorMsg = e?.message ?? 'Failed to load cart.';
-          setCartError(errorMsg);
+          setCartError(e?.message ?? 'Failed to load cart.');
         }
       })
       .finally(() => {
@@ -245,7 +208,7 @@ export default function Checkout() {
       });
   }, [isAuth, authLoading]);
 
-  // Load saved addresses
+  // ── Load saved addresses ────────────────────────────────────────────────
   const loadAddresses = useCallback(async () => {
     if (!isAuth) return;
     setAddrLoading(true);
@@ -272,7 +235,7 @@ export default function Checkout() {
 
   useEffect(() => { loadAddresses(); }, [loadAddresses]);
 
-  // Derived totals — use API cart_total as source of truth
+  // ── Derived totals ──────────────────────────────────────────────────────
   const subtotal = cart.apiCartTotal > 0
     ? cart.apiCartTotal
     : cart.lines.reduce((s, l) => s + (l.subtotal > 0 ? l.subtotal : parseMoney(l.product.price) * l.quantity), 0);
@@ -281,11 +244,25 @@ export default function Checkout() {
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const total          = Math.max(0, subtotal + shippingCost - couponDiscount);
 
-  // Address helpers
+  // ── Address helpers ─────────────────────────────────────────────────────
   function selectAddress(id: number) {
     setSelectedAddrId(id);
     const addr = addresses.find(a => a.id === id);
     if (addr) setBilling({ ...addr });
+  }
+
+  function buildAddressPayload(b: BillingInfo) {
+    return {
+      full_name: b.fullName,
+      email:     b.email,
+      mobile:    b.phone,
+      city:      b.city,
+      state:     b.city,
+      pincode:   b.pincode,
+      address1:  b.addressLine1,
+      address2:  b.addressLine2,
+      note:      b.note,
+    };
   }
 
   async function handleSaveBilling() {
@@ -303,14 +280,14 @@ export default function Checkout() {
         setSaveMsg({ type: 'ok', text: '✅ Address updated in your account.' });
       } else {
         const res = await apiClient.post('/api/addresses', payload, { headers: authHeaders() } as any);
-        const newId = res.data?.data?.id ?? res.data?.id;
+        const newId = res.data?.data?.id ?? res.data?.data?.address_id ?? res.data?.id ?? res.data?.address_id;
         if (newId) setSelectedAddrId(Number(newId));
         setSaveMsg({ type: 'ok', text: '✅ Address saved to your account.' });
       }
       localStorage.setItem('savedBillingInfo', JSON.stringify(billing));
       await loadAddresses();
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.message ?? 'Save failed.';
+      const msg = e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? 'Save failed.';
       setSaveMsg({ type: 'err', text: `❌ ${msg}` });
     } finally {
       setAddrSaving(false);
@@ -367,25 +344,52 @@ export default function Checkout() {
     return e;
   }
 
-  function buildAddressPayload(b: BillingInfo) {
-    return {
-      full_name: b.fullName, email: b.email, mobile: b.phone,
-      city: b.city, state: b.city, pincode: b.pincode,
-      address1: b.addressLine1, address2: b.addressLine2, note: b.note,
-    };
-  }
-
-  // POST /api/place-order
+  // ── FIXED: placeOrderOnServer ───────────────────────────────────────────
+  // Backend validates `address_id` (integer) — NOT billing_address (object).
+  // Strategy:
+  //   1. If user already selected/saved an address → use selectedAddrId directly.
+  //   2. Otherwise → auto-save address to /api/addresses, get id back, then use it.
   async function placeOrderOnServer(paymentRef?: string) {
+    let resolvedAddressId = selectedAddrId;
+
+    if (!resolvedAddressId) {
+      // Auto-save the address and retrieve the new address_id
+      console.log('[Checkout] No selectedAddrId — auto-saving address first…');
+      const payload = buildAddressPayload(billing);
+      try {
+        const addrRes = await apiClient.post('/api/addresses', payload, { headers: authHeaders() } as any);
+        const newId =
+          addrRes.data?.data?.id          ??
+          addrRes.data?.data?.address_id  ??
+          addrRes.data?.id                ??
+          addrRes.data?.address_id;
+
+        if (!newId) {
+          throw new Error('Could not save your address. Please click "Save Address" and try again.');
+        }
+        resolvedAddressId = Number(newId);
+        setSelectedAddrId(resolvedAddressId);
+        console.log('[Checkout] Address auto-saved with id:', resolvedAddressId);
+      } catch (e: any) {
+        const msg =
+          e?.response?.data?.message ??
+          e?.response?.data?.error   ??
+          e?.message                 ??
+          'Failed to save address before placing order.';
+        throw new Error(msg);
+      }
+    }
+
+    // Build order payload — backend ONLY needs address_id (integer)
     const orderPayload = {
-      billing_address:   buildAddressPayload(billing),
+      address_id:        resolvedAddressId,   // ← KEY FIX: integer, not object
       shipping_method:   shippingMethod,
       payment_method:    paymentMethod,
       coupon_code:       appliedCoupon?.code ?? null,
       items: cart.lines.map(l => ({
-        cart_id:    l.id,         // cart_id from API
-        product_id: l.productId,  // real product_id from checkout response
-        variant_id: l.variantId ?? null,
+        cart_id:    l.id,
+        product_id: l.productId,
+        variant_id: (l as any).variantId ?? null,
         quantity:   l.quantity,
         price:      parseMoney(l.product.price),
       })),
@@ -395,13 +399,16 @@ export default function Checkout() {
       total,
       payment_reference: paymentRef ?? null,
     };
+
     console.log('[Checkout] Placing order with payload:', orderPayload);
     const res = await apiClient.post('/api/place-order', orderPayload, { headers: authHeaders() } as any);
     console.log('[Checkout] Order placed successfully:', res.data);
     return res.data;
   }
 
+  // ── Place order handler ─────────────────────────────────────────────────
   async function handlePlaceOrder() {
+    // Validate billing form
     const errors = validateBilling(billing);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -411,12 +418,12 @@ export default function Checkout() {
     if (!termsAccepted) { setOrderError('Please accept the Terms & Conditions.'); return; }
     if (cart.lines.length === 0) { setOrderError('Your cart is empty.'); return; }
 
-    setIsPlacingOrder(true); setOrderError(null);
+    setIsPlacingOrder(true);
+    setOrderError(null);
 
     try {
       // ═══════════════════════════════════════════════════════════════════
-      // RAZORPAY INTEGRATION TEMPORARILY DISABLED
-      // Uncomment the code below when Razorpay is ready to be integrated
+      // RAZORPAY INTEGRATION — uncomment when ready
       // ═══════════════════════════════════════════════════════════════════
       // if (paymentMethod === 'card') {
       //   const sdkReady = await new Promise<boolean>(resolve => {
@@ -471,20 +478,27 @@ export default function Checkout() {
       // } else {
       //   await placeOrderOnServer();
       // }
-      
-      // Direct order placement (bypasses Razorpay for now)
-      console.log('[Checkout] Placing order with payment method:', paymentMethod);
+
+      // Direct order placement (Razorpay disabled for now)
       await placeOrderOnServer();
-      
+
       setOrderSuccess(true);
-      setTimeout(() => navigate('/account/orders'), 600);
+      setTimeout(() => navigate('/order-history'), 600);
     } catch (err: any) {
-      setOrderError(err?.message ?? 'Failed to place order. Please try again.');
+      // Extract error from all possible backend response shapes:
+      // { status: false, error: "..." }  or  { message: "..." }
+      const msg =
+        err?.response?.data?.error   ??   // ← matches { status:false, error:"..." }
+        err?.response?.data?.message ??
+        err?.message                 ??
+        'Failed to place order. Please try again.';
+      setOrderError(msg);
     } finally {
       setIsPlacingOrder(false);
     }
   }
 
+  // ── Success screen ──────────────────────────────────────────────────────
   if (orderSuccess) {
     return (
       <>
@@ -551,44 +565,6 @@ export default function Checkout() {
               <Link to={!isAuth ? '/login' : '/shop-v1'} className="inline-block mt-3 text-sm font-semibold text-[#5B4FBE] hover:underline">
                 {!isAuth ? 'Go to Login →' : 'Continue Shopping →'}
               </Link>
-              
-              {/* Debug Info - Always visible */}
-              <div className="mt-8 pt-6 border-t border-gray-200 text-left bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg max-w-md mx-auto">
-                <h4 className="font-bold text-blue-900 mb-3 text-sm">🔍 Debug Information:</h4>
-                <div className="space-y-1.5 text-xs font-mono text-blue-900">
-                  <div className="flex justify-between">
-                    <span>Auth Loading:</span>
-                    <span className={authLoading ? 'text-yellow-600' : 'text-green-600'}>{String(authLoading)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Is Authenticated:</span>
-                    <span className={!isAuth ? 'text-red-600' : 'text-green-600'}>{String(isAuth)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cart Loading:</span>
-                    <span className={cartLoading ? 'text-yellow-600' : 'text-green-600'}>{String(cartLoading)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cart Lines:</span>
-                    <span className={cart.lines.length === 0 ? 'text-red-600' : 'text-green-600'}>{cart.lines.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cart Total:</span>
-                    <span>₹{cart.apiCartTotal}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-blue-200">
-                  <p className="text-blue-800 text-xs mb-2 font-semibold">Next Steps:</p>
-                  <ol className="space-y-1 text-xs text-blue-800 list-decimal list-inside">
-                    <li>Open DevTools: Press <span className="font-bold">F12</span></li>
-                    <li>Go to <span className="font-bold">Console</span> tab</li>
-                    <li>Look for blue logs with <span className="font-bold">[Checkout]</span> and <span className="font-bold">[cart.api]</span></li>
-                    <li>Check if API response has <span className="font-bold">data: []</span> (empty) or has items</li>
-                    <li>Share the full response with your developer</li>
-                  </ol>
-                </div>
-              </div>
             </div>
           )}
 
@@ -640,6 +616,7 @@ export default function Checkout() {
                     {addrLoading && <span className="text-xs text-gray-400 animate-pulse">Loading addresses…</span>}
                   </div>
 
+                  {/* Saved addresses list */}
                   {addresses.length > 0 && addrMode === 'view' && (
                     <div className="mb-6">
                       <p className="text-[13px] font-semibold text-gray-600 mb-2">Saved Addresses</p>
@@ -677,6 +654,7 @@ export default function Checkout() {
                     <p className="text-[13px] text-gray-400 mb-4">No saved addresses yet.</p>
                   )}
 
+                  {/* Billing fields */}
                   <div className="grid gap-5">
                     <div className="grid md:grid-cols-2 gap-5">
                       <FormField label="Full Name" required error={formErrors.fullName}>
@@ -735,6 +713,7 @@ export default function Checkout() {
                     </FormField>
                   </div>
 
+                  {/* Save / Update address button */}
                   <div className="mt-6 pt-5 border-t border-gray-100 flex items-center gap-4 flex-wrap">
                     <button onClick={handleSaveBilling} disabled={addrSaving}
                       className="px-6 py-2.5 rounded-xl text-white text-[14px] font-bold transition hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
@@ -752,6 +731,13 @@ export default function Checkout() {
                       <p className={`text-[13px] font-semibold ${saveMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{saveMsg.text}</p>
                     )}
                   </div>
+
+                  {/* Hint when no address is saved yet */}
+                  {!selectedAddrId && (
+                    <p className="mt-3 text-[12px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-medium">
+                      💡 Tip: Click <strong>"Save Address"</strong> above to store your address, or we'll auto-save it when you place your order.
+                    </p>
+                  )}
                 </div>
 
                 {/* Shipping */}
@@ -814,32 +800,24 @@ export default function Checkout() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-[72px]">
                   <h4 className="font-bold text-[17px] text-gray-900 mb-5">Order Summary</h4>
 
-                  {/* Cart items from GET /api/checkout */}
+                  {/* Cart items */}
                   <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1">
                     {cart.lines.map(line => {
-                      // Use line.subtotal from API (price × qty returned by checkout)
                       const itemTotal = line.subtotal > 0
                         ? line.subtotal
                         : parseMoney(line.product.price) * line.quantity;
                       return (
-                        // key on line.id (cart_id) — unique
                         <div key={line.id} className="flex items-start gap-3">
                           <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
-                            {/* Image from API product.image via getCheckout() */}
                             <img src={line.product.image || placeholder}
                               alt={line.product.name}
                               className="w-full h-full object-cover"
                               onError={e => { (e.currentTarget as HTMLImageElement).src = placeholder; }} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            {/* Name from API product.name */}
                             <p className="text-[13px] font-semibold text-gray-800 leading-snug truncate">{line.product.name}</p>
-                            {/* Qty from API */}
                             <p className="text-[12px] text-gray-400">Qty: {line.quantity}</p>
-                            {/* Product ID for reference */}
-                            <p className="text-[11px] text-gray-300">ID: {line.productId}</p>
                           </div>
-                          {/* Price × qty from API subtotal */}
                           <p className="text-[14px] font-bold text-gray-900 flex-shrink-0">{fmtINR(itemTotal)}</p>
                         </div>
                       );
@@ -912,6 +890,7 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
+
             </div>
           )}
         </div>

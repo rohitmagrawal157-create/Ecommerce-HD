@@ -6,7 +6,7 @@ const API_URL    = 'https://lightsteelblue-stinkbug-893971.hostingersite.com/Sho
 const PLACEHOLDER = 'https://placehold.co/480x600/f3f1ff/5B4FBE?text=No+Image';
 
 const BRAND = 'linear-gradient(90deg,#5B4FBE,#E8314A,#F97316)';
-const CTA   = 'linear-gradient(90deg,#2563EB,#06B6D4,#22C55E)';
+// const CTA   = 'linear-gradient(90deg,#2563EB,#06B6D4,#22C55E)';
 
 const TAGS = [
   { label: 'NEW',  grad: 'linear-gradient(90deg,#5B4FBE,#EC4899)' },

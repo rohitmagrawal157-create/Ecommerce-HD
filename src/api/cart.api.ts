@@ -114,9 +114,9 @@ export function clearGuestSession(): void {
   localStorage.removeItem(CART_LINE_KEY)
 }
 
-function isAuthenticated(): boolean {
-  return Boolean(localStorage.getItem('access_token')?.trim())
-}
+// function isAuthenticated(): boolean {
+//   return Boolean(localStorage.getItem('access_token')?.trim())
+// }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Headers — sent with every cart request

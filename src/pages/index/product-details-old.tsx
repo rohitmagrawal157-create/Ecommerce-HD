@@ -23,7 +23,7 @@ import { productList, productTag } from '../../data/data';
 import { getProductById, getProductDetailsById } from '../../api/products';
 import { getReviewsByProduct, addReview as addReviewApi, deleteReview as deleteReviewApi } from '../../api/reviews';
 import { addToCart } from '../../api/cart.api';
-import { isWishlisted, isWishlistedAsync, toggleWishlist } from '../../api/wishlist.api';
+import { isWishlistedAsync, toggleWishlist } from '../../api/wishlist.api';
 
 function formatINR(value: unknown): string {
   if (value === null || value === undefined || value === '') return '₹0';
@@ -199,7 +199,7 @@ function ProductGallery({ media, productName, discountPct }: { media: MediaItem[
     if (dx > 8 || dy > 8) touchMovedRef.current = true
   }
 
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleTouchEnd = () => {
     // open lightbox only if it was a tap (no significant move)
     if (!touchMovedRef.current) setLightboxOpen(true)
     touchStartRef.current = null
@@ -858,7 +858,7 @@ export default function ProductDetails() {
   const fallbackProduct = productList.find((item: any) => item.id === parsedId);
   const [product, setProduct] = useState<any>(fallbackProduct);
   const [reviews, setReviews] = useState<any[]>(REVIEWS)
-  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [, setReviewsLoading] = useState(true)
 
   const stockQty: number =
     Number(product?.variants?.[0]?.stock ?? product?.stock ?? STOCK_QTY_FALLBACK) || 0;

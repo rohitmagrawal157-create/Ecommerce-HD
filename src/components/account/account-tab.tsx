@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  LuUser, LuSettings, LuClipboardList, LuHeart,
+  LuUser, LuClipboardList, LuHeart,
   LuLogOut, LuLayoutDashboard,
 } from 'react-icons/lu'
 import { apiClient } from '../../api/client'
