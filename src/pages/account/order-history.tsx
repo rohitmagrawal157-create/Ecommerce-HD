@@ -346,7 +346,7 @@ export default function OrderHistory() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <LuSearch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      {/* <LuSearch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" /> */}
                       <input value={search} onChange={e => setSearch(e.target.value)}
                         placeholder="Search orders…"
                         className="h-10 pl-9 pr-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-[#5B4FBE] transition bg-gray-50 w-full sm:w-[200px]" />

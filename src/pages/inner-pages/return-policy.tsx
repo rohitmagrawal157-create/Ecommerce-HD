@@ -1,3 +1,4 @@
+// src/pages/inner-pages/ReturnPolicy.tsx
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Aos from "aos";
@@ -9,11 +10,26 @@ import bg from "../../assets/img/shortcode/breadcumb.jpg";
 
 import { LuShieldCheck, LuRefreshCcw, LuTruck, LuClock, LuFileText, LuShoppingBag } from "react-icons/lu";
 
+// ── Brand tokens ──────────────────────────────────────────────────────────────
+const BRAND = 'linear-gradient(135deg,#5B4FBE 0%,#E8314A 50%,#F97316 100%)';
+const FONT  = "'DM Sans', sans-serif";
+
+function GradText({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={className} style={{
+      background: BRAND,
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+      display: 'inline-block',
+    }}>{children}</span>
+  );
+}
+
 export default function ReturnPolicy() {
   useEffect(() => {
     Aos.init({ once: true, duration: 600 });
   }, []);
-
 
   return (
     <>
@@ -22,39 +38,43 @@ export default function ReturnPolicy() {
       {/* Breadcrumb Hero */}
       <div
         className="flex items-center gap-4 flex-wrap bg-overlay p-14 sm:p-16 before:bg-title before:bg-opacity-70"
-        style={{ backgroundImage: `url(${bg})` }}
+        style={{ backgroundImage: `url(${bg})`, fontFamily: FONT }}
       >
         <div className="text-center w-full">
-          <h2 className="text-white text-8 md:text-[40px] font-normal leading-none text-center">Return Policy</h2>
-          <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4">
+          <h2 className="text-white md:text-[40px] font-normal leading-none text-center">Return Policy</h2>
+          <ul className="flex items-center justify-center gap-[10px] text-base md:text-lg leading-none font-normal text-white mt-3 md:mt-4 flex-wrap">
             <li><Link to="/">Home</Link></li>
             <li>/</li>
-            <li className="text-primary">Return Policy</li>
+            <li><GradText>Return Policy</GradText></li>
           </ul>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="s-py-100">
+      <div className="s-py-100" style={{ fontFamily: FONT }}>
         <div className="container-fluid">
           <div className="max-w-[1200px] mx-auto">
+
+            {/* Section Header */}
+            <div className="max-w-xl mx-auto mb-10 md:mb-14 text-center" data-aos="fade-up" data-aos-delay="100">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                <LuRefreshCcw size={32} />
+              </div>
+              <h3 className="font-medium leading-none text-2xl md:text-3xl">
+                Return &amp; Refund <GradText>Policy</GradText>
+              </h3>
+              <div style={{ width: 48, height: 3, borderRadius: 2, margin: '10px auto 0', background: BRAND }} />
+              <p className="mt-4 text-gray-500 dark:text-gray-400">Last updated: April 2025</p>
+            </div>
+
             {/* Policy Card */}
             <div
-              className="bg-white dark:bg-dark-secondary rounded-xl shadow-md p-6 sm:p-8 md:p-12"
+              className="bg-white dark:bg-dark-secondary rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-300 p-6 sm:p-8 md:p-10"
               data-aos="fade-up"
+              data-aos-delay="150"
             >
-              {/* Header with icon */}
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                  <LuRefreshCcw size={32} />
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-title dark:text-white">
-                  Return & Refund Policy
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">Last updated: April 2025</p>
-              </div>
+              <div className="prose prose-lg max-w-none dark:prose-invert prose-p:text-gray-600 dark:prose-p:text-gray-300 prose-headings:text-gray-900 dark:prose-headings:text-white prose-strong:text-primary dark:prose-strong:text-primary prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
 
-              <div className="prose prose-lg max-w-none dark:prose-invert">
                 <p className="text-base leading-relaxed">
                   At <strong>Infinity</strong>, we take pride in the quality of our products. However, if you are not completely satisfied with your purchase, we are here to help. Please read our return and refund policy carefully.
                 </p>
