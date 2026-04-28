@@ -301,6 +301,8 @@ interface ProductActionsProps {
   isAdding: boolean;
   onAddToCart: () => void;
   cartError?: string | null;
+   isBuyingNow: boolean;  
+  
 }
 
 export const ProductActions: React.FC<ProductActionsProps> = ({
@@ -310,6 +312,7 @@ export const ProductActions: React.FC<ProductActionsProps> = ({
   outOfStock,
   isAdding,
   onAddToCart,
+  //  isBuyingNow,  // ← ADD THIS
   cartError,
 }) => {
   return (
